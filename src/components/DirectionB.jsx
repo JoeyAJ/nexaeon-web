@@ -15,7 +15,7 @@ function Nav({ t, lang, setLang, theme, setTheme }) {
           <NexLogo size={28} />
           <NexWordmark size={22} />
         </div>
-        <div style={{
+        <div className="nav-links" style={{
           display: 'flex', alignItems: 'center', gap: 36,
           fontSize: 14, color: 'var(--fg-2)', fontWeight: 400,
         }}>
@@ -55,7 +55,7 @@ function HeroCenterpiece() {
   }, []);
 
   return (
-    <div style={{
+    <div className="hero-centerpiece" style={{
       position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center',
       marginTop: -20, marginBottom: 80, height: 500,
     }}>
@@ -117,7 +117,7 @@ function HeroCenterpiece() {
 function Hero({ t }) {
   return (
     <section style={{ position: 'relative', overflow: 'hidden' }}>
-      <div style={{ textAlign: 'center', padding: '120px 32px 80px', position: 'relative', zIndex: 2 }}>
+      <div className="hero-padding" style={{ textAlign: 'center', padding: '120px 32px 80px', position: 'relative', zIndex: 2 }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 10,
           padding: '8px 16px', borderRadius: 999,
@@ -134,7 +134,7 @@ function Hero({ t }) {
           {t.hero.eyebrow}
         </div>
 
-        <h1 style={{
+        <h1 className="hero-title" style={{
           fontFamily: 'var(--font-serif)',
           fontSize: 'clamp(72px, 11vw, 176px)',
           lineHeight: 0.92, margin: 0, fontWeight: 400,
@@ -153,7 +153,7 @@ function Hero({ t }) {
           </span>
         </div>
 
-        <p style={{
+        <p className="hero-sub" style={{
           fontFamily: 'var(--font-sans)', fontWeight: 300,
           fontSize: 18, color: 'var(--fg-2)',
           maxWidth: 620, margin: '40px auto 0',
@@ -174,7 +174,7 @@ function Hero({ t }) {
 
       <HeroCenterpiece />
 
-      <div className="container" style={{
+      <div className="container meta-strip" style={{
         display: 'flex', justifyContent: 'center', gap: 48,
         fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.18em',
         textTransform: 'uppercase', color: 'var(--fg-3)',
@@ -209,7 +209,7 @@ function What({ t }) {
           {t.what.body}
         </p>
 
-        <div style={{
+        <div className="grid-4 what-pillars" style={{
           display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
           gap: 32, marginTop: 96, textAlign: 'left',
         }}>
@@ -268,7 +268,7 @@ function ForWhom({ t }) {
         </p>
       </div>
 
-      <div className="container" style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 64, flexWrap: 'wrap' }}>
+      <div className="container for-whom-tabs" style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 64, flexWrap: 'wrap' }}>
         {t.forWhom.items.map((it, i) => (
           <button
             key={i}
@@ -288,7 +288,7 @@ function ForWhom({ t }) {
         ))}
       </div>
 
-      <div className="container" style={{
+      <div className="container for-whom-panel" style={{
         marginTop: 48, padding: 64, borderRadius: 24,
         background: 'var(--bg-1)', border: '1px solid var(--line-1)',
         textAlign: 'center', position: 'relative', overflow: 'hidden',
@@ -330,12 +330,13 @@ function Labs({ t }) {
         </h2>
       </div>
 
-      <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 80 }}>
+      <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 80 }}>
         {t.labs.items.map((lab, i) => (
           <a
             key={i}
             href="#"
-            style={{
+            className="lab-card"
+          style={{
               position: 'relative', overflow: 'hidden',
               borderRadius: 24, border: '1px solid var(--line-1)',
               background: 'var(--bg-1)', padding: 32, minHeight: 360,
@@ -398,11 +399,12 @@ function Essays({ t }) {
         </p>
       </div>
 
-      <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+      <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
         {t.essays.items.map((e, i) => (
           <a
             key={i}
             href="#"
+            className="essay-card"
             style={{
               display: 'flex', flexDirection: 'column',
               padding: 32, borderRadius: 20,
@@ -501,7 +503,7 @@ function Collab({ t }) {
         <div style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--accent-fg)', marginBottom: 24, fontSize: 12 }}>
           — {t.collab.label}
         </div>
-        <h2 style={{
+        <h2 className="collab-title" style={{
           fontFamily: 'var(--font-serif)', fontSize: 'clamp(56px, 8vw, 128px)',
           lineHeight: 0.95, fontWeight: 400, margin: 0, letterSpacing: '-0.025em',
           whiteSpace: 'pre-line',
@@ -539,7 +541,7 @@ function Footer({ t }) {
         <p style={{ color: 'var(--fg-3)', marginTop: 8, marginBottom: 32, fontSize: 15 }}>
           {t.footer.tagline}
         </p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 28, fontSize: 13, color: 'var(--fg-2)', marginBottom: 32 }}>
+        <div className="footer-links" style={{ display: 'flex', justifyContent: 'center', gap: 28, fontSize: 13, color: 'var(--fg-2)', marginBottom: 32 }}>
           {t.footer.links.map((l, i) => (
             <a key={i} href="#" style={{ color: 'inherit', textDecoration: 'none' }}>{l}</a>
           ))}

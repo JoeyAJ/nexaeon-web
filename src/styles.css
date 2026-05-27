@@ -188,3 +188,32 @@ body {
   0%, 100% { transform: rotateX(14deg) rotateY(-22deg) rotateZ(-3deg); }
   50%       { transform: rotateX(10deg) rotateY(-8deg)  rotateZ(-1deg); }
 }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+  .grid-3 { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
+  .nav-links { display: none !important; }
+  .hero-title { font-size: clamp(52px, 14vw, 120px) !important; }
+  .hero-sub { font-size: 16px !important; width: auto !important; }
+  .hero-padding { padding: 80px 20px 40px !important; }
+  .section { padding: 64px 0 !important; }
+  .container { padding: 0 20px !important; }
+  .for-whom-panel { padding: 36px 24px !important; }
+  .collab-title { font-size: clamp(40px, 10vw, 80px) !important; }
+  .what-pillars { margin-top: 56px !important; }
+}
+
+@media (max-width: 600px) {
+  .grid-4 { grid-template-columns: 1fr !important; }
+  .grid-3 { grid-template-columns: 1fr !important; }
+  .hero-centerpiece { height: 320px !important; margin-bottom: 40px !important; }
+  .hero-centerpiece video { height: 280px !important; }
+  .hero-centerpiece img { height: 240px !important; }
+  .lab-card { min-height: 280px !important; }
+  .essay-card { min-height: auto !important; }
+  .for-whom-tabs { gap: 6px !important; }
+  .for-whom-tabs button { padding: 10px 16px !important; font-size: 12px !important; }
+  .footer-links { flex-wrap: wrap !important; gap: 16px !important; justify-content: center !important; }
+  .meta-strip { gap: 24px !important; font-size: 10px !important; }
+}
