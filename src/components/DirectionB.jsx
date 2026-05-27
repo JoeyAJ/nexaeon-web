@@ -138,7 +138,7 @@ function HeroCenterpiece() {
 
       <video
         ref={videoRef}
-        src="/assets/nexaeon-hero.mp4"
+        src="/assets/nexaeon-hero-v1.3.mov"
         autoPlay
         muted
         playsInline
