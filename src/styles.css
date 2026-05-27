@@ -76,6 +76,9 @@
   --shadow-1: 0 1px 2px rgba(0,0,0,0.4);
   --shadow-2: 0 8px 24px rgba(0,0,0,0.5);
   --shadow-glow: 0 0 80px rgba(139,92,246,0.25);
+  --neural-line: rgba(168, 146, 255, 0.2);
+  --neural-node: rgba(207, 191, 255, 0.92);
+  --neural-glow: rgba(146, 112, 255, 0.58);
 }
 
 [data-theme="light"] {
@@ -95,6 +98,9 @@
   --shadow-1: 0 1px 2px rgba(8,8,11,0.06);
   --shadow-2: 0 12px 32px rgba(8,8,11,0.08);
   --shadow-glow: 0 0 80px rgba(99,102,241,0.20);
+  --neural-line: rgba(109, 95, 180, 0.19);
+  --neural-node: rgba(88, 72, 168, 0.6);
+  --neural-glow: rgba(126, 107, 224, 0.25);
 }
 
 * { box-sizing: border-box; }
@@ -130,6 +136,63 @@ body {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 32px;
+}
+
+.direction-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.direction-shell > :not(.neural-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+.neural-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.9;
+}
+
+.neural-bg::before {
+  content: '';
+  position: absolute;
+  inset: -20% -10%;
+  background:
+    radial-gradient(52% 36% at 50% 12%, color-mix(in srgb, var(--neural-glow) 42%, transparent) 0%, transparent 78%),
+    radial-gradient(42% 28% at 78% 68%, color-mix(in srgb, var(--neural-glow) 20%, transparent) 0%, transparent 84%),
+    radial-gradient(38% 26% at 18% 82%, color-mix(in srgb, var(--neural-glow) 15%, transparent) 0%, transparent 86%);
+  filter: blur(8px);
+}
+
+.neural-bg svg {
+  width: 120%;
+  height: 120%;
+  transform: translate(-8%, -8%);
+}
+
+.neural-orbits path {
+  fill: none;
+  stroke: var(--neural-line);
+  stroke-width: 1.4;
+}
+
+.neural-nodes circle {
+  fill: var(--neural-node);
+  filter: drop-shadow(0 0 6px var(--neural-glow));
+  animation: neuralPulse 8s ease-in-out infinite;
+}
+
+.neural-nodes circle:nth-child(odd) {
+  animation-delay: 1.6s;
+}
+
+@keyframes neuralPulse {
+  0%, 100% { opacity: 0.58; }
+  45% { opacity: 1; }
 }
 
 .nav-links {
