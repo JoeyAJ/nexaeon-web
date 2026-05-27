@@ -2,6 +2,30 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
 import { INTERACTIVE_CONTENT } from '../constants/interactiveData.js';
 
+function renderMetaLabel(label) {
+  if (!label.includes('№')) return label;
+  const [left, ...rest] = label.split('№');
+  const right = rest.join('№');
+  return (
+    <>
+      {left}
+      <span
+        style={{
+          fontSize: '1.7em',
+          lineHeight: 0,
+          verticalAlign: '-0.16em',
+          letterSpacing: '0.04em',
+          display: 'inline-block',
+          margin: '0 0.08em',
+        }}
+      >
+        №
+      </span>
+      {right}
+    </>
+  );
+}
+
 function Nav({ locale, lang, setLang, theme, setTheme }) {
   const handleScroll = (id) => {
     const section = document.getElementById(id);
@@ -308,7 +332,7 @@ function Hero({ t }) {
         }}
       >
         {t.hero.meta.map((m, i) => (
-          <span key={i}>{m}</span>
+          <span key={i}>{renderMetaLabel(m)}</span>
         ))}
       </div>
     </section>
