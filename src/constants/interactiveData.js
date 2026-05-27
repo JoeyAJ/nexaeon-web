@@ -5,7 +5,7 @@ export const INTERACTIVE_CONTENT = {
       { id: 'research', label: '研究方向' },
       { id: 'knowledge', label: '知識庫' },
       { id: 'projects', label: '項目展示' },
-      { id: 'assistant', label: 'Nexōn 助教' },
+      { id: 'assistant', label: 'NexAeon 助教' },
       { id: 'contact', label: '聯絡合作' },
     ],
     common: {
@@ -170,11 +170,11 @@ export const INTERACTIVE_CONTENT = {
       ],
     },
     assistant: {
-      eyebrow: 'Nexōn AI Tutor',
-      title: 'Nexōn 助教',
-      greeting: '你好，我是 Nexōn 助教。可以直接點選預設問題，或輸入你的提問。',
+      eyebrow: 'NexAeon AI Tutor',
+      title: 'NexAeon 助教',
+      greeting: '你好，我是 NexAeon 助教。可以直接點選預設問題，或輸入你的提問。',
       userLabel: '你',
-      assistantLabel: 'Nexōn',
+      assistantLabel: 'NexAeon',
       inputPlaceholder: '輸入你的問題...',
       send: '送出',
       fallback: '目前是 V1 mock 助教。你可以先點選上方四個預設問題，我會給你對應答案。',
@@ -194,7 +194,7 @@ export const INTERACTIVE_CONTENT = {
         {
           question: '這個網站能為學生提供什麼？',
           answer:
-            '學生可以在這裡快速理解研究方向、搜尋知識資源、查看專案案例，並透過 Nexōn 助教先獲得即時的學習引導。',
+            '學生可以在這裡快速理解研究方向、搜尋知識資源、查看專案案例，並透過 NexAeon 助教先獲得即時的學習引導。',
           keywords: ['學生', '提供', '學習'],
         },
         {
@@ -226,7 +226,7 @@ export const INTERACTIVE_CONTENT = {
       { id: 'research', label: 'Research' },
       { id: 'knowledge', label: 'Knowledge Base' },
       { id: 'projects', label: 'Projects' },
-      { id: 'assistant', label: 'Nexōn Tutor' },
+      { id: 'assistant', label: 'NexAeon Tutor' },
       { id: 'contact', label: 'Contact' },
     ],
     common: {
@@ -397,11 +397,11 @@ export const INTERACTIVE_CONTENT = {
       ],
     },
     assistant: {
-      eyebrow: 'Nexōn AI Tutor',
-      title: 'Nexōn Tutor',
-      greeting: 'Hi, I am Nexōn Tutor. Tap a preset question or type your own.',
+      eyebrow: 'NexAeon AI Tutor',
+      title: 'NexAeon Tutor',
+      greeting: 'Hi, I am NexAeon Tutor. Tap a preset question or type your own.',
       userLabel: 'You',
-      assistantLabel: 'Nexōn',
+      assistantLabel: 'NexAeon',
       inputPlaceholder: 'Type your question...',
       send: 'Send',
       fallback: 'This is a V1 mock tutor. Try one of the four preset questions above for mapped replies.',
@@ -421,7 +421,7 @@ export const INTERACTIVE_CONTENT = {
         {
           question: 'What can students get from this website?',
           answer:
-            'Students can quickly understand research directions, search learning resources, review project cases, and get initial guidance from Nexōn Tutor.',
+            'Students can quickly understand research directions, search learning resources, review project cases, and get initial guidance from NexAeon Tutor.',
           keywords: ['students', 'website', 'get from', 'learning support'],
         },
         {
@@ -453,7 +453,7 @@ export const INTERACTIVE_CONTENT = {
       { id: 'research', label: '연구 방향' },
       { id: 'knowledge', label: '지식베이스' },
       { id: 'projects', label: '프로젝트' },
-      { id: 'assistant', label: 'Nexōn 튜터' },
+      { id: 'assistant', label: 'NexAeon 튜터' },
       { id: 'contact', label: '협업 문의' },
     ],
     common: {
@@ -618,11 +618,11 @@ export const INTERACTIVE_CONTENT = {
       ],
     },
     assistant: {
-      eyebrow: 'Nexōn AI Tutor',
-      title: 'Nexōn 튜터',
-      greeting: '안녕하세요, Nexōn 튜터입니다. 추천 질문을 누르거나 직접 입력해 보세요.',
+      eyebrow: 'NexAeon AI Tutor',
+      title: 'NexAeon 튜터',
+      greeting: '안녕하세요, NexAeon 튜터입니다. 추천 질문을 누르거나 직접 입력해 보세요.',
       userLabel: '사용자',
-      assistantLabel: 'Nexōn',
+      assistantLabel: 'NexAeon',
       inputPlaceholder: '질문을 입력하세요...',
       send: '보내기',
       fallback: '현재는 V1 목업 튜터입니다. 위의 4가지 추천 질문을 먼저 사용해 보세요.',
@@ -642,7 +642,7 @@ export const INTERACTIVE_CONTENT = {
         {
           question: '이 웹사이트는 학생에게 무엇을 제공하나요?',
           answer:
-            '학생은 연구 방향 파악, 학습 자료 검색, 프로젝트 사례 확인, Nexōn 튜터의 초기 학습 가이드를 얻을 수 있습니다.',
+            '학생은 연구 방향 파악, 학습 자료 검색, 프로젝트 사례 확인, NexAeon 튜터의 초기 학습 가이드를 얻을 수 있습니다.',
           keywords: ['학생', '제공', '웹사이트'],
         },
         {
