@@ -4,6 +4,27 @@ import { INTERACTIVE_CONTENT } from '../constants/interactiveData.js';
 import { getContentByType } from '../data/nexaeonContent.js';
 import { toDetailPath } from '../utils/router.js';
 
+const UI_TEXT = {
+  zh: {
+    quickPreview: '快速預覽',
+    viewDetail: '查看詳情',
+    allCategory: '全部',
+    detailDescriptionLabel: '詳細說明',
+  },
+  en: {
+    quickPreview: 'Quick Preview',
+    viewDetail: 'View Details',
+    allCategory: 'All',
+    detailDescriptionLabel: 'Description',
+  },
+  ko: {
+    quickPreview: '빠른 미리보기',
+    viewDetail: '상세 보기',
+    allCategory: '전체',
+    detailDescriptionLabel: '상세 설명',
+  },
+};
+
 function renderMetaLabel(label) {
   if (!label.includes('№')) return label;
   const [left, ...rest] = label.split('№');
@@ -49,7 +70,7 @@ function createDetailItem(item, locale) {
   };
 }
 
-function DetailModal({ detail, locale, onClose }) {
+function DetailModal({ detail, locale, uiText, onClose }) {
   if (!detail) return null;
 
   return (
@@ -98,7 +119,7 @@ function DetailModal({ detail, locale, onClose }) {
           {detail.description ? (
             <div>
               <div className="label" style={{ marginBottom: 4 }}>
-                詳細說明
+                {uiText.detailDescriptionLabel}
               </div>
               <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{detail.description}</div>
             </div>
@@ -507,7 +528,7 @@ function Hero({ t }) {
   );
 }
 
-function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate }) {
+function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate, uiText }) {
   return (
     <section id="research" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
@@ -553,14 +574,14 @@ function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate }) {
               <p style={{ marginTop: 10, color: 'var(--fg-3)', lineHeight: 1.6, fontSize: 14 }}>{item.summary}</p>
               <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn btn-ghost" style={{ padding: '9px 14px' }} onClick={() => onOpenDetail(createDetailItem(item, locale))}>
-                  快速預覽
+                  {uiText.quickPreview}
                 </button>
                 <button
                   className="btn btn-gradient"
                   style={{ padding: '9px 14px' }}
                   onClick={() => navigate(toDetailPath('research', item.id))}
                 >
-                  查看詳情
+                  {uiText.viewDetail}
                 </button>
               </div>
             </article>
@@ -571,14 +592,14 @@ function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate }) {
   );
 }
 
-function KnowledgeSection({ locale, items, onOpenDetail, navigate }) {
+function KnowledgeSection({ locale, items, onOpenDetail, navigate, uiText }) {
   const [keyword, setKeyword] = useState('');
   const [categoryKey, setCategoryKey] = useState('all');
 
   const categories = useMemo(() => {
     const keys = Array.from(new Set(items.map((item) => item.category)));
-    return [{ key: 'all', label: '全部' }, ...keys.map((category) => ({ key: category, label: category }))];
-  }, [items]);
+    return [{ key: 'all', label: uiText.allCategory }, ...keys.map((category) => ({ key: category, label: category }))];
+  }, [items, uiText.allCategory]);
 
   const filtered = useMemo(() => {
     const lower = keyword.trim().toLowerCase();
@@ -688,14 +709,14 @@ function KnowledgeSection({ locale, items, onOpenDetail, navigate }) {
                 <div style={{ marginTop: 12, color: 'var(--fg-3)', fontSize: 13 }}>{item.tags.join(' · ')}</div>
                 <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <button className="btn btn-ghost" style={{ padding: '8px 12px' }} onClick={() => onOpenDetail(createDetailItem(item, locale))}>
-                    快速預覽
+                    {uiText.quickPreview}
                   </button>
                   <button
                     className="btn btn-gradient"
                     style={{ padding: '8px 12px' }}
                     onClick={() => navigate(toDetailPath('knowledge', item.id))}
                   >
-                    查看詳情
+                    {uiText.viewDetail}
                   </button>
                 </div>
               </article>
@@ -707,7 +728,7 @@ function KnowledgeSection({ locale, items, onOpenDetail, navigate }) {
   );
 }
 
-function ProjectsSection({ locale, items, onOpenDetail, navigate }) {
+function ProjectsSection({ locale, items, onOpenDetail, navigate, uiText }) {
   return (
     <section id="projects" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
@@ -752,14 +773,14 @@ function ProjectsSection({ locale, items, onOpenDetail, navigate }) {
               <p style={{ marginTop: 12, color: 'var(--fg-3)', fontSize: 14, lineHeight: 1.6 }}>{item.summary}</p>
               <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn btn-ghost" style={{ padding: '8px 12px' }} onClick={() => onOpenDetail(createDetailItem(item, locale))}>
-                  快速預覽
+                  {uiText.quickPreview}
                 </button>
                 <button
                   className="btn btn-gradient"
                   style={{ padding: '8px 12px' }}
                   onClick={() => navigate(toDetailPath('projects', item.id))}
                 >
-                  查看詳情
+                  {uiText.viewDetail}
                 </button>
               </div>
             </article>
@@ -1001,10 +1022,11 @@ function Footer({ t }) {
 export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate }) {
   const rootRef = useRef(null);
   const locale = INTERACTIVE_CONTENT[lang] || INTERACTIVE_CONTENT.en;
+  const uiText = UI_TEXT[lang] || UI_TEXT.en;
   const [detail, setDetail] = useState(null);
-  const researchItems = useMemo(() => getContentByType('research'), []);
-  const knowledgeItems = useMemo(() => getContentByType('knowledge'), []);
-  const projectItems = useMemo(() => getContentByType('projects'), []);
+  const researchItems = useMemo(() => getContentByType('research', lang), [lang]);
+  const knowledgeItems = useMemo(() => getContentByType('knowledge', lang), [lang]);
+  const projectItems = useMemo(() => getContentByType('projects', lang), [lang]);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -1028,13 +1050,13 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       <NeuralBackground />
       <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
       <Hero t={t} />
-      <ResearchDirectionsSection key={`research-${lang}`} locale={locale} items={researchItems} onOpenDetail={setDetail} navigate={navigate} />
-      <KnowledgeSection key={`knowledge-${lang}`} locale={locale} items={knowledgeItems} onOpenDetail={setDetail} navigate={navigate} />
-      <ProjectsSection key={`projects-${lang}`} locale={locale} items={projectItems} onOpenDetail={setDetail} navigate={navigate} />
+      <ResearchDirectionsSection key={`research-${lang}`} locale={locale} items={researchItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
+      <KnowledgeSection key={`knowledge-${lang}`} locale={locale} items={knowledgeItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
+      <ProjectsSection key={`projects-${lang}`} locale={locale} items={projectItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
       <AssistantSection key={`assistant-${lang}`} locale={locale} />
       <ContactSection key={`contact-${lang}`} locale={locale} />
       <Footer t={t} />
-      <DetailModal detail={detail} locale={locale} onClose={() => setDetail(null)} />
+      <DetailModal detail={detail} locale={locale} uiText={uiText} onClose={() => setDetail(null)} />
     </div>
   );
 }

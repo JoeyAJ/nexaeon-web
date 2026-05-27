@@ -33,7 +33,7 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-0)' }}>
       {route.kind === 'detail' ? (
-        <DetailPage type={route.type} id={route.id} navigate={navigate} />
+        <DetailPage type={route.type} id={route.id} navigate={navigate} lang={lang} />
       ) : (
         <DirectionB
           t={t}

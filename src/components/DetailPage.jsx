@@ -1,5 +1,32 @@
 import { findContentItem } from '../data/nexaeonContent.js';
 
+const DETAIL_TEXT = {
+  zh: {
+    notFoundTitle: '內容尚未建立',
+    notFoundBody: '這個條目目前沒有可顯示的資料。',
+    backHome: '返回首頁',
+    summary: '摘要',
+    description: '詳細說明',
+    nextStep: '下一步',
+  },
+  en: {
+    notFoundTitle: 'Content Not Ready',
+    notFoundBody: 'This entry is not available yet.',
+    backHome: 'Back to Home',
+    summary: 'Summary',
+    description: 'Description',
+    nextStep: 'Next Step',
+  },
+  ko: {
+    notFoundTitle: '콘텐츠 준비 중',
+    notFoundBody: '이 항목은 아직 표시할 콘텐츠가 없습니다.',
+    backHome: '홈으로 돌아가기',
+    summary: '요약',
+    description: '상세 설명',
+    nextStep: '다음 단계',
+  },
+};
+
 function Badge({ children }) {
   return (
     <span
@@ -22,7 +49,7 @@ function Badge({ children }) {
   );
 }
 
-function NotFound({ navigate }) {
+function NotFound({ navigate, text }) {
   return (
     <div className="container" style={{ paddingTop: 120, paddingBottom: 120 }}>
       <div
@@ -37,24 +64,25 @@ function NotFound({ navigate }) {
         }}
       >
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(34px, 5vw, 56px)', lineHeight: 1.1 }}>
-          內容尚未建立
+          {text.notFoundTitle}
         </div>
         <p style={{ marginTop: 16, color: 'var(--fg-2)', lineHeight: 1.7 }}>
-          這個條目目前沒有可顯示的資料。
+          {text.notFoundBody}
         </p>
         <button className="btn btn-ghost" style={{ marginTop: 18 }} onClick={() => navigate('/')}>
-          返回首頁
+          {text.backHome}
         </button>
       </div>
     </div>
   );
 }
 
-export default function DetailPage({ type, id, navigate }) {
-  const item = findContentItem(type, id);
+export default function DetailPage({ type, id, navigate, lang }) {
+  const text = DETAIL_TEXT[lang] || DETAIL_TEXT.en;
+  const item = findContentItem(type, id, lang);
 
   if (!item) {
-    return <NotFound navigate={navigate} />;
+    return <NotFound navigate={navigate} text={text} />;
   }
 
   return (
@@ -62,7 +90,7 @@ export default function DetailPage({ type, id, navigate }) {
       <div className="container">
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <button className="btn btn-ghost" onClick={() => navigate('/')}>
-            返回首頁
+            {text.backHome}
           </button>
 
           <article
@@ -97,17 +125,17 @@ export default function DetailPage({ type, id, navigate }) {
 
             <div style={{ marginTop: 28, display: 'grid', gap: 20 }}>
               <section>
-                <div className="label" style={{ marginBottom: 8 }}>摘要</div>
+                <div className="label" style={{ marginBottom: 8 }}>{text.summary}</div>
                 <p style={{ margin: 0, color: 'var(--fg-2)', lineHeight: 1.8 }}>{item.summary}</p>
               </section>
 
               <section>
-                <div className="label" style={{ marginBottom: 8 }}>詳細說明</div>
+                <div className="label" style={{ marginBottom: 8 }}>{text.description}</div>
                 <p style={{ margin: 0, color: 'var(--fg-2)', lineHeight: 1.8 }}>{item.description}</p>
               </section>
 
               <section>
-                <div className="label" style={{ marginBottom: 8 }}>下一步</div>
+                <div className="label" style={{ marginBottom: 8 }}>{text.nextStep}</div>
                 <p style={{ margin: 0, color: 'var(--fg-2)', lineHeight: 1.8 }}>{item.nextStep}</p>
               </section>
 
