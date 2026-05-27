@@ -193,7 +193,14 @@ body {
 @media (max-width: 900px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
   .grid-3 { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
-  .nav-links { display: none !important; }
+  .nav-links {
+    display: flex !important;
+    gap: 14px !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: 100%;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
   .hero-title { font-size: clamp(52px, 14vw, 120px) !important; }
   .hero-sub { font-size: 16px !important; width: auto !important; }
   .hero-padding { padding: 80px 20px 40px !important; }
