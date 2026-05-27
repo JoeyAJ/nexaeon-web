@@ -11,15 +11,15 @@ function renderMetaLabel(label) {
       {left}
       <span
         style={{
-          fontSize: '1.7em',
-          lineHeight: 0,
-          verticalAlign: '-0.16em',
-          letterSpacing: '0.04em',
-          display: 'inline-block',
-          margin: '0 0.08em',
+          fontSize: '1em',
+          fontFamily: 'inherit',
+          fontWeight: 'inherit',
+          letterSpacing: '0.1em',
+          opacity: 0.9,
+          margin: '0 0.02em',
         }}
       >
-        №
+        No.
       </span>
       {right}
     </>
