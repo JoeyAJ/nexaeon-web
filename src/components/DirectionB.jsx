@@ -26,11 +26,89 @@ function renderMetaLabel(label) {
   );
 }
 
+function scrollToSection(id) {
+  const section = document.getElementById(id);
+  if (!section) return;
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function createDetailItem(item, locale) {
+  return {
+    title: item.title,
+    summary: item.summary || item.subtitle || item.details || '',
+    status: item.status || locale.common.detailFallback.status,
+    nextAction: item.nextAction || locale.common.detailFallback.nextAction,
+    link: item.link || '',
+  };
+}
+
+function DetailModal({ detail, locale, onClose }) {
+  if (!detail) return null;
+
+  return (
+    <div className="detail-modal-backdrop" onClick={onClose}>
+      <div
+        className="detail-modal-panel"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, lineHeight: 1.2 }}>{detail.title}</div>
+          <button className="btn btn-ghost" onClick={onClose} style={{ padding: '8px 14px' }}>
+            {locale.common.close}
+          </button>
+        </div>
+
+        <div style={{ marginTop: 20, display: 'grid', gap: 12 }}>
+          <div>
+            <div className="label" style={{ marginBottom: 4 }}>
+              {locale.common.summaryLabel}
+            </div>
+            <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{detail.summary}</div>
+          </div>
+          <div>
+            <div className="label" style={{ marginBottom: 4 }}>
+              {locale.common.statusLabel}
+            </div>
+            <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{detail.status}</div>
+          </div>
+          <div>
+            <div className="label" style={{ marginBottom: 4 }}>
+              {locale.common.nextActionLabel}
+            </div>
+            <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{detail.nextAction}</div>
+          </div>
+        </div>
+
+        {detail.link ? (
+          <a href={detail.link} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ marginTop: 20 }}>
+            {locale.common.externalLink}
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function Nav({ locale, lang, setLang, theme, setTheme }) {
-  const handleScroll = (id) => {
-    const section = document.getElementById(id);
-    if (!section) return;
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const closeOnResize = () => {
+      if (window.innerWidth > 900) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    closeOnResize();
+    window.addEventListener('resize', closeOnResize);
+    return () => window.removeEventListener('resize', closeOnResize);
+  }, []);
+
+  const handleNavClick = (id) => {
+    scrollToSection(id);
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -60,7 +138,7 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
         <div
           className="nav-links"
           style={{
-            display: 'flex',
+            display: isMobileMenuOpen ? 'flex' : undefined,
             alignItems: 'center',
             gap: 26,
             fontSize: 14,
@@ -71,7 +149,7 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
           {locale.navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => handleScroll(item.id)}
+              onClick={() => handleNavClick(item.id)}
               style={{
                 border: 'none',
                 background: 'transparent',
@@ -87,7 +165,7 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="nav-actions" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             style={{
@@ -105,6 +183,13 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
             {theme === 'dark' ? '☀' : '◑'}
           </button>
           <LangSwitcher lang={lang} setLang={setLang} />
+          <button
+            className="mobile-menu-toggle"
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? '×' : '☰'}
+          </button>
         </div>
       </div>
     </nav>
@@ -301,14 +386,14 @@ function Hero({ t }) {
           <button
             className="btn btn-gradient"
             style={{ fontSize: 15 }}
-            onClick={() => document.getElementById('research')?.scrollIntoView({ behavior: 'smooth' })}
+            onClick={() => scrollToSection('knowledge')}
           >
             {t.hero.cta1} <ArrowIcon />
           </button>
           <button
             className="btn btn-ghost"
             style={{ fontSize: 15 }}
-            onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
+            onClick={() => scrollToSection('research')}
           >
             {t.hero.cta2}
           </button>
@@ -339,9 +424,7 @@ function Hero({ t }) {
   );
 }
 
-function ResearchDirectionsSection({ locale }) {
-  const [expanded, setExpanded] = useState({});
-
+function ResearchDirectionsSection({ locale, onOpenDetail }) {
   return (
     <section id="research" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
@@ -364,11 +447,10 @@ function ResearchDirectionsSection({ locale }) {
 
       <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 64 }}>
         {locale.research.items.map((item) => {
-          const isOpen = Boolean(expanded[item.id]);
           return (
             <button
               key={item.id}
-              onClick={() => setExpanded((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+              onClick={() => onOpenDetail(createDetailItem(item, locale))}
               style={{
                 textAlign: 'left',
                 borderRadius: 20,
@@ -383,13 +465,10 @@ function ResearchDirectionsSection({ locale }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, lineHeight: 1.2 }}>{item.title}</div>
                 <span className="label" style={{ color: 'var(--fg-3)', letterSpacing: '0.08em' }}>
-                  {isOpen ? locale.common.collapse : locale.common.expand}
+                  {locale.common.openDetails}
                 </span>
               </div>
               <p style={{ marginTop: 12, color: 'var(--fg-2)', lineHeight: 1.6, fontSize: 15 }}>{item.summary}</p>
-              {isOpen ? (
-                <p style={{ marginTop: 14, color: 'var(--fg-2)', lineHeight: 1.65, fontSize: 14 }}>{item.details}</p>
-              ) : null}
             </button>
           );
         })}
@@ -398,10 +477,9 @@ function ResearchDirectionsSection({ locale }) {
   );
 }
 
-function KnowledgeSection({ locale }) {
+function KnowledgeSection({ locale, onOpenDetail }) {
   const [keyword, setKeyword] = useState('');
   const [categoryKey, setCategoryKey] = useState('all');
-  const [selectedId, setSelectedId] = useState(null);
 
   const categoryLabelByKey = useMemo(() => {
     const map = new Map();
@@ -421,8 +499,6 @@ function KnowledgeSection({ locale }) {
         .includes(lower);
     });
   }, [categoryKey, categoryLabelByKey, keyword, locale.knowledge.items]);
-
-  const selected = filtered.find((item) => item.id === selectedId) ?? null;
 
   return (
     <section id="knowledge" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
@@ -494,7 +570,7 @@ function KnowledgeSection({ locale }) {
             filtered.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setSelectedId((prev) => (prev === item.id ? null : item.id))}
+                onClick={() => onOpenDetail(createDetailItem(item, locale))}
                 style={{
                   textAlign: 'left',
                   borderRadius: 16,
@@ -522,38 +598,12 @@ function KnowledgeSection({ locale }) {
             ))
           )}
         </div>
-
-        {selected ? (
-          <div
-            style={{
-              marginTop: 18,
-              borderRadius: 18,
-              border: '1px solid var(--line-2)',
-              background: 'var(--bg-1)',
-              padding: 20,
-            }}
-          >
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28 }}>{selected.title}</div>
-            <p style={{ marginTop: 12, color: 'var(--fg-2)', lineHeight: 1.6 }}>{selected.summary}</p>
-            <a
-              href={selected.link}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-ghost"
-              style={{ marginTop: 14, display: 'inline-flex' }}
-            >
-              {locale.common.externalLink}
-            </a>
-          </div>
-        ) : null}
       </div>
     </section>
   );
 }
 
-function ProjectsSection({ locale }) {
-  const [activeId, setActiveId] = useState(null);
-
+function ProjectsSection({ locale, onOpenDetail }) {
   return (
     <section id="projects" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
@@ -576,11 +626,10 @@ function ProjectsSection({ locale }) {
 
       <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 60 }}>
         {locale.projects.items.map((item) => {
-          const isOpen = activeId === item.id;
           return (
             <button
               key={item.id}
-              onClick={() => setActiveId((prev) => (prev === item.id ? null : item.id))}
+              onClick={() => onOpenDetail(createDetailItem(item, locale))}
               style={{
                 textAlign: 'left',
                 borderRadius: 20,
@@ -594,11 +643,10 @@ function ProjectsSection({ locale }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, lineHeight: 1.2 }}>{item.title}</div>
                 <span className="label" style={{ color: 'var(--fg-3)', letterSpacing: '0.08em' }}>
-                  {isOpen ? locale.common.collapse : locale.common.details}
+                  {locale.common.openDetails}
                 </span>
               </div>
               <p style={{ marginTop: 10, color: 'var(--fg-2)', fontSize: 14 }}>{item.subtitle}</p>
-              {isOpen ? <p style={{ marginTop: 12, color: 'var(--fg-2)', lineHeight: 1.65 }}>{item.details}</p> : null}
             </button>
           );
         })}
@@ -744,29 +792,14 @@ function AssistantSection({ locale }) {
 }
 
 function ContactSection({ locale }) {
-  const [form, setForm] = useState({
-    name: '',
-    identity: '',
-    direction: '',
-    email: '',
-    message: '',
-  });
   const [status, setStatus] = useState('');
-
-  const updateField = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const hasEmpty = Object.values(form).some((value) => !value.trim());
-    if (hasEmpty) {
-      setStatus(locale.contact.requiredMessage);
-      return;
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(locale.contact.email);
+      setStatus(locale.contact.copySuccessMessage);
+    } catch {
+      setStatus(locale.contact.copyFallbackMessage);
     }
-
-    setStatus(locale.contact.successMessage);
-    setForm({ name: '', identity: '', direction: '', email: '', message: '' });
   };
 
   return (
@@ -790,81 +823,35 @@ function ContactSection({ locale }) {
       </div>
 
       <div className="container" style={{ marginTop: 56 }}>
-        <form
-          onSubmit={handleSubmit}
-          className="contact-form-grid"
+        <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: 14,
+            maxWidth: 760,
+            margin: '0 auto',
             borderRadius: 24,
             border: '1px solid var(--line-1)',
             background: 'var(--bg-1)',
-            padding: 22,
+            padding: 28,
+            textAlign: 'center',
           }}
         >
-          <input
-            value={form.name}
-            onChange={(event) => updateField('name', event.target.value)}
-            placeholder={locale.contact.namePlaceholder}
-            style={fieldStyle}
-          />
-
-          <select value={form.identity} onChange={(event) => updateField('identity', event.target.value)} style={fieldStyle}>
-            <option value="">{locale.contact.identityPlaceholder}</option>
-            {locale.contact.identityOptions.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-
-          <select value={form.direction} onChange={(event) => updateField('direction', event.target.value)} style={fieldStyle}>
-            <option value="">{locale.contact.directionPlaceholder}</option>
-            {locale.contact.directionOptions.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="email"
-            value={form.email}
-            onChange={(event) => updateField('email', event.target.value)}
-            placeholder={locale.contact.emailPlaceholder}
-            style={fieldStyle}
-          />
-
-          <textarea
-            value={form.message}
-            onChange={(event) => updateField('message', event.target.value)}
-            placeholder={locale.contact.messagePlaceholder}
-            style={{ ...fieldStyle, gridColumn: '1 / -1', minHeight: 120, resize: 'vertical' }}
-          />
-
-          <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
-            <button type="submit" className="btn btn-gradient">
-              {locale.contact.submit}
-            </button>
-            {status ? <div style={{ color: 'var(--fg-2)', fontSize: 14 }}>{status}</div> : null}
+          <p style={{ color: 'var(--fg-2)', lineHeight: 1.7, margin: 0 }}>{locale.contact.description}</p>
+          <div style={{ marginTop: 18, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--accent-fg)' }}>
+            {locale.contact.email}
           </div>
-        </form>
+          <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a href={`mailto:${locale.contact.email}`} className="btn btn-gradient">
+              {locale.contact.mailtoCta}
+            </a>
+            <button onClick={copyEmail} className="btn btn-ghost">
+              {locale.contact.copyCta}
+            </button>
+          </div>
+          {status ? <div style={{ marginTop: 10, color: 'var(--fg-2)', fontSize: 14 }}>{status}</div> : null}
+        </div>
       </div>
     </section>
   );
 }
-
-const fieldStyle = {
-  width: '100%',
-  background: 'var(--bg-0)',
-  border: '1px solid var(--line-2)',
-  color: 'var(--fg-1)',
-  borderRadius: 12,
-  padding: '12px 12px',
-  fontFamily: 'var(--font-sans)',
-  fontSize: 14,
-};
 
 function Footer({ t }) {
   return (
@@ -899,6 +886,7 @@ function Footer({ t }) {
 export default function DirectionB({ t, lang, setLang, theme, setTheme }) {
   const rootRef = useRef(null);
   const locale = INTERACTIVE_CONTENT[lang] || INTERACTIVE_CONTENT.en;
+  const [detail, setDetail] = useState(null);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -921,12 +909,13 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme }) {
     <div ref={rootRef}>
       <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
       <Hero t={t} />
-      <ResearchDirectionsSection key={`research-${lang}`} locale={locale} />
-      <KnowledgeSection key={`knowledge-${lang}`} locale={locale} />
-      <ProjectsSection key={`projects-${lang}`} locale={locale} />
+      <ResearchDirectionsSection key={`research-${lang}`} locale={locale} onOpenDetail={setDetail} />
+      <KnowledgeSection key={`knowledge-${lang}`} locale={locale} onOpenDetail={setDetail} />
+      <ProjectsSection key={`projects-${lang}`} locale={locale} onOpenDetail={setDetail} />
       <AssistantSection key={`assistant-${lang}`} locale={locale} />
       <ContactSection key={`contact-${lang}`} locale={locale} />
       <Footer t={t} />
+      <DetailModal detail={detail} locale={locale} onClose={() => setDetail(null)} />
     </div>
   );
 }

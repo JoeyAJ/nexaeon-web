@@ -99,6 +99,7 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
 body {
   font-family: var(--font-sans);
   font-size: var(--text-base);
@@ -129,6 +130,45 @@ body {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 32px;
+}
+
+.nav-links {
+  display: flex;
+}
+
+.mobile-menu-toggle {
+  display: none;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--fg-2);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.detail-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(8, 8, 11, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.detail-modal-panel {
+  width: min(760px, 100%);
+  max-height: min(82vh, 780px);
+  overflow-y: auto;
+  border-radius: 24px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-2);
+  padding: 24px;
 }
 
 .btn {
@@ -194,13 +234,22 @@ body {
   .grid-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
   .grid-3 { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
   .nav-links {
-    display: flex !important;
-    gap: 14px !important;
-    overflow-x: auto;
-    scrollbar-width: none;
-    max-width: 100%;
+    position: absolute;
+    top: 56px;
+    left: 20px;
+    right: 20px;
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px !important;
+    padding: 16px;
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--bg-1) 92%, transparent);
+    border: 1px solid var(--line-2);
+    box-shadow: var(--shadow-2);
   }
-  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links button { width: 100%; text-align: left; }
+  .mobile-menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
   .hero-title { font-size: clamp(52px, 14vw, 120px) !important; }
   .hero-sub { font-size: 16px !important; width: auto !important; }
   .hero-padding { padding: 80px 20px 40px !important; }
