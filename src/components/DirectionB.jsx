@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
 import { INTERACTIVE_CONTENT } from '../constants/interactiveData.js';
+import { getContentByType } from '../data/nexaeonContent.js';
+import { toDetailPath } from '../utils/router.js';
 
 function renderMetaLabel(label) {
   if (!label.includes('№')) return label;
@@ -35,10 +37,15 @@ function scrollToSection(id) {
 function createDetailItem(item, locale) {
   return {
     title: item.title,
-    summary: item.summary || item.subtitle || item.details || '',
+    subtitle: item.subtitle || '',
+    summary: item.summary || item.subtitle || item.description || '',
+    description: item.description || item.details || '',
+    category: item.category || '',
+    type: item.type || '',
     status: item.status || locale.common.detailFallback.status,
-    nextAction: item.nextAction || locale.common.detailFallback.nextAction,
+    nextAction: item.nextStep || item.nextAction || locale.common.detailFallback.nextAction,
     link: item.link || '',
+    tags: item.tags || [],
   };
 }
 
@@ -61,6 +68,15 @@ function DetailModal({ detail, locale, onClose }) {
         </div>
 
         <div style={{ marginTop: 20, display: 'grid', gap: 12 }}>
+          {detail.subtitle ? (
+            <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{detail.subtitle}</div>
+          ) : null}
+          {(detail.category || detail.type) ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {detail.category ? <span className="content-tag">{detail.category}</span> : null}
+              {detail.type ? <span className="content-tag">{detail.type}</span> : null}
+            </div>
+          ) : null}
           <div>
             <div className="label" style={{ marginBottom: 4 }}>
               {locale.common.summaryLabel}
@@ -79,6 +95,23 @@ function DetailModal({ detail, locale, onClose }) {
             </div>
             <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{detail.nextAction}</div>
           </div>
+          {detail.description ? (
+            <div>
+              <div className="label" style={{ marginBottom: 4 }}>
+                詳細說明
+              </div>
+              <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{detail.description}</div>
+            </div>
+          ) : null}
+          {detail.tags.length ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {detail.tags.map((tag) => (
+                <span key={tag} className="content-tag">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {detail.link ? (
@@ -474,7 +507,7 @@ function Hero({ t }) {
   );
 }
 
-function ResearchDirectionsSection({ locale, onOpenDetail }) {
+function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate }) {
   return (
     <section id="research" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
@@ -496,11 +529,10 @@ function ResearchDirectionsSection({ locale, onOpenDetail }) {
       </div>
 
       <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 64 }}>
-        {locale.research.items.map((item) => {
+        {items.map((item) => {
           return (
-            <button
+            <article
               key={item.id}
-              onClick={() => onOpenDetail(createDetailItem(item, locale))}
               style={{
                 textAlign: 'left',
                 borderRadius: 20,
@@ -508,18 +540,30 @@ function ResearchDirectionsSection({ locale, onOpenDetail }) {
                 background: 'var(--bg-1)',
                 padding: 24,
                 color: 'inherit',
-                cursor: 'pointer',
                 transition: 'all 0.3s var(--ease-out)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, lineHeight: 1.2 }}>{item.title}</div>
                 <span className="label" style={{ color: 'var(--fg-3)', letterSpacing: '0.08em' }}>
-                  {locale.common.openDetails}
+                  {item.status}
                 </span>
               </div>
-              <p style={{ marginTop: 12, color: 'var(--fg-2)', lineHeight: 1.6, fontSize: 15 }}>{item.summary}</p>
-            </button>
+              <p style={{ marginTop: 10, color: 'var(--fg-2)', lineHeight: 1.6, fontSize: 15 }}>{item.subtitle}</p>
+              <p style={{ marginTop: 10, color: 'var(--fg-3)', lineHeight: 1.6, fontSize: 14 }}>{item.summary}</p>
+              <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button className="btn btn-ghost" style={{ padding: '9px 14px' }} onClick={() => onOpenDetail(createDetailItem(item, locale))}>
+                  快速預覽
+                </button>
+                <button
+                  className="btn btn-gradient"
+                  style={{ padding: '9px 14px' }}
+                  onClick={() => navigate(toDetailPath('research', item.id))}
+                >
+                  查看詳情
+                </button>
+              </div>
+            </article>
           );
         })}
       </div>
@@ -527,28 +571,27 @@ function ResearchDirectionsSection({ locale, onOpenDetail }) {
   );
 }
 
-function KnowledgeSection({ locale, onOpenDetail }) {
+function KnowledgeSection({ locale, items, onOpenDetail, navigate }) {
   const [keyword, setKeyword] = useState('');
   const [categoryKey, setCategoryKey] = useState('all');
 
-  const categoryLabelByKey = useMemo(() => {
-    const map = new Map();
-    locale.knowledge.categories.forEach((item) => map.set(item.key, item.label));
-    return map;
-  }, [locale.knowledge.categories]);
+  const categories = useMemo(() => {
+    const keys = Array.from(new Set(items.map((item) => item.category)));
+    return [{ key: 'all', label: '全部' }, ...keys.map((category) => ({ key: category, label: category }))];
+  }, [items]);
 
   const filtered = useMemo(() => {
     const lower = keyword.trim().toLowerCase();
 
-    return locale.knowledge.items.filter((item) => {
-      const categoryMatched = categoryKey === 'all' || item.categoryKey === categoryKey;
+    return items.filter((item) => {
+      const categoryMatched = categoryKey === 'all' || item.category === categoryKey;
       if (!categoryMatched) return false;
       if (!lower) return true;
-      return `${item.title} ${item.summary} ${item.tags.join(' ')} ${categoryLabelByKey.get(item.categoryKey) ?? ''}`
+      return `${item.title} ${item.subtitle} ${item.summary} ${item.tags.join(' ')} ${item.category}`
         .toLowerCase()
         .includes(lower);
     });
-  }, [categoryKey, categoryLabelByKey, keyword, locale.knowledge.items]);
+  }, [categoryKey, items, keyword]);
 
   return (
     <section id="knowledge" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
@@ -589,7 +632,7 @@ function KnowledgeSection({ locale, onOpenDetail }) {
           />
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {locale.knowledge.categories.map((item) => (
+            {categories.map((item) => (
               <button
                 key={item.key}
                 onClick={() => setCategoryKey(item.key)}
@@ -618,9 +661,8 @@ function KnowledgeSection({ locale, onOpenDetail }) {
             </div>
           ) : (
             filtered.map((item) => (
-              <button
+              <article
                 key={item.id}
-                onClick={() => onOpenDetail(createDetailItem(item, locale))}
                 style={{
                   textAlign: 'left',
                   borderRadius: 16,
@@ -628,7 +670,6 @@ function KnowledgeSection({ locale, onOpenDetail }) {
                   background: 'var(--bg-1)',
                   padding: 20,
                   color: 'inherit',
-                  cursor: 'pointer',
                 }}
               >
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, lineHeight: 1.25 }}>{item.title}</div>
@@ -641,10 +682,23 @@ function KnowledgeSection({ locale, onOpenDetail }) {
                     color: 'var(--accent-fg)',
                   }}
                 >
-                  {categoryLabelByKey.get(item.categoryKey)}
+                  {item.category}
                 </div>
+                <div style={{ marginTop: 12, color: 'var(--fg-2)', fontSize: 14, lineHeight: 1.6 }}>{item.subtitle}</div>
                 <div style={{ marginTop: 12, color: 'var(--fg-3)', fontSize: 13 }}>{item.tags.join(' · ')}</div>
-              </button>
+                <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button className="btn btn-ghost" style={{ padding: '8px 12px' }} onClick={() => onOpenDetail(createDetailItem(item, locale))}>
+                    快速預覽
+                  </button>
+                  <button
+                    className="btn btn-gradient"
+                    style={{ padding: '8px 12px' }}
+                    onClick={() => navigate(toDetailPath('knowledge', item.id))}
+                  >
+                    查看詳情
+                  </button>
+                </div>
+              </article>
             ))
           )}
         </div>
@@ -653,7 +707,7 @@ function KnowledgeSection({ locale, onOpenDetail }) {
   );
 }
 
-function ProjectsSection({ locale, onOpenDetail }) {
+function ProjectsSection({ locale, items, onOpenDetail, navigate }) {
   return (
     <section id="projects" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
@@ -675,11 +729,10 @@ function ProjectsSection({ locale, onOpenDetail }) {
       </div>
 
       <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 60 }}>
-        {locale.projects.items.map((item) => {
+        {items.map((item) => {
           return (
-            <button
+            <article
               key={item.id}
-              onClick={() => onOpenDetail(createDetailItem(item, locale))}
               style={{
                 textAlign: 'left',
                 borderRadius: 20,
@@ -687,17 +740,29 @@ function ProjectsSection({ locale, onOpenDetail }) {
                 background: 'var(--bg-1)',
                 padding: 22,
                 color: 'inherit',
-                cursor: 'pointer',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, lineHeight: 1.2 }}>{item.title}</div>
                 <span className="label" style={{ color: 'var(--fg-3)', letterSpacing: '0.08em' }}>
-                  {locale.common.openDetails}
+                  {item.status}
                 </span>
               </div>
               <p style={{ marginTop: 10, color: 'var(--fg-2)', fontSize: 14 }}>{item.subtitle}</p>
-            </button>
+              <p style={{ marginTop: 12, color: 'var(--fg-3)', fontSize: 14, lineHeight: 1.6 }}>{item.summary}</p>
+              <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button className="btn btn-ghost" style={{ padding: '8px 12px' }} onClick={() => onOpenDetail(createDetailItem(item, locale))}>
+                  快速預覽
+                </button>
+                <button
+                  className="btn btn-gradient"
+                  style={{ padding: '8px 12px' }}
+                  onClick={() => navigate(toDetailPath('projects', item.id))}
+                >
+                  查看詳情
+                </button>
+              </div>
+            </article>
           );
         })}
       </div>
@@ -933,10 +998,13 @@ function Footer({ t }) {
   );
 }
 
-export default function DirectionB({ t, lang, setLang, theme, setTheme }) {
+export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate }) {
   const rootRef = useRef(null);
   const locale = INTERACTIVE_CONTENT[lang] || INTERACTIVE_CONTENT.en;
   const [detail, setDetail] = useState(null);
+  const researchItems = useMemo(() => getContentByType('research'), []);
+  const knowledgeItems = useMemo(() => getContentByType('knowledge'), []);
+  const projectItems = useMemo(() => getContentByType('projects'), []);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -960,9 +1028,9 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme }) {
       <NeuralBackground />
       <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
       <Hero t={t} />
-      <ResearchDirectionsSection key={`research-${lang}`} locale={locale} onOpenDetail={setDetail} />
-      <KnowledgeSection key={`knowledge-${lang}`} locale={locale} onOpenDetail={setDetail} />
-      <ProjectsSection key={`projects-${lang}`} locale={locale} onOpenDetail={setDetail} />
+      <ResearchDirectionsSection key={`research-${lang}`} locale={locale} items={researchItems} onOpenDetail={setDetail} navigate={navigate} />
+      <KnowledgeSection key={`knowledge-${lang}`} locale={locale} items={knowledgeItems} onOpenDetail={setDetail} navigate={navigate} />
+      <ProjectsSection key={`projects-${lang}`} locale={locale} items={projectItems} onOpenDetail={setDetail} navigate={navigate} />
       <AssistantSection key={`assistant-${lang}`} locale={locale} />
       <ContactSection key={`contact-${lang}`} locale={locale} />
       <Footer t={t} />
