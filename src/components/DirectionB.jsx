@@ -1,18 +1,8 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
-import {
-  ASSISTANT_PRESET_QUESTIONS,
-  ASSISTANT_REPLIES,
-  CONTACT_DIRECTIONS,
-  CONTACT_IDENTITIES,
-  KNOWLEDGE_CATEGORIES,
-  KNOWLEDGE_ITEMS,
-  NAV_ITEMS,
-  PROJECT_ITEMS,
-  RESEARCH_DIRECTIONS,
-} from '../constants/interactiveData.js';
+import { INTERACTIVE_CONTENT } from '../constants/interactiveData.js';
 
-function Nav({ lang, setLang, theme, setTheme }) {
+function Nav({ locale, lang, setLang, theme, setTheme }) {
   const handleScroll = (id) => {
     const section = document.getElementById(id);
     if (!section) return;
@@ -54,7 +44,7 @@ function Nav({ lang, setLang, theme, setTheme }) {
             fontWeight: 400,
           }}
         >
-          {NAV_ITEMS.map((item) => (
+          {locale.navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleScroll(item.id)}
@@ -289,14 +279,14 @@ function Hero({ t }) {
             style={{ fontSize: 15 }}
             onClick={() => document.getElementById('research')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            探索研究 <ArrowIcon />
+            {t.hero.cta1} <ArrowIcon />
           </button>
           <button
             className="btn btn-ghost"
             style={{ fontSize: 15 }}
             onClick={() => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            合作洽詢
+            {t.hero.cta2}
           </button>
         </div>
       </div>
@@ -325,14 +315,14 @@ function Hero({ t }) {
   );
 }
 
-function ResearchDirectionsSection() {
+function ResearchDirectionsSection({ locale }) {
   const [expanded, setExpanded] = useState({});
 
   return (
     <section id="research" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
         <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
-          — Research Directions
+          — {locale.research.eyebrow}
         </div>
         <h2
           style={{
@@ -344,12 +334,12 @@ function ResearchDirectionsSection() {
             letterSpacing: '-0.02em',
           }}
         >
-          研究方向
+          {locale.research.title}
         </h2>
       </div>
 
       <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 64 }}>
-        {RESEARCH_DIRECTIONS.map((item) => {
+        {locale.research.items.map((item) => {
           const isOpen = Boolean(expanded[item.id]);
           return (
             <button
@@ -369,7 +359,7 @@ function ResearchDirectionsSection() {
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, lineHeight: 1.2 }}>{item.title}</div>
                 <span className="label" style={{ color: 'var(--fg-3)', letterSpacing: '0.08em' }}>
-                  {isOpen ? '收合' : '展開'}
+                  {isOpen ? locale.common.collapse : locale.common.expand}
                 </span>
               </div>
               <p style={{ marginTop: 12, color: 'var(--fg-2)', lineHeight: 1.6, fontSize: 15 }}>{item.summary}</p>
@@ -384,21 +374,29 @@ function ResearchDirectionsSection() {
   );
 }
 
-function KnowledgeSection() {
+function KnowledgeSection({ locale }) {
   const [keyword, setKeyword] = useState('');
-  const [category, setCategory] = useState('全部');
+  const [categoryKey, setCategoryKey] = useState('all');
   const [selectedId, setSelectedId] = useState(null);
+
+  const categoryLabelByKey = useMemo(() => {
+    const map = new Map();
+    locale.knowledge.categories.forEach((item) => map.set(item.key, item.label));
+    return map;
+  }, [locale.knowledge.categories]);
 
   const filtered = useMemo(() => {
     const lower = keyword.trim().toLowerCase();
 
-    return KNOWLEDGE_ITEMS.filter((item) => {
-      const categoryMatched = category === '全部' || item.category === category;
+    return locale.knowledge.items.filter((item) => {
+      const categoryMatched = categoryKey === 'all' || item.categoryKey === categoryKey;
       if (!categoryMatched) return false;
       if (!lower) return true;
-      return `${item.title} ${item.summary} ${item.tags.join(' ')} ${item.category}`.toLowerCase().includes(lower);
+      return `${item.title} ${item.summary} ${item.tags.join(' ')} ${categoryLabelByKey.get(item.categoryKey) ?? ''}`
+        .toLowerCase()
+        .includes(lower);
     });
-  }, [category, keyword]);
+  }, [categoryKey, categoryLabelByKey, keyword, locale.knowledge.items]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? null;
 
@@ -406,7 +404,7 @@ function KnowledgeSection() {
     <section id="knowledge" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
         <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
-          — Knowledge Base
+          — {locale.knowledge.eyebrow}
         </div>
         <h2
           style={{
@@ -418,7 +416,7 @@ function KnowledgeSection() {
             letterSpacing: '-0.02em',
           }}
         >
-          知識庫
+          {locale.knowledge.title}
         </h2>
       </div>
 
@@ -427,7 +425,7 @@ function KnowledgeSection() {
           <input
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="搜尋關鍵字（標題、摘要、分類、標籤）"
+            placeholder={locale.knowledge.searchPlaceholder}
             style={{
               width: '100%',
               background: 'var(--bg-1)',
@@ -441,15 +439,15 @@ function KnowledgeSection() {
           />
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {KNOWLEDGE_CATEGORIES.map((item) => (
+            {locale.knowledge.categories.map((item) => (
               <button
-                key={item}
-                onClick={() => setCategory(item)}
+                key={item.key}
+                onClick={() => setCategoryKey(item.key)}
                 style={{
                   borderRadius: 999,
-                  border: '1px solid ' + (category === item ? 'var(--fg-1)' : 'var(--line-2)'),
-                  background: category === item ? 'var(--fg-1)' : 'transparent',
-                  color: category === item ? 'var(--bg-0)' : 'var(--fg-2)',
+                  border: '1px solid ' + (categoryKey === item.key ? 'var(--fg-1)' : 'var(--line-2)'),
+                  background: categoryKey === item.key ? 'var(--fg-1)' : 'transparent',
+                  color: categoryKey === item.key ? 'var(--bg-0)' : 'var(--fg-2)',
                   padding: '8px 14px',
                   fontFamily: 'var(--font-mono)',
                   fontSize: 12,
@@ -457,7 +455,7 @@ function KnowledgeSection() {
                   cursor: 'pointer',
                 }}
               >
-                {item}
+                {item.label}
               </button>
             ))}
           </div>
@@ -466,7 +464,7 @@ function KnowledgeSection() {
         <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 20 }}>
           {filtered.length === 0 ? (
             <div style={{ border: '1px solid var(--line-1)', borderRadius: 16, padding: 20, color: 'var(--fg-3)' }}>
-              找不到符合條件的資料。
+              {locale.knowledge.noResults}
             </div>
           ) : (
             filtered.map((item) => (
@@ -484,8 +482,16 @@ function KnowledgeSection() {
                 }}
               >
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, lineHeight: 1.25 }}>{item.title}</div>
-                <div style={{ marginTop: 10, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.08em', color: 'var(--accent-fg)' }}>
-                  {item.category}
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    letterSpacing: '0.08em',
+                    color: 'var(--accent-fg)',
+                  }}
+                >
+                  {categoryLabelByKey.get(item.categoryKey)}
                 </div>
                 <div style={{ marginTop: 12, color: 'var(--fg-3)', fontSize: 13 }}>{item.tags.join(' · ')}</div>
               </button>
@@ -512,7 +518,7 @@ function KnowledgeSection() {
               className="btn btn-ghost"
               style={{ marginTop: 14, display: 'inline-flex' }}
             >
-              外部連結
+              {locale.common.externalLink}
             </a>
           </div>
         ) : null}
@@ -521,14 +527,14 @@ function KnowledgeSection() {
   );
 }
 
-function ProjectsSection() {
+function ProjectsSection({ locale }) {
   const [activeId, setActiveId] = useState(null);
 
   return (
     <section id="projects" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
         <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
-          — Projects
+          — {locale.projects.eyebrow}
         </div>
         <h2
           style={{
@@ -540,12 +546,12 @@ function ProjectsSection() {
             letterSpacing: '-0.02em',
           }}
         >
-          項目展示
+          {locale.projects.title}
         </h2>
       </div>
 
       <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 60 }}>
-        {PROJECT_ITEMS.map((item) => {
+        {locale.projects.items.map((item) => {
           const isOpen = activeId === item.id;
           return (
             <button
@@ -564,7 +570,7 @@ function ProjectsSection() {
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, lineHeight: 1.2 }}>{item.title}</div>
                 <span className="label" style={{ color: 'var(--fg-3)', letterSpacing: '0.08em' }}>
-                  {isOpen ? '收合' : '詳細'}
+                  {isOpen ? locale.common.collapse : locale.common.details}
                 </span>
               </div>
               <p style={{ marginTop: 10, color: 'var(--fg-2)', fontSize: 14 }}>{item.subtitle}</p>
@@ -577,27 +583,39 @@ function ProjectsSection() {
   );
 }
 
-function AssistantSection() {
+function normalizeText(value) {
+  return value.toLowerCase().replace(/[?？!！.,，。'"“”]/g, '').trim();
+}
+
+function AssistantSection({ locale }) {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: '你好，我是 Nexōn 助教。可以直接點選預設問題，或輸入你的提問。' },
+    { role: 'assistant', content: locale.assistant.greeting },
   ]);
   const [input, setInput] = useState('');
+
+  const qaMap = useMemo(() => {
+    const map = new Map();
+    locale.assistant.qas.forEach((item) => map.set(item.question, item));
+    return map;
+  }, [locale.assistant.qas]);
 
   const answerQuestion = (question) => {
     const trimmed = question.trim();
     if (!trimmed) return;
 
-    const direct = ASSISTANT_REPLIES[trimmed];
-    const fallback =
-      Object.entries(ASSISTANT_REPLIES).find(([key]) =>
-        key.replace(/[？?]/g, '').split('').some((char) => char && trimmed.includes(char))
-      )?.[1] ||
-      '目前是 V1 mock 助教。你可以先點選上方四個預設問題，我會給你對應答案。';
+    const exact = qaMap.get(trimmed);
+    const normalizedInput = normalizeText(trimmed);
+
+    const fallbackMatch = locale.assistant.qas.find((item) =>
+      item.keywords.some((keyword) => normalizedInput.includes(normalizeText(keyword)))
+    );
+
+    const answer = exact?.answer || fallbackMatch?.answer || locale.assistant.fallback;
 
     setMessages((prev) => [
       ...prev,
       { role: 'user', content: trimmed },
-      { role: 'assistant', content: direct || fallback },
+      { role: 'assistant', content: answer },
     ]);
     setInput('');
   };
@@ -606,7 +624,7 @@ function AssistantSection() {
     <section id="assistant" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
         <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
-          — Nexōn AI Tutor
+          — {locale.assistant.eyebrow}
         </div>
         <h2
           style={{
@@ -618,20 +636,20 @@ function AssistantSection() {
             letterSpacing: '-0.02em',
           }}
         >
-          Nexōn 助教
+          {locale.assistant.title}
         </h2>
       </div>
 
       <div className="container" style={{ marginTop: 56 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {ASSISTANT_PRESET_QUESTIONS.map((question) => (
+          {locale.assistant.qas.map((item) => (
             <button
-              key={question}
-              onClick={() => answerQuestion(question)}
+              key={item.question}
+              onClick={() => answerQuestion(item.question)}
               className="btn btn-ghost"
               style={{ padding: '10px 16px', fontSize: 13 }}
             >
-              {question}
+              {item.question}
             </button>
           ))}
         </div>
@@ -663,7 +681,7 @@ function AssistantSection() {
               }}
             >
               <div className="label" style={{ marginBottom: 6, color: 'var(--fg-3)', letterSpacing: '0.08em' }}>
-                {message.role === 'assistant' ? 'Nexōn' : '你'}
+                {message.role === 'assistant' ? locale.assistant.assistantLabel : locale.assistant.userLabel}
               </div>
               {message.content}
             </div>
@@ -674,7 +692,7 @@ function AssistantSection() {
           <input
             value={input}
             onChange={(event) => setInput(event.target.value)}
-            placeholder="輸入你的問題..."
+            placeholder={locale.assistant.inputPlaceholder}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.preventDefault();
@@ -693,7 +711,7 @@ function AssistantSection() {
             }}
           />
           <button className="btn btn-gradient" onClick={() => answerQuestion(input)}>
-            送出
+            {locale.assistant.send}
           </button>
         </div>
       </div>
@@ -701,7 +719,7 @@ function AssistantSection() {
   );
 }
 
-function ContactSection() {
+function ContactSection({ locale }) {
   const [form, setForm] = useState({
     name: '',
     identity: '',
@@ -719,11 +737,11 @@ function ContactSection() {
     event.preventDefault();
     const hasEmpty = Object.values(form).some((value) => !value.trim());
     if (hasEmpty) {
-      setStatus('請先完整填寫所有欄位。');
+      setStatus(locale.contact.requiredMessage);
       return;
     }
 
-    setStatus('送出成功，我們已收到你的訊息，將盡快回覆。');
+    setStatus(locale.contact.successMessage);
     setForm({ name: '', identity: '', direction: '', email: '', message: '' });
   };
 
@@ -731,7 +749,7 @@ function ContactSection() {
     <section id="contact" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
         <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
-          — Contact & Collaboration
+          — {locale.contact.eyebrow}
         </div>
         <h2
           style={{
@@ -743,7 +761,7 @@ function ContactSection() {
             letterSpacing: '-0.02em',
           }}
         >
-          聯絡合作
+          {locale.contact.title}
         </h2>
       </div>
 
@@ -764,13 +782,13 @@ function ContactSection() {
           <input
             value={form.name}
             onChange={(event) => updateField('name', event.target.value)}
-            placeholder="姓名"
+            placeholder={locale.contact.namePlaceholder}
             style={fieldStyle}
           />
 
           <select value={form.identity} onChange={(event) => updateField('identity', event.target.value)} style={fieldStyle}>
-            <option value="">身份</option>
-            {CONTACT_IDENTITIES.map((item) => (
+            <option value="">{locale.contact.identityPlaceholder}</option>
+            {locale.contact.identityOptions.map((item) => (
               <option key={item} value={item}>
                 {item}
               </option>
@@ -778,8 +796,8 @@ function ContactSection() {
           </select>
 
           <select value={form.direction} onChange={(event) => updateField('direction', event.target.value)} style={fieldStyle}>
-            <option value="">合作方向</option>
-            {CONTACT_DIRECTIONS.map((item) => (
+            <option value="">{locale.contact.directionPlaceholder}</option>
+            {locale.contact.directionOptions.map((item) => (
               <option key={item} value={item}>
                 {item}
               </option>
@@ -790,20 +808,20 @@ function ContactSection() {
             type="email"
             value={form.email}
             onChange={(event) => updateField('email', event.target.value)}
-            placeholder="Email"
+            placeholder={locale.contact.emailPlaceholder}
             style={fieldStyle}
           />
 
           <textarea
             value={form.message}
             onChange={(event) => updateField('message', event.target.value)}
-            placeholder="留言"
+            placeholder={locale.contact.messagePlaceholder}
             style={{ ...fieldStyle, gridColumn: '1 / -1', minHeight: 120, resize: 'vertical' }}
           />
 
           <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
             <button type="submit" className="btn btn-gradient">
-              送出
+              {locale.contact.submit}
             </button>
             {status ? <div style={{ color: 'var(--fg-2)', fontSize: 14 }}>{status}</div> : null}
           </div>
@@ -856,6 +874,7 @@ function Footer({ t }) {
 
 export default function DirectionB({ t, lang, setLang, theme, setTheme }) {
   const rootRef = useRef(null);
+  const locale = INTERACTIVE_CONTENT[lang] || INTERACTIVE_CONTENT.en;
 
   useEffect(() => {
     const el = rootRef.current;
@@ -876,13 +895,13 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme }) {
 
   return (
     <div ref={rootRef}>
-      <Nav lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
+      <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
       <Hero t={t} />
-      <ResearchDirectionsSection />
-      <KnowledgeSection />
-      <ProjectsSection />
-      <AssistantSection />
-      <ContactSection />
+      <ResearchDirectionsSection key={`research-${lang}`} locale={locale} />
+      <KnowledgeSection key={`knowledge-${lang}`} locale={locale} />
+      <ProjectsSection key={`projects-${lang}`} locale={locale} />
+      <AssistantSection key={`assistant-${lang}`} locale={locale} />
+      <ContactSection key={`contact-${lang}`} locale={locale} />
       <Footer t={t} />
     </div>
   );
