@@ -14,7 +14,7 @@ const CONTENT = {
       sub: '一座正在生長的知識系統。\n它把靈感變成研究，把研究變成教學，把教學變成影響力。',
       cta1: '探索研究',
       cta2: '合作洽詢',
-      meta: ['第 003 號實驗室', '建立於 2026', '台北 / 線上'],
+      meta: ['第 11 號實驗室', '建立於 2026', '大田 / 又鬆大'],
     },
     what: {
       label: '關於 / About',
@@ -103,7 +103,7 @@ const CONTENT = {
       sub: 'A living knowledge system —\nturning ideas into research,\nresearch into teaching,\nteaching into influence.',
       cta1: 'Explore Research',
       cta2: 'Collaboration',
-      meta: ['Lab № 003', 'Est. 2026', 'Taipei / Online'],
+      meta: ['Lab № 11', 'Est. 2026', 'Daejeon / Woosong Univ.'],
     },
     what: {
       label: 'About',
@@ -192,7 +192,7 @@ const CONTENT = {
       sub: '자라나는 지식 시스템.\n영감을 연구로, 연구를 교육으로,\n교육을 영향력으로.',
       cta1: '연구 살펴보기',
       cta2: '협업 문의',
-      meta: ['Lab № 003', '2026 설립', '타이베이 / 온라인'],
+      meta: ['Lab № 11', '2026 설립', '대전 / 우송대'],
     },
     what: {
       label: 'About',
