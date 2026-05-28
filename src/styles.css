@@ -335,6 +335,8 @@ body {
   .grid-3 { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
   .advisor-option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .advisor-result-grid { grid-template-columns: 1fr !important; }
+  .action-option-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .action-result-grid { grid-template-columns: 1fr !important; }
   .navigator-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .navigator-panel-grid { grid-template-columns: 1fr !important; }
   .capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
@@ -369,6 +371,7 @@ body {
   .grid-4 { grid-template-columns: 1fr !important; }
   .grid-3 { grid-template-columns: 1fr !important; }
   .advisor-option-grid { grid-template-columns: 1fr !important; }
+  .action-option-grid { grid-template-columns: 1fr !important; }
   .navigator-grid { grid-template-columns: 1fr !important; }
   .capability-grid { grid-template-columns: 1fr !important; }
   .hero-centerpiece { height: 320px !important; margin-bottom: 40px !important; }

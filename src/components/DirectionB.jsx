@@ -820,6 +820,179 @@ const ADVISOR_ROLE_RULES = {
   },
 };
 
+const ACTION_CENTER_CONTENT = {
+  zh: {
+    eyebrow: 'NexAeon Action Center / 行動轉化中心 / 액션 센터',
+    title: '把你的想法轉成第一份 NexAeon Brief',
+    subtitle: '選擇身份、需求與方向，生成一份可複製的學習、研究或合作摘要。',
+    questions: {
+      role: '我是誰？',
+      need: '我目前最需要什麼？',
+      action: '我希望下一步是什麼？',
+    },
+    options: {
+      role: [
+        { id: 'student', label: '學生' },
+        { id: 'researcher', label: '教授 / 研究者' },
+        { id: 'university', label: '學校 / 管理者' },
+        { id: 'enterprise', label: '企業 / 合作方' },
+        { id: 'secondBrain', label: 'Joey 的第二大腦' },
+      ],
+      need: [
+        { id: 'learningSupport', label: '學習支持' },
+        { id: 'researchCollaboration', label: '研究協作' },
+        { id: 'transformationPlan', label: '轉型方案' },
+        { id: 'mvpPrototype', label: 'MVP 原型' },
+        { id: 'knowledgeSystem', label: '知識系統' },
+      ],
+      action: [
+        { id: 'explorePath', label: '探索路徑' },
+        { id: 'discussResearch', label: '討論研究方向' },
+        { id: 'reviewSolution', label: '檢視解決方案' },
+        { id: 'buildPrototype', label: '打造原型' },
+        { id: 'organizeKnowledge', label: '整理知識' },
+      ],
+    },
+    panel: {
+      pending: '完成三個問題後，這裡會自動生成 NexAeon Brief。',
+      briefTitleLabel: 'Brief 標題',
+      generatedBriefLabel: '生成 Brief',
+      suggestedNextStepLabel: '建議下一步',
+      recommendedPageLabel: '推薦頁面',
+      briefTitleTemplate: 'NexAeon Brief｜{roleLabel}',
+      suggestedTemplate: '建議先從「{actionLabel}」開始，並前往 {roleLabel} 入口查看完整路徑。',
+      briefTemplate:
+        '我是一名{roleLabel}，目前主要需求是{needLabel}。我希望透過 NexAeon 進一步{actionLabel}。我特別關注 NexAeon 在{capability1}、{capability2}與{capability3}方面的能力，並希望以此作為學習、研究或合作的起點。',
+      copyBrief: '複製 Brief',
+      copySuccess: '已複製 Brief',
+      goToPage: '前往推薦頁面',
+      contact: '聯絡 NexAeon',
+      reset: '重新開始',
+    },
+  },
+  ko: {
+    eyebrow: 'NexAeon Action Center / 行動轉化中心 / 액션 센터',
+    title: '당신의 아이디어를 첫 번째 NexAeon Brief로 전환한다',
+    subtitle: '역할, 니즈, 방향을 선택해 학습·연구·협업을 위한 요약문을 생성한다.',
+    questions: {
+      role: '나는 누구인가요?',
+      need: '지금 가장 필요한 것은 무엇인가요?',
+      action: '다음 단계로 무엇을 원하나요?',
+    },
+    options: {
+      role: [
+        { id: 'student', label: '학생' },
+        { id: 'researcher', label: '교수 / 연구자' },
+        { id: 'university', label: '대학 / 관리자' },
+        { id: 'enterprise', label: '기업 / 협력 파트너' },
+        { id: 'secondBrain', label: 'Joey의 세컨드 브레인' },
+      ],
+      need: [
+        { id: 'learningSupport', label: '학습 지원' },
+        { id: 'researchCollaboration', label: '연구 협업' },
+        { id: 'transformationPlan', label: '전환 계획' },
+        { id: 'mvpPrototype', label: 'MVP 프로토타입' },
+        { id: 'knowledgeSystem', label: '지식 시스템' },
+      ],
+      action: [
+        { id: 'explorePath', label: '경로 탐색' },
+        { id: 'discussResearch', label: '연구 방향 논의' },
+        { id: 'reviewSolution', label: '솔루션 검토' },
+        { id: 'buildPrototype', label: '프로토타입 구축' },
+        { id: 'organizeKnowledge', label: '지식 정리' },
+      ],
+    },
+    panel: {
+      pending: '세 가지 질문을 모두 선택하면 NexAeon Brief가 자동 생성됩니다.',
+      briefTitleLabel: 'Brief 제목',
+      generatedBriefLabel: '생성된 Brief',
+      suggestedNextStepLabel: '추천 다음 단계',
+      recommendedPageLabel: '추천 페이지',
+      briefTitleTemplate: 'NexAeon Brief｜{roleLabel}',
+      suggestedTemplate: '"{actionLabel}"부터 시작하고 {roleLabel} 경로에서 상세 내용을 확인하세요.',
+      briefTemplate:
+        '나는 {roleLabel}이며, 현재 주요 니즈는 {needLabel}이다. NexAeon을 통해 {actionLabel}하고자 한다. 특히 {capability1}, {capability2}, {capability3} 역량에 관심이 있으며, 이를 학습·연구·협업의 출발점으로 삼고자 한다.',
+      copyBrief: 'Brief 복사',
+      copySuccess: 'Brief가 복사되었습니다',
+      goToPage: '추천 페이지로 이동',
+      contact: 'NexAeon 문의하기',
+      reset: '다시 시작',
+    },
+  },
+  en: {
+    eyebrow: 'NexAeon Action Center / 行動轉化中心 / 액션 센터',
+    title: 'Turn your idea into a NexAeon Brief',
+    subtitle: 'Select your role, need, and direction to generate a copy-ready brief for learning, research, or collaboration.',
+    questions: {
+      role: 'Who am I?',
+      need: 'What do I need most right now?',
+      action: 'What do I want as the next step?',
+    },
+    options: {
+      role: [
+        { id: 'student', label: 'Student' },
+        { id: 'researcher', label: 'Researcher' },
+        { id: 'university', label: 'University Leader' },
+        { id: 'enterprise', label: 'Enterprise Partner' },
+        { id: 'secondBrain', label: 'Joey / Second Brain' },
+      ],
+      need: [
+        { id: 'learningSupport', label: 'Learning Support' },
+        { id: 'researchCollaboration', label: 'Research Collaboration' },
+        { id: 'transformationPlan', label: 'Transformation Plan' },
+        { id: 'mvpPrototype', label: 'MVP Prototype' },
+        { id: 'knowledgeSystem', label: 'Knowledge System' },
+      ],
+      action: [
+        { id: 'explorePath', label: 'Explore Path' },
+        { id: 'discussResearch', label: 'Discuss Research' },
+        { id: 'reviewSolution', label: 'Review Solution' },
+        { id: 'buildPrototype', label: 'Build Prototype' },
+        { id: 'organizeKnowledge', label: 'Organize Knowledge' },
+      ],
+    },
+    panel: {
+      pending: 'Select all three answers to generate your NexAeon Brief automatically.',
+      briefTitleLabel: 'Brief Title',
+      generatedBriefLabel: 'Generated Brief',
+      suggestedNextStepLabel: 'Suggested Next Step',
+      recommendedPageLabel: 'Recommended Page',
+      briefTitleTemplate: 'NexAeon Brief | {roleLabel}',
+      suggestedTemplate: 'Start with "{actionLabel}" and continue on the {roleLabel} path.',
+      briefTemplate:
+        'I am a {roleLabel}, and my current need is {needLabel}. I would like to use NexAeon to {actionLabel}. I am especially interested in NexAeon’s capabilities in {capability1}, {capability2}, and {capability3}, and I would like to use them as a starting point for learning, research, or collaboration.',
+      copyBrief: 'Copy Brief',
+      copySuccess: 'Brief copied',
+      goToPage: 'Go to Page',
+      contact: 'Contact NexAeon',
+      reset: 'Reset',
+    },
+  },
+};
+
+const ACTION_CENTER_ROLE_RULES = {
+  student: {
+    page: '/students',
+    capabilities: ['AI Tutoring Lab', 'Prompt Engineering Course', 'Personalized Feedback System'],
+  },
+  researcher: {
+    page: '/researchers',
+    capabilities: ['Research Hub', 'TAM / Learning Engagement Model', 'Literature Knowledge Base'],
+  },
+  university: {
+    page: '/university',
+    capabilities: ['University AI Transformation', 'Admissions & Admin Automation', 'Learning Analytics'],
+  },
+  enterprise: {
+    page: '/enterprise',
+    capabilities: ['Enterprise AI Solution', 'ESG × AI Project', 'n8n Workflow'],
+  },
+  secondBrain: {
+    page: '/second-brain',
+    capabilities: ['Knowledge Base', 'Project Studio', 'Research Hub'],
+  },
+};
+
 function renderMetaLabel(label) {
   if (!label.includes('№')) return label;
   const [left, ...rest] = label.split('№');
@@ -1683,6 +1856,211 @@ function AdvisorSection({ content, navigate }) {
   );
 }
 
+function ActionCenterSection({ content, capabilityLabels, navigate }) {
+  const [role, setRole] = useState('');
+  const [need, setNeed] = useState('');
+  const [action, setAction] = useState('');
+  const [copyStatus, setCopyStatus] = useState('');
+
+  const fillTemplate = (template, values) =>
+    template.replace(/\{(\w+)\}/g, (_, key) => values[key] || '');
+
+  const findOption = (group, id) => content.options[group].find((option) => option.id === id);
+  const selectedRole = role ? findOption('role', role) : null;
+  const selectedNeed = need ? findOption('need', need) : null;
+  const selectedAction = action ? findOption('action', action) : null;
+  const isComplete = Boolean(selectedRole && selectedNeed && selectedAction);
+
+  const briefData = useMemo(() => {
+    if (!isComplete || !selectedRole || !selectedNeed || !selectedAction) return null;
+    const roleRule = ACTION_CENTER_ROLE_RULES[selectedRole.id];
+    if (!roleRule) return null;
+
+    const localizedCapabilities = roleRule.capabilities.map(
+      (capability) => capabilityLabels?.[capability] || capability
+    );
+    const [capability1, capability2, capability3] = localizedCapabilities;
+    const briefText = fillTemplate(content.panel.briefTemplate, {
+      roleLabel: selectedRole.label,
+      needLabel: selectedNeed.label,
+      actionLabel: selectedAction.label,
+      capability1,
+      capability2,
+      capability3,
+    });
+    const briefTitle = fillTemplate(content.panel.briefTitleTemplate, {
+      roleLabel: selectedRole.label,
+    });
+    const suggestedNextStep = fillTemplate(content.panel.suggestedTemplate, {
+      roleLabel: selectedRole.label,
+      actionLabel: selectedAction.label,
+    });
+
+    return {
+      briefTitle,
+      briefText,
+      suggestedNextStep,
+      recommendedPage: roleRule.page,
+      capabilities: localizedCapabilities,
+    };
+  }, [capabilityLabels, content.panel, isComplete, selectedAction, selectedNeed, selectedRole]);
+
+  useEffect(() => {
+    setCopyStatus('');
+  }, [role, need, action]);
+
+  const renderOptionGroup = (questionKey, selectedValue, onSelect, options) => (
+    <div
+      style={{
+        borderRadius: 16,
+        border: '1px solid var(--line-1)',
+        background: 'var(--bg-1)',
+        padding: 16,
+      }}
+    >
+      <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 10 }}>
+        {content.questions[questionKey]}
+      </div>
+      <div className="action-option-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10 }}>
+        {options.map((option) => {
+          const isActive = selectedValue === option.id;
+          return (
+            <button
+              key={option.id}
+              onClick={() => onSelect(option.id)}
+              style={{
+                borderRadius: 12,
+                border: '1px solid ' + (isActive ? 'var(--fg-2)' : 'var(--line-1)'),
+                background: isActive ? 'var(--bg-2)' : 'transparent',
+                color: isActive ? 'var(--fg-1)' : 'var(--fg-2)',
+                padding: '11px 12px',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 13,
+                lineHeight: 1.4,
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'all 0.22s var(--ease-out)',
+                minHeight: 72,
+              }}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <section id="action-center" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
+      <div className="container" style={{ textAlign: 'center' }}>
+        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
+          — {content.eyebrow}
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 'clamp(36px, 4.5vw, 62px)',
+            lineHeight: 1.08,
+            fontWeight: 400,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {content.title}
+        </h2>
+        <p style={{ margin: '14px auto 0', maxWidth: 860, color: 'var(--fg-2)', lineHeight: 1.7 }}>{content.subtitle}</p>
+      </div>
+
+      <div className="container" style={{ marginTop: 34, display: 'grid', gap: 12 }}>
+        {renderOptionGroup('role', role, setRole, content.options.role)}
+        {renderOptionGroup('need', need, setNeed, content.options.need)}
+        {renderOptionGroup('action', action, setAction, content.options.action)}
+
+        <div
+          style={{
+            borderRadius: 18,
+            border: '1px solid var(--line-1)',
+            background: 'var(--bg-1)',
+            padding: '20px clamp(16px, 3vw, 24px)',
+          }}
+        >
+          {!briefData ? (
+            <div style={{ color: 'var(--fg-3)', lineHeight: 1.7 }}>{content.panel.pending}</div>
+          ) : (
+            <div className="panel-switch-in" style={{ display: 'grid', gap: 14 }}>
+              <div className="action-result-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <div className="label" style={{ marginBottom: 8 }}>{content.panel.briefTitleLabel}</div>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, lineHeight: 1.2 }}>{briefData.briefTitle}</div>
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: 8 }}>{content.panel.recommendedPageLabel}</div>
+                  <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{briefData.recommendedPage}</div>
+                </div>
+              </div>
+
+              <div>
+                <div className="label" style={{ marginBottom: 8 }}>{content.panel.generatedBriefLabel}</div>
+                <div style={{ color: 'var(--fg-2)', lineHeight: 1.75 }}>{briefData.briefText}</div>
+              </div>
+
+              <div>
+                <div className="label" style={{ marginBottom: 8 }}>{content.panel.suggestedNextStepLabel}</div>
+                <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{briefData.suggestedNextStep}</div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {briefData.capabilities.map((capability) => (
+                  <span key={capability} className="content-tag">
+                    {capability}
+                  </span>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-ghost"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(
+                        `${briefData.briefTitle}\n\n${briefData.briefText}\n\n${content.panel.suggestedNextStepLabel}: ${briefData.suggestedNextStep}\n${content.panel.recommendedPageLabel}: ${briefData.recommendedPage}`
+                      );
+                      setCopyStatus(content.panel.copySuccess);
+                    } catch {
+                      setCopyStatus(content.panel.copySuccess);
+                    }
+                  }}
+                >
+                  {content.panel.copyBrief}
+                </button>
+                <button className="btn btn-gradient" onClick={() => navigate(briefData.recommendedPage)}>
+                  {content.panel.goToPage}
+                </button>
+                <button className="btn btn-ghost" onClick={() => scrollToSection('contact')}>
+                  {content.panel.contact}
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setRole('');
+                    setNeed('');
+                    setAction('');
+                    setCopyStatus('');
+                  }}
+                >
+                  {content.panel.reset}
+                </button>
+              </div>
+              {copyStatus ? <div style={{ color: 'var(--fg-2)', fontSize: 14 }}>{copyStatus}</div> : null}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ModulesSection({ content, onOpenDetail }) {
   return (
     <section id="modules" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
@@ -2338,6 +2716,7 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
   const navigatorContent = ROLE_NAVIGATOR_CONTENT[lang] || ROLE_NAVIGATOR_CONTENT.en;
   const capabilityMapContent = CAPABILITY_MAP_CONTENT[lang] || CAPABILITY_MAP_CONTENT.en;
   const advisorContent = ADVISOR_CONTENT[lang] || ADVISOR_CONTENT.en;
+  const actionCenterContent = ACTION_CENTER_CONTENT[lang] || ACTION_CENTER_CONTENT.en;
   const [detail, setDetail] = useState(null);
   const researchItems = useMemo(() => getResearchItems(lang), [lang]);
   const knowledgeItems = useMemo(() => getKnowledgeItems(lang), [lang]);
@@ -2368,6 +2747,12 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       <RoleNavigatorSection key={`navigator-${lang}`} content={navigatorContent} navigate={navigate} />
       <CapabilityMapSection key={`capability-${lang}`} content={capabilityMapContent} />
       <AdvisorSection key={`advisor-${lang}`} content={advisorContent} navigate={navigate} />
+      <ActionCenterSection
+        key={`action-center-${lang}`}
+        content={actionCenterContent}
+        capabilityLabels={advisorContent.results.capabilityLabels}
+        navigate={navigate}
+      />
       <ModulesSection key={`modules-${lang}`} content={interactiveContent.modules} onOpenDetail={setDetail} />
       <ResearchDirectionsSection
         key={`research-${lang}`}
