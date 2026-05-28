@@ -1938,7 +1938,6 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       />
       <KnowledgeSection key={`knowledge-${lang}`} locale={locale} items={knowledgeItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
       <ProjectsSection key={`projects-${lang}`} locale={locale} items={projectItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
-      <IntegrationRoadmapSection />
       <AssistantSection key={`assistant-${lang}`} locale={locale} />
       <ContactSection key={`contact-${lang}`} locale={locale} />
       <Footer t={t} />
