@@ -2,7 +2,6 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
 import { INTERACTIVE_CONTENT } from '../constants/interactiveData.js';
 import {
-  getDataSourceStatus,
   getKnowledgeItems,
   getProjectItems,
   getResearchItems,
@@ -1616,37 +1615,13 @@ function ProjectsSection({ locale, items, onOpenDetail, navigate, uiText }) {
   );
 }
 
-function DataSourceStatusSection() {
-  const lastUpdated = new Date().toISOString().slice(0, 10);
-  const sourceStatus = getDataSourceStatus();
-
-  return (
-    <section className="section" style={{ borderTop: '1px solid var(--line-1)' }}>
-      <div className="container">
-        <div
-          style={{
-            maxWidth: 960,
-            margin: '0 auto',
-            borderRadius: 20,
-            border: '1px solid var(--line-1)',
-            background: 'var(--bg-1)',
-            padding: '24px clamp(18px, 3vw, 30px)',
-          }}
-        >
-          <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 10 }}>
-            NexAeon Data Layer｜資料層狀態
-          </div>
-          <div style={{ display: 'grid', gap: 10, color: 'var(--fg-2)', lineHeight: 1.8 }}>
-            <div>Current Source: {sourceStatus.currentSource}</div>
-            <div>Future Source: {sourceStatus.futureSource}</div>
-            <div>Status: {sourceStatus.status}</div>
-            <div>Last Updated: {lastUpdated}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
+// Internal placeholder for future external data integration.
+// Keep this metadata out of visitor-facing UI until backend connectors are active.
+const INTERNAL_DATA_LAYER_CONFIG = {
+  currentSource: 'Local Static Content',
+  futureSource: 'Notion / Airtable / n8n',
+  status: 'Ready for Integration',
+};
 
 function IntegrationRoadmapSection() {
   const phases = [
@@ -1963,7 +1938,6 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       />
       <KnowledgeSection key={`knowledge-${lang}`} locale={locale} items={knowledgeItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
       <ProjectsSection key={`projects-${lang}`} locale={locale} items={projectItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
-      <DataSourceStatusSection />
       <IntegrationRoadmapSection />
       <AssistantSection key={`assistant-${lang}`} locale={locale} />
       <ContactSection key={`contact-${lang}`} locale={locale} />
