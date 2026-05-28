@@ -1,4 +1,4 @@
-import { findContentItem } from '../data/nexaeonContent.js';
+import { getAllContentItems } from '../lib/contentSource.js';
 
 const DETAIL_TEXT = {
   zh: {
@@ -79,7 +79,7 @@ function NotFound({ navigate, text }) {
 
 export default function DetailPage({ type, id, navigate, lang }) {
   const text = DETAIL_TEXT[lang] || DETAIL_TEXT.en;
-  const item = findContentItem(type, id, lang);
+  const item = getAllContentItems(lang).find((contentItem) => contentItem.type === type && contentItem.id === id);
 
   if (!item) {
     return <NotFound navigate={navigate} text={text} />;

@@ -1,7 +1,12 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
 import { INTERACTIVE_CONTENT } from '../constants/interactiveData.js';
-import { getContentByType } from '../data/nexaeonContent.js';
+import {
+  getDataSourceStatus,
+  getKnowledgeItems,
+  getProjectItems,
+  getResearchItems,
+} from '../lib/contentSource.js';
 import { toDetailPath } from '../utils/router.js';
 
 const UI_TEXT = {
@@ -791,6 +796,77 @@ function ProjectsSection({ locale, items, onOpenDetail, navigate, uiText }) {
   );
 }
 
+function DataSourceStatusSection() {
+  const lastUpdated = new Date().toISOString().slice(0, 10);
+  const sourceStatus = getDataSourceStatus();
+
+  return (
+    <section className="section" style={{ borderTop: '1px solid var(--line-1)' }}>
+      <div className="container">
+        <div
+          style={{
+            maxWidth: 960,
+            margin: '0 auto',
+            borderRadius: 20,
+            border: '1px solid var(--line-1)',
+            background: 'var(--bg-1)',
+            padding: '24px clamp(18px, 3vw, 30px)',
+          }}
+        >
+          <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 10 }}>
+            NexAeon Data Layer｜資料層狀態
+          </div>
+          <div style={{ display: 'grid', gap: 10, color: 'var(--fg-2)', lineHeight: 1.8 }}>
+            <div>Current Source: {sourceStatus.currentSource}</div>
+            <div>Future Source: {sourceStatus.futureSource}</div>
+            <div>Status: {sourceStatus.status}</div>
+            <div>Last Updated: {lastUpdated}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IntegrationRoadmapSection() {
+  const phases = [
+    'Phase 1：Local Content Layer',
+    'Phase 2：Notion Knowledge Database',
+    'Phase 3：Airtable Research / Project Tracker',
+    'Phase 4：n8n Auto Sync Workflow',
+    'Phase 5：AI Agent / RAG Query Layer',
+  ];
+
+  return (
+    <section className="section" style={{ borderTop: '1px solid var(--line-1)' }}>
+      <div className="container">
+        <div style={{ textAlign: 'center' }}>
+          <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
+            NexAeon Integration Roadmap｜外部接入路線
+          </div>
+        </div>
+        <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+          {phases.map((phase) => (
+            <article
+              key={phase}
+              style={{
+                borderRadius: 16,
+                border: '1px solid var(--line-1)',
+                background: 'var(--bg-1)',
+                padding: 18,
+                color: 'var(--fg-2)',
+                lineHeight: 1.7,
+              }}
+            >
+              {phase}
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function normalizeText(value) {
   return value.toLowerCase().replace(/[?？!！.,，。'"“”]/g, '').trim();
 }
@@ -1024,9 +1100,9 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
   const locale = INTERACTIVE_CONTENT[lang] || INTERACTIVE_CONTENT.en;
   const uiText = UI_TEXT[lang] || UI_TEXT.en;
   const [detail, setDetail] = useState(null);
-  const researchItems = useMemo(() => getContentByType('research', lang), [lang]);
-  const knowledgeItems = useMemo(() => getContentByType('knowledge', lang), [lang]);
-  const projectItems = useMemo(() => getContentByType('projects', lang), [lang]);
+  const researchItems = useMemo(() => getResearchItems(lang), [lang]);
+  const knowledgeItems = useMemo(() => getKnowledgeItems(lang), [lang]);
+  const projectItems = useMemo(() => getProjectItems(lang), [lang]);
 
   useEffect(() => {
     const el = rootRef.current;
@@ -1053,6 +1129,8 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       <ResearchDirectionsSection key={`research-${lang}`} locale={locale} items={researchItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
       <KnowledgeSection key={`knowledge-${lang}`} locale={locale} items={knowledgeItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
       <ProjectsSection key={`projects-${lang}`} locale={locale} items={projectItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
+      <DataSourceStatusSection />
+      <IntegrationRoadmapSection />
       <AssistantSection key={`assistant-${lang}`} locale={locale} />
       <ContactSection key={`contact-${lang}`} locale={locale} />
       <Footer t={t} />
