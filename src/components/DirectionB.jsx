@@ -554,6 +554,224 @@ const CAPABILITY_MAP_CONTENT = {
   },
 };
 
+const ADVISOR_CONTENT = {
+  zh: {
+    eyebrow: 'NexAeon Advisor / 智能導覽 / 지능형 안내',
+    introTitle: '讓 NexAeon 幫你找到入口',
+    introSubtitle: '回答三個問題，獲得一條適合你的學習、研究或合作路徑。',
+    questions: {
+      identity: '你的身份是什麼？',
+      goal: '你現在最想解決什麼？',
+      support: '你希望 NexAeon 提供什麼？',
+    },
+    options: {
+      identity: [
+        { id: 'students', label: 'Student' },
+        { id: 'researchers', label: 'Researcher' },
+        { id: 'university', label: 'University Leader' },
+        { id: 'enterprise', label: 'Enterprise Partner' },
+        { id: 'second-brain', label: 'Joey / Second Brain' },
+      ],
+      goal: [
+        { id: 'learn', label: 'Learn with AI', role: 'students' },
+        { id: 'research', label: 'Build research direction', role: 'researchers' },
+        { id: 'transform', label: 'Transform education', role: 'university' },
+        { id: 'automate', label: 'Automate workflows', role: 'enterprise' },
+        { id: 'organize', label: 'Organize knowledge', role: 'second-brain' },
+      ],
+      support: [
+        { id: 'learning-path', label: 'Learning Path', role: 'students' },
+        { id: 'research-model', label: 'Research Model', role: 'researchers' },
+        { id: 'ai-plan', label: 'AI Transformation Plan', role: 'university' },
+        { id: 'mvp', label: 'MVP Prototype', role: 'enterprise' },
+        { id: 'knowledge-hub', label: 'Knowledge Hub', role: 'second-brain' },
+      ],
+    },
+    results: {
+      recommendedPath: 'Recommended Path',
+      whyPath: 'Why this path',
+      recommendedCapabilities: 'Recommended Capabilities',
+      nextAction: 'Next Action',
+      conflictNote: '你也可以從「{goal}」對應模組開始探索。',
+      cta: '前往推薦入口',
+      reset: '重新開始',
+      pending: '完成三個問題後，這裡會自動顯示推薦結果。',
+      roleName: {
+        students: 'Students',
+        researchers: 'Professors & Researchers',
+        university: 'University Leaders',
+        enterprise: 'Enterprise Partners',
+        'second-brain': "Joey's Second Brain",
+      },
+      why: {
+        students: '你目前最適合先建立 AI 學習方法與個別化回饋節奏。',
+        researchers: '你目前最適合先聚焦研究方向、模型展示與文獻整合。',
+        university: '你目前最適合先規劃校務與教學場景的 AI 轉型路徑。',
+        enterprise: '你目前最適合先驗證可落地的合作方案與自動化工作流。',
+        'second-brain': '你目前最適合先整合知識資產，建立可持續累積的中樞。',
+      },
+      next: {
+        students: '開始你的 AI 學習路徑。',
+        researchers: '探索 NexAeon 研究方向。',
+        university: '查看一份 AI 轉型方案。',
+        enterprise: '探索合作可能性。',
+        'second-brain': '進入知識中樞。',
+      },
+    },
+  },
+  en: {
+    eyebrow: 'NexAeon Advisor / 智能導覽 / 지능형 안내',
+    introTitle: 'Let NexAeon find your starting point',
+    introSubtitle: 'Answer three questions and get a tailored path for learning, research, or collaboration.',
+    questions: {
+      identity: 'What is your current role?',
+      goal: 'What do you want to solve right now?',
+      support: 'What do you want from NexAeon?',
+    },
+    options: {
+      identity: [
+        { id: 'students', label: 'Student' },
+        { id: 'researchers', label: 'Researcher' },
+        { id: 'university', label: 'University Leader' },
+        { id: 'enterprise', label: 'Enterprise Partner' },
+        { id: 'second-brain', label: 'Joey / Second Brain' },
+      ],
+      goal: [
+        { id: 'learn', label: 'Learn with AI', role: 'students' },
+        { id: 'research', label: 'Build research direction', role: 'researchers' },
+        { id: 'transform', label: 'Transform education', role: 'university' },
+        { id: 'automate', label: 'Automate workflows', role: 'enterprise' },
+        { id: 'organize', label: 'Organize knowledge', role: 'second-brain' },
+      ],
+      support: [
+        { id: 'learning-path', label: 'Learning Path', role: 'students' },
+        { id: 'research-model', label: 'Research Model', role: 'researchers' },
+        { id: 'ai-plan', label: 'AI Transformation Plan', role: 'university' },
+        { id: 'mvp', label: 'MVP Prototype', role: 'enterprise' },
+        { id: 'knowledge-hub', label: 'Knowledge Hub', role: 'second-brain' },
+      ],
+    },
+    results: {
+      recommendedPath: 'Recommended Path',
+      whyPath: 'Why this path',
+      recommendedCapabilities: 'Recommended Capabilities',
+      nextAction: 'Next Action',
+      conflictNote: 'You can also start from modules mapped to "{goal}".',
+      cta: 'Go to Recommended Path',
+      reset: 'Start Over',
+      pending: 'Select all three answers to see your recommendation panel.',
+      roleName: {
+        students: 'Students',
+        researchers: 'Professors & Researchers',
+        university: 'University Leaders',
+        enterprise: 'Enterprise Partners',
+        'second-brain': "Joey's Second Brain",
+      },
+      why: {
+        students: 'Your best first move is building AI learning habits and personalized feedback loops.',
+        researchers: 'Your best first move is clarifying research direction, model framing, and evidence structure.',
+        university: 'Your best first move is designing a practical AI transformation path for education operations.',
+        enterprise: 'Your best first move is validating collaboration-ready use cases and automation workflows.',
+        'second-brain': 'Your best first move is unifying knowledge assets into a compounding personal hub.',
+      },
+      next: {
+        students: 'Start your AI learning path.',
+        researchers: 'Explore NexAeon research direction.',
+        university: 'View an AI transformation plan.',
+        enterprise: 'Explore collaboration possibilities.',
+        'second-brain': 'Enter the knowledge hub.',
+      },
+    },
+  },
+  ko: {
+    eyebrow: 'NexAeon Advisor / 智能導覽 / 지능형 안내',
+    introTitle: 'NexAeon이 시작 지점을 찾아준다',
+    introSubtitle: '세 가지 질문에 답하면 학습, 연구, 협업에 맞는 경로를 추천받을 수 있다.',
+    questions: {
+      identity: '당신의 역할은 무엇인가요?',
+      goal: '지금 가장 해결하고 싶은 것은 무엇인가요?',
+      support: 'NexAeon에서 무엇을 원하나요?',
+    },
+    options: {
+      identity: [
+        { id: 'students', label: 'Student' },
+        { id: 'researchers', label: 'Researcher' },
+        { id: 'university', label: 'University Leader' },
+        { id: 'enterprise', label: 'Enterprise Partner' },
+        { id: 'second-brain', label: 'Joey / Second Brain' },
+      ],
+      goal: [
+        { id: 'learn', label: 'Learn with AI', role: 'students' },
+        { id: 'research', label: 'Build research direction', role: 'researchers' },
+        { id: 'transform', label: 'Transform education', role: 'university' },
+        { id: 'automate', label: 'Automate workflows', role: 'enterprise' },
+        { id: 'organize', label: 'Organize knowledge', role: 'second-brain' },
+      ],
+      support: [
+        { id: 'learning-path', label: 'Learning Path', role: 'students' },
+        { id: 'research-model', label: 'Research Model', role: 'researchers' },
+        { id: 'ai-plan', label: 'AI Transformation Plan', role: 'university' },
+        { id: 'mvp', label: 'MVP Prototype', role: 'enterprise' },
+        { id: 'knowledge-hub', label: 'Knowledge Hub', role: 'second-brain' },
+      ],
+    },
+    results: {
+      recommendedPath: 'Recommended Path',
+      whyPath: 'Why this path',
+      recommendedCapabilities: 'Recommended Capabilities',
+      nextAction: 'Next Action',
+      conflictNote: '"{goal}"에 해당하는 모듈부터 탐색해도 좋습니다.',
+      cta: '추천 경로로 이동',
+      reset: '다시 시작',
+      pending: '세 가지 질문을 모두 선택하면 추천 결과가 자동으로 표시됩니다.',
+      roleName: {
+        students: 'Students',
+        researchers: 'Professors & Researchers',
+        university: 'University Leaders',
+        enterprise: 'Enterprise Partners',
+        'second-brain': "Joey's Second Brain",
+      },
+      why: {
+        students: '지금은 AI 학습 방식과 개인화 피드백 루프를 먼저 구축하는 것이 가장 효과적입니다.',
+        researchers: '지금은 연구 방향, 모델 구조, 문헌 근거를 명확히 정리하는 것이 가장 효과적입니다.',
+        university: '지금은 교육 및 행정 현장에 맞는 AI 전환 경로를 설계하는 것이 가장 효과적입니다.',
+        enterprise: '지금은 협업 가능한 시나리오와 자동화 워크플로를 빠르게 검증하는 것이 가장 효과적입니다.',
+        'second-brain': '지금은 지식 자산을 통합해 장기적으로 축적되는 개인 허브를 만드는 것이 가장 효과적입니다.',
+      },
+      next: {
+        students: 'AI 학습 경로를 시작하세요.',
+        researchers: 'NexAeon 연구 방향을 탐색하세요.',
+        university: 'AI 전환 계획을 확인하세요.',
+        enterprise: '협업 가능성을 탐색하세요.',
+        'second-brain': '지식 허브로 들어가세요.',
+      },
+    },
+  },
+};
+
+const ADVISOR_ROLE_RULES = {
+  students: {
+    path: '/students',
+    capabilities: ['AI Tutoring Lab', 'Prompt Engineering Course', 'Personalized Feedback System'],
+  },
+  researchers: {
+    path: '/researchers',
+    capabilities: ['Research Hub', 'TAM / Learning Engagement Model', 'Literature Knowledge Base'],
+  },
+  university: {
+    path: '/university',
+    capabilities: ['University AI Transformation', 'Admissions & Admin Automation', 'Learning Analytics'],
+  },
+  enterprise: {
+    path: '/enterprise',
+    capabilities: ['Enterprise AI Solution', 'ESG × AI Project', 'n8n Workflow'],
+  },
+  'second-brain': {
+    path: '/second-brain',
+    capabilities: ['Knowledge Base', 'Project Studio', 'Research Hub'],
+  },
+};
+
 function renderMetaLabel(label) {
   if (!label.includes('№')) return label;
   const [left, ...rest] = label.split('№');
@@ -1243,6 +1461,178 @@ function CapabilityMapSection({ content }) {
   );
 }
 
+function AdvisorSection({ content, navigate }) {
+  const [identity, setIdentity] = useState('');
+  const [goal, setGoal] = useState('');
+  const [support, setSupport] = useState('');
+
+  const findOption = (group, id) => content.options[group].find((option) => option.id === id);
+  const selectedIdentity = identity ? findOption('identity', identity) : null;
+  const selectedGoal = goal ? findOption('goal', goal) : null;
+  const selectedSupport = support ? findOption('support', support) : null;
+  const isComplete = Boolean(selectedIdentity && selectedGoal && selectedSupport);
+
+  const recommendation = useMemo(() => {
+    if (!isComplete || !selectedIdentity || !selectedGoal || !selectedSupport) return null;
+
+    const roleId = selectedIdentity.id;
+    const baseRule = ADVISOR_ROLE_RULES[roleId];
+    if (!baseRule) return null;
+
+    const hasConflict = selectedGoal.role !== roleId || selectedSupport.role !== roleId;
+    const conflictNote = hasConflict
+      ? content.results.conflictNote.replace('{goal}', selectedGoal.label)
+      : '';
+
+    return {
+      roleId,
+      roleLabel: content.results.roleName[roleId],
+      path: baseRule.path,
+      capabilities: baseRule.capabilities,
+      why: content.results.why[roleId],
+      next: content.results.next[roleId],
+      conflictNote,
+    };
+  }, [content.results, isComplete, selectedGoal, selectedIdentity, selectedSupport]);
+
+  const renderOptionGroup = (questionKey, selectedValue, onSelect, options) => (
+    <div
+      style={{
+        borderRadius: 16,
+        border: '1px solid var(--line-1)',
+        background: 'var(--bg-1)',
+        padding: 16,
+      }}
+    >
+      <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 10 }}>
+        {content.questions[questionKey]}
+      </div>
+      <div className="advisor-option-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10 }}>
+        {options.map((option) => {
+          const isActive = selectedValue === option.id;
+          return (
+            <button
+              key={option.id}
+              onClick={() => onSelect(option.id)}
+              style={{
+                borderRadius: 12,
+                border: '1px solid ' + (isActive ? 'var(--fg-2)' : 'var(--line-1)'),
+                background: isActive ? 'var(--bg-2)' : 'transparent',
+                color: isActive ? 'var(--fg-1)' : 'var(--fg-2)',
+                padding: '11px 12px',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 13,
+                lineHeight: 1.4,
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'all 0.22s var(--ease-out)',
+                minHeight: 72,
+              }}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <section id="advisor" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
+      <div className="container" style={{ textAlign: 'center' }}>
+        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
+          — {content.eyebrow}
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 'clamp(36px, 4.5vw, 62px)',
+            lineHeight: 1.08,
+            fontWeight: 400,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {content.introTitle}
+        </h2>
+        <p style={{ margin: '14px auto 0', maxWidth: 860, color: 'var(--fg-2)', lineHeight: 1.7 }}>{content.introSubtitle}</p>
+      </div>
+
+      <div className="container" style={{ marginTop: 34, display: 'grid', gap: 12 }}>
+        {renderOptionGroup('identity', identity, setIdentity, content.options.identity)}
+        {renderOptionGroup('goal', goal, setGoal, content.options.goal)}
+        {renderOptionGroup('support', support, setSupport, content.options.support)}
+
+        <div
+          style={{
+            borderRadius: 18,
+            border: '1px solid var(--line-1)',
+            background: 'var(--bg-1)',
+            padding: '20px clamp(16px, 3vw, 24px)',
+          }}
+        >
+          {!recommendation ? (
+            <div style={{ color: 'var(--fg-3)', lineHeight: 1.7 }}>{content.results.pending}</div>
+          ) : (
+            <div className="panel-switch-in" style={{ display: 'grid', gap: 14 }}>
+              <div className="advisor-result-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <div className="label" style={{ marginBottom: 8 }}>{content.results.recommendedPath}</div>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, lineHeight: 1.2 }}>
+                    {recommendation.roleLabel}
+                  </div>
+                  <div style={{ marginTop: 6, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                    {recommendation.path}
+                  </div>
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: 8 }}>{content.results.whyPath}</div>
+                  <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{recommendation.why}</div>
+                  {recommendation.conflictNote ? (
+                    <div style={{ marginTop: 8, color: 'var(--fg-3)', lineHeight: 1.7 }}>{recommendation.conflictNote}</div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div>
+                <div className="label" style={{ marginBottom: 8 }}>{content.results.recommendedCapabilities}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {recommendation.capabilities.map((capability) => (
+                    <span key={capability} className="content-tag">
+                      {capability}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="label" style={{ marginBottom: 8 }}>{content.results.nextAction}</div>
+                <div style={{ color: 'var(--fg-2)', lineHeight: 1.7 }}>{recommendation.next}</div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button className="btn btn-gradient" onClick={() => navigate(recommendation.path)}>
+                  {content.results.cta}
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setIdentity('');
+                    setGoal('');
+                    setSupport('');
+                  }}
+                >
+                  {content.results.reset}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ModulesSection({ content, onOpenDetail }) {
   return (
     <section id="modules" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
@@ -1897,6 +2287,7 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
   const interactiveContent = CORE_INTERACTION_CONTENT[lang] || CORE_INTERACTION_CONTENT.en;
   const navigatorContent = ROLE_NAVIGATOR_CONTENT[lang] || ROLE_NAVIGATOR_CONTENT.en;
   const capabilityMapContent = CAPABILITY_MAP_CONTENT[lang] || CAPABILITY_MAP_CONTENT.en;
+  const advisorContent = ADVISOR_CONTENT[lang] || ADVISOR_CONTENT.en;
   const [detail, setDetail] = useState(null);
   const researchItems = useMemo(() => getResearchItems(lang), [lang]);
   const knowledgeItems = useMemo(() => getKnowledgeItems(lang), [lang]);
@@ -1926,6 +2317,7 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       <Hero t={t} />
       <RoleNavigatorSection key={`navigator-${lang}`} content={navigatorContent} navigate={navigate} />
       <CapabilityMapSection key={`capability-${lang}`} content={capabilityMapContent} />
+      <AdvisorSection key={`advisor-${lang}`} content={advisorContent} navigate={navigate} />
       <ModulesSection key={`modules-${lang}`} content={interactiveContent.modules} onOpenDetail={setDetail} />
       <ResearchDirectionsSection
         key={`research-${lang}`}
