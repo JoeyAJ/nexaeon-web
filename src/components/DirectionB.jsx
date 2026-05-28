@@ -30,6 +30,222 @@ const UI_TEXT = {
   },
 };
 
+const CORE_INTERACTION_CONTENT = {
+  zh: {
+    modules: {
+      eyebrow: 'NexAeon Modules',
+      title: '核心模組入口',
+      cards: [
+        {
+          id: 'ai-tutoring-lab',
+          title: 'AI Tutoring Lab',
+          summary: '以學習診斷與分層回覆設計可持續迭代的 AI 助教能力。',
+          status: 'Prototype',
+          purpose: '支援提問理解、回覆結構化與可追蹤的學習回饋。',
+          stage: '原型測試中',
+          future: '接入學習歷程記憶、難度調節與教師協作面板。',
+        },
+        {
+          id: 'research-hub',
+          title: 'Research Hub',
+          summary: '集中管理研究主題、方法路徑與驗證進度的研究中台。',
+          status: 'Active',
+          purpose: '把研究方向轉為可追蹤節點，便於對外展示與內部迭代。',
+          stage: '主結構已上線',
+          future: '擴充研究問題圖譜與跨專案證據鏈結。',
+        },
+        {
+          id: 'knowledge-base',
+          title: 'Knowledge Base',
+          summary: '可搜尋、可分類、可累積的知識節點系統。',
+          status: 'Active',
+          purpose: '支援研究筆記沉澱、快速檢索與主題再利用。',
+          stage: '內容持續更新',
+          future: '新增多來源同步與知識節點關聯視圖。',
+        },
+        {
+          id: 'project-studio',
+          title: 'Project Studio',
+          summary: '串連研究假設到產品原型的專案實驗工作室。',
+          status: 'Coming Soon',
+          purpose: '管理專案節奏、設計取捨與里程碑復盤。',
+          stage: '流程設計中',
+          future: '接入任務追蹤、風險看板與自動彙整報告。',
+        },
+      ],
+    },
+    researchFocus: {
+      eyebrow: 'Research Interaction',
+      title: '研究互動卡片',
+      hint: '點擊卡片即可切換說明',
+      cards: [
+        {
+          id: 'personalized-ai-tutoring',
+          title: 'Personalized AI Tutoring',
+          description: '建立可因應學習者程度與節奏的對話策略，讓每次回應都能導向可執行下一步。',
+        },
+        {
+          id: 'ai-education-transformation',
+          title: 'AI × Education Transformation',
+          description: '聚焦 AI 重新定義教學流程、評量邏輯與課堂互動模式的可行框架。',
+        },
+        {
+          id: 'learning-analytics',
+          title: 'Learning Analytics',
+          description: '把學習行為、反思深度與參與品質轉為可追蹤指標，支撐教學決策。',
+        },
+        {
+          id: 'human-ai-collaboration',
+          title: 'Human-AI Collaboration',
+          description: '探索教師、學生與 AI 的協作邊界，建立兼顧效率與人本價值的設計原則。',
+        },
+      ],
+    },
+  },
+  en: {
+    modules: {
+      eyebrow: 'NexAeon Modules',
+      title: 'Core Module Entry',
+      cards: [
+        {
+          id: 'ai-tutoring-lab',
+          title: 'AI Tutoring Lab',
+          summary: 'Builds an iteratable AI tutoring capability through learner diagnosis and layered responses.',
+          status: 'Prototype',
+          purpose: 'Supports question understanding, structured replies, and trackable learning feedback.',
+          stage: 'Prototype validation in progress',
+          future: 'Add learning-memory context, adaptive difficulty, and teacher collaboration tools.',
+        },
+        {
+          id: 'research-hub',
+          title: 'Research Hub',
+          summary: 'A central layer for managing research themes, method tracks, and validation progress.',
+          status: 'Active',
+          purpose: 'Turns research directions into trackable nodes for public clarity and internal iteration.',
+          stage: 'Core structure is live',
+          future: 'Expand question maps and cross-project evidence linking.',
+        },
+        {
+          id: 'knowledge-base',
+          title: 'Knowledge Base',
+          summary: 'A searchable, classifiable, and cumulative knowledge node system.',
+          status: 'Active',
+          purpose: 'Supports note retention, fast retrieval, and cross-topic reuse.',
+          stage: 'Continuously updated',
+          future: 'Add multi-source sync and relationship views across knowledge nodes.',
+        },
+        {
+          id: 'project-studio',
+          title: 'Project Studio',
+          summary: 'An experiment studio connecting research hypotheses to product prototypes.',
+          status: 'Coming Soon',
+          purpose: 'Manages project cadence, design trade-offs, and milestone retrospectives.',
+          stage: 'Workflow design phase',
+          future: 'Integrate task tracking, risk boards, and automated summary reports.',
+        },
+      ],
+    },
+    researchFocus: {
+      eyebrow: 'Research Interaction',
+      title: 'Research Focus Cards',
+      hint: 'Click a card to switch the brief',
+      cards: [
+        {
+          id: 'personalized-ai-tutoring',
+          title: 'Personalized AI Tutoring',
+          description: 'Design dialogue strategies that adapt to learner level and pace so each response leads to a clear next action.',
+        },
+        {
+          id: 'ai-education-transformation',
+          title: 'AI × Education Transformation',
+          description: 'Defines practical frameworks for redesigning teaching flow, assessment logic, and classroom interaction with AI.',
+        },
+        {
+          id: 'learning-analytics',
+          title: 'Learning Analytics',
+          description: 'Converts behavior signals, reflection depth, and engagement quality into actionable teaching metrics.',
+        },
+        {
+          id: 'human-ai-collaboration',
+          title: 'Human-AI Collaboration',
+          description: 'Explores collaboration boundaries among teachers, learners, and AI with human-centered design principles.',
+        },
+      ],
+    },
+  },
+  ko: {
+    modules: {
+      eyebrow: 'NexAeon Modules',
+      title: '핵심 모듈 입구',
+      cards: [
+        {
+          id: 'ai-tutoring-lab',
+          title: 'AI Tutoring Lab',
+          summary: '학습 진단과 계층형 응답을 기반으로 지속 개선 가능한 AI 튜터 역량을 구축합니다.',
+          status: 'Prototype',
+          purpose: '질문 이해, 구조화된 응답, 추적 가능한 학습 피드백을 지원합니다.',
+          stage: '프로토타입 검증 중',
+          future: '학습 이력 메모리, 난이도 조절, 교사 협업 패널을 연동합니다.',
+        },
+        {
+          id: 'research-hub',
+          title: 'Research Hub',
+          summary: '연구 주제, 방법 경로, 검증 진행을 통합 관리하는 연구 허브입니다.',
+          status: 'Active',
+          purpose: '연구 방향을 추적 가능한 노드로 전환해 대외 전달력과 내부 반복을 강화합니다.',
+          stage: '핵심 구조 운영 중',
+          future: '질문 맵과 프로젝트 간 증거 연결을 확장합니다.',
+        },
+        {
+          id: 'knowledge-base',
+          title: 'Knowledge Base',
+          summary: '검색·분류·축적이 가능한 지식 노드 시스템입니다.',
+          status: 'Active',
+          purpose: '연구 노트 축적, 빠른 검색, 주제 간 재활용을 지원합니다.',
+          stage: '지속 업데이트 중',
+          future: '다중 소스 동기화와 지식 노드 관계 뷰를 추가합니다.',
+        },
+        {
+          id: 'project-studio',
+          title: 'Project Studio',
+          summary: '연구 가설을 제품 프로토타입으로 연결하는 프로젝트 실험 스튜디오입니다.',
+          status: 'Coming Soon',
+          purpose: '프로젝트 리듬, 설계 트레이드오프, 마일스톤 회고를 관리합니다.',
+          stage: '프로세스 설계 단계',
+          future: '태스크 추적, 리스크 보드, 자동 요약 리포트를 연동합니다.',
+        },
+      ],
+    },
+    researchFocus: {
+      eyebrow: 'Research Interaction',
+      title: '연구 인터랙션 카드',
+      hint: '카드를 클릭하면 설명이 전환됩니다',
+      cards: [
+        {
+          id: 'personalized-ai-tutoring',
+          title: 'Personalized AI Tutoring',
+          description: '학습 수준과 속도에 맞춰 대화 전략을 조정해, 모든 응답이 실행 가능한 다음 행동으로 이어지게 합니다.',
+        },
+        {
+          id: 'ai-education-transformation',
+          title: 'AI × Education Transformation',
+          description: 'AI 기반으로 수업 흐름, 평가 논리, 교실 상호작용을 재설계하는 실전 프레임워크를 구축합니다.',
+        },
+        {
+          id: 'learning-analytics',
+          title: 'Learning Analytics',
+          description: '학습 행동 신호, 성찰 깊이, 참여 품질을 추적 지표로 전환해 수업 의사결정을 지원합니다.',
+        },
+        {
+          id: 'human-ai-collaboration',
+          title: 'Human-AI Collaboration',
+          description: '교사·학습자·AI의 협업 경계를 탐색하고 인간 중심 원칙을 설계 기준으로 정립합니다.',
+        },
+      ],
+    },
+  },
+};
+
 function renderMetaLabel(label) {
   if (!label.includes('№')) return label;
   const [left, ...rest] = label.split('№');
@@ -495,7 +711,7 @@ function Hero({ t }) {
           <button
             className="btn btn-gradient"
             style={{ fontSize: 15 }}
-            onClick={() => scrollToSection('knowledge')}
+            onClick={() => scrollToSection('modules')}
           >
             {t.hero.cta1} <ArrowIcon />
           </button>
@@ -533,7 +749,72 @@ function Hero({ t }) {
   );
 }
 
-function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate, uiText }) {
+function ModulesSection({ content, onOpenDetail }) {
+  return (
+    <section id="modules" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
+      <div className="container" style={{ textAlign: 'center' }}>
+        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
+          — {content.eyebrow}
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 'clamp(40px, 5vw, 72px)',
+            lineHeight: 1.05,
+            fontWeight: 400,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {content.title}
+        </h2>
+      </div>
+
+      <div className="container grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginTop: 56 }}>
+        {content.cards.map((card) => (
+          <button
+            key={card.id}
+            onClick={() =>
+              onOpenDetail({
+                title: card.title,
+                subtitle: card.summary,
+                summary: card.purpose,
+                status: card.status,
+                nextAction: card.future,
+                description: card.stage,
+                category: content.eyebrow,
+                type: 'Module',
+                tags: [],
+              })
+            }
+            style={{
+              textAlign: 'left',
+              borderRadius: 18,
+              border: '1px solid var(--line-1)',
+              background: 'var(--bg-1)',
+              padding: 18,
+              color: 'inherit',
+              cursor: 'pointer',
+              transition: 'all 0.25s var(--ease-out)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'start' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, lineHeight: 1.25 }}>{card.title}</div>
+              <span className="content-tag">{card.status}</span>
+            </div>
+            <p style={{ margin: '12px 0 0', color: 'var(--fg-2)', lineHeight: 1.65, fontSize: 14 }}>{card.summary}</p>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate, uiText, researchFocusContent }) {
+  const [activeFocusId, setActiveFocusId] = useState(researchFocusContent.cards[0]?.id || '');
+  const activeFocus =
+    researchFocusContent.cards.find((card) => card.id === activeFocusId) || researchFocusContent.cards[0];
+
   return (
     <section id="research" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
       <div className="container" style={{ textAlign: 'center' }}>
@@ -554,7 +835,51 @@ function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate, uiTe
         </h2>
       </div>
 
-      <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 64 }}>
+      <div className="container" style={{ marginTop: 40 }}>
+        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 14 }}>
+          — {researchFocusContent.eyebrow}
+        </div>
+        <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          {researchFocusContent.cards.map((card) => {
+            const isActive = card.id === activeFocus?.id;
+            return (
+              <button
+                key={card.id}
+                onClick={() => setActiveFocusId(card.id)}
+                style={{
+                  textAlign: 'left',
+                  borderRadius: 14,
+                  border: '1px solid ' + (isActive ? 'var(--fg-2)' : 'var(--line-1)'),
+                  background: isActive ? 'var(--bg-2)' : 'var(--bg-1)',
+                  color: 'var(--fg-1)',
+                  padding: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, lineHeight: 1.35 }}>{card.title}</div>
+              </button>
+            );
+          })}
+        </div>
+        {activeFocus ? (
+          <div
+            style={{
+              marginTop: 14,
+              borderRadius: 14,
+              border: '1px solid var(--line-1)',
+              background: 'var(--bg-1)',
+              padding: 16,
+              color: 'var(--fg-2)',
+              lineHeight: 1.7,
+            }}
+          >
+            <div className="label" style={{ marginBottom: 8 }}>{researchFocusContent.hint}</div>
+            {activeFocus.description}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 44 }}>
         {items.map((item) => {
           return (
             <article
@@ -1099,6 +1424,7 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
   const rootRef = useRef(null);
   const locale = INTERACTIVE_CONTENT[lang] || INTERACTIVE_CONTENT.en;
   const uiText = UI_TEXT[lang] || UI_TEXT.en;
+  const interactiveContent = CORE_INTERACTION_CONTENT[lang] || CORE_INTERACTION_CONTENT.en;
   const [detail, setDetail] = useState(null);
   const researchItems = useMemo(() => getResearchItems(lang), [lang]);
   const knowledgeItems = useMemo(() => getKnowledgeItems(lang), [lang]);
@@ -1126,7 +1452,16 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       <NeuralBackground />
       <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
       <Hero t={t} />
-      <ResearchDirectionsSection key={`research-${lang}`} locale={locale} items={researchItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
+      <ModulesSection key={`modules-${lang}`} content={interactiveContent.modules} onOpenDetail={setDetail} />
+      <ResearchDirectionsSection
+        key={`research-${lang}`}
+        locale={locale}
+        items={researchItems}
+        onOpenDetail={setDetail}
+        navigate={navigate}
+        uiText={uiText}
+        researchFocusContent={interactiveContent.researchFocus}
+      />
       <KnowledgeSection key={`knowledge-${lang}`} locale={locale} items={knowledgeItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
       <ProjectsSection key={`projects-${lang}`} locale={locale} items={projectItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
       <DataSourceStatusSection />
