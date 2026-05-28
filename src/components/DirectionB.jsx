@@ -246,6 +246,315 @@ const CORE_INTERACTION_CONTENT = {
   },
 };
 
+const ROLE_NAVIGATOR_CONTENT = {
+  zh: {
+    eyebrow: 'NexAeon 互動導航',
+    title: '選擇你的入口身份',
+    subtitle: 'NexAeon Navigator',
+    panelWhyLabel: '為什麼需要 NexAeon',
+    panelFeaturesLabel: 'NexAeon 可以提供的三個功能',
+    roles: [
+      {
+        id: 'students',
+        icon: '◉',
+        title: '學生 Students',
+        value: '把 AI 變成可持續的學習夥伴，而不是一次性工具。',
+        why: 'NexAeon 協助學生進行個別化學習、Prompt 訓練、學習回饋與研究能力提升。',
+        features: ['AI Tutor 個別化學習輔助', 'Prompt Engineering 基礎訓練', '學習風格與任務回饋'],
+        cta: '探索 AI 學習路徑',
+        ctaTarget: 'research',
+      },
+      {
+        id: 'professors',
+        icon: '△',
+        title: '教授 / 研究者 Professors & Researchers',
+        value: '把研究問題、模型與合作提案整理成可展示路徑。',
+        why: 'NexAeon 展示 AI 教育、個別化學習、TAM、學習參與度與滿意度研究方向。',
+        features: ['AI 教育研究模型展示', '文獻與研究資料庫入口', '跨學科研究合作提案'],
+        cta: '查看研究方向',
+        ctaTarget: 'research',
+      },
+      {
+        id: 'leaders',
+        icon: '◻',
+        title: '學校 / 管理者 University Leaders',
+        value: '以可視化方式推進校務 AI 轉型與決策節奏。',
+        why: 'NexAeon 可作為學校 AI 教育轉型、招生分析、行政自動化與數位創新展示平台。',
+        features: ['AI 教育轉型方案', '招生與行政流程自動化', '數據分析與決策輔助'],
+        cta: '查看教育創新方案',
+        ctaTarget: 'projects',
+      },
+      {
+        id: 'enterprise',
+        icon: '◆',
+        title: '企業 / 合作方 Enterprise Partners',
+        value: '把 AI 教育與自動化能力轉成可共創的合作方案。',
+        why: 'NexAeon 可以把 AI Agent、ESG、教育科技與自動化流程轉化為合作型解決方案。',
+        features: ['AI Agent Prototype', 'ESG × AI 應用方案', '自動化與數據分析工作流'],
+        cta: '探索合作可能',
+        ctaTarget: 'contact',
+      },
+      {
+        id: 'joey',
+        icon: '◎',
+        title: 'Joey 的第二大腦 Joey’s Second Brain',
+        value: '把研究、課程與產品資產整合成同一套知識中樞。',
+        why: 'NexAeon 是 Joey 的研究、課程、AI 工具、項目與知識資產管理中心。',
+        features: ['研究主題與文獻管理', '課程與教學素材管理', 'AI 項目與 MVP 管理'],
+        cta: '進入知識中樞',
+        ctaTarget: 'knowledge',
+      },
+    ],
+  },
+  en: {
+    eyebrow: 'NexAeon Navigator',
+    title: 'Choose Your Role',
+    subtitle: 'NexAeon Interactive Navigation',
+    panelWhyLabel: 'Why This Role Needs NexAeon',
+    panelFeaturesLabel: 'Three Capabilities NexAeon Provides',
+    roles: [
+      {
+        id: 'students',
+        icon: '◉',
+        title: 'Students',
+        value: 'Turn AI into an ongoing learning partner, not a one-off tool.',
+        why: 'NexAeon helps students with personalized learning, prompt training, learning feedback, and research skill growth.',
+        features: ['AI Tutor for personalized support', 'Prompt Engineering foundation training', 'Learning-style and task feedback'],
+        cta: 'Explore the AI Learning Path',
+        ctaTarget: 'research',
+      },
+      {
+        id: 'professors',
+        icon: '△',
+        title: 'Professors & Researchers',
+        value: 'Show research directions, models, and collaboration opportunities in one flow.',
+        why: 'NexAeon presents research directions across AI education, personalized learning, TAM, learning engagement, and satisfaction.',
+        features: ['AI education research model showcase', 'Literature and research database gateway', 'Interdisciplinary collaboration proposals'],
+        cta: 'View Research Directions',
+        ctaTarget: 'research',
+      },
+      {
+        id: 'leaders',
+        icon: '◻',
+        title: 'University Leaders',
+        value: 'Drive AI transformation with clear operational and strategic visibility.',
+        why: 'NexAeon can serve as a platform for AI education transformation, admissions analytics, administrative automation, and digital innovation.',
+        features: ['AI education transformation plans', 'Admissions and admin process automation', 'Data analytics and decision support'],
+        cta: 'View Innovation Plans',
+        ctaTarget: 'projects',
+      },
+      {
+        id: 'enterprise',
+        icon: '◆',
+        title: 'Enterprise Partners',
+        value: 'Translate AI, ESG, and EdTech ideas into partnership-ready solutions.',
+        why: 'NexAeon transforms AI Agents, ESG, educational technology, and automation workflows into collaboration-based solutions.',
+        features: ['AI Agent prototype', 'ESG × AI application plan', 'Automation and analytics workflow'],
+        cta: 'Explore Partnership Potential',
+        ctaTarget: 'contact',
+      },
+      {
+        id: 'joey',
+        icon: '◎',
+        title: 'Joey’s Second Brain',
+        value: 'Unify research, courses, and AI projects in one knowledge hub.',
+        why: 'NexAeon is Joey’s management center for research, courses, AI tools, projects, and long-term knowledge assets.',
+        features: ['Research themes and literature management', 'Course and teaching material management', 'AI project and MVP management'],
+        cta: 'Enter the Knowledge Hub',
+        ctaTarget: 'knowledge',
+      },
+    ],
+  },
+  ko: {
+    eyebrow: 'NexAeon 인터랙션 내비게이터',
+    title: '당신의 역할로 시작하세요',
+    subtitle: 'NexAeon Navigator',
+    panelWhyLabel: '왜 NexAeon이 필요한가',
+    panelFeaturesLabel: 'NexAeon이 제공하는 3가지 기능',
+    roles: [
+      {
+        id: 'students',
+        icon: '◉',
+        title: '학생 Students',
+        value: 'AI를 일회성 도구가 아닌 지속형 학습 파트너로 만듭니다.',
+        why: 'NexAeon은 학생의 개인화 학습, 프롬프트 훈련, 학습 피드백, 연구 역량 향상을 지원합니다.',
+        features: ['AI Tutor 개인화 학습 보조', 'Prompt Engineering 기초 훈련', '학습 스타일 및 과제 피드백'],
+        cta: 'AI 학습 경로 탐색',
+        ctaTarget: 'research',
+      },
+      {
+        id: 'professors',
+        icon: '△',
+        title: '교수 / 연구자 Professors & Researchers',
+        value: '연구 모델과 협업 제안을 한 흐름으로 보여줍니다.',
+        why: 'NexAeon은 AI 교육, 개인화 학습, TAM, 학습 참여도와 만족도 연구 방향을 제시합니다.',
+        features: ['AI 교육 연구 모델 전시', '문헌 및 연구 데이터베이스 진입', '융합 연구 협업 제안'],
+        cta: '연구 방향 보기',
+        ctaTarget: 'research',
+      },
+      {
+        id: 'leaders',
+        icon: '◻',
+        title: '학교 / 관리자 University Leaders',
+        value: 'AI 전환 전략을 운영 데이터와 함께 명확하게 시각화합니다.',
+        why: 'NexAeon은 학교의 AI 교육 전환, 입학 분석, 행정 자동화, 디지털 혁신을 보여주는 플랫폼으로 활용됩니다.',
+        features: ['AI 교육 전환 솔루션', '입학 및 행정 프로세스 자동화', '데이터 분석 및 의사결정 지원'],
+        cta: '교육 혁신안 보기',
+        ctaTarget: 'projects',
+      },
+      {
+        id: 'enterprise',
+        icon: '◆',
+        title: '기업 / 파트너 Enterprise Partners',
+        value: 'AI Agent, ESG, EdTech 역량을 협력형 솔루션으로 전환합니다.',
+        why: 'NexAeon은 AI Agent, ESG, 교육기술, 자동화 흐름을 실제 협업 솔루션으로 연결합니다.',
+        features: ['AI Agent Prototype', 'ESG × AI 적용안', '자동화 및 데이터 분석 워크플로'],
+        cta: '협업 가능성 탐색',
+        ctaTarget: 'contact',
+      },
+      {
+        id: 'joey',
+        icon: '◎',
+        title: 'Joey의 두 번째 뇌 Joey’s Second Brain',
+        value: '연구, 수업, AI 프로젝트 자산을 하나의 지식 허브로 통합합니다.',
+        why: 'NexAeon은 Joey의 연구, 수업, AI 도구, 프로젝트, 지식 자산을 관리하는 중심 플랫폼입니다.',
+        features: ['연구 주제 및 문헌 관리', '수업 및 교육 자료 관리', 'AI 프로젝트 및 MVP 관리'],
+        cta: '지식 허브로 이동',
+        ctaTarget: 'knowledge',
+      },
+    ],
+  },
+};
+
+const CAPABILITY_MAP_CONTENT = {
+  zh: {
+    eyebrow: '功能模組地圖',
+    title: 'Capability Map',
+    tabs: [
+      {
+        id: 'research',
+        label: 'Research 研究',
+        cards: [
+          { title: 'AI Tutoring Research', summary: '個別化 AI 輔學模型與研究方法設計。' },
+          { title: 'TAM / Learning Engagement Model', summary: '科技接受與學習參與度的分析框架。' },
+          { title: 'Literature Knowledge Base', summary: '研究文獻、理論框架與證據節點管理。' },
+        ],
+      },
+      {
+        id: 'education',
+        label: 'Education 教育',
+        cards: [
+          { title: 'Prompt Engineering Course', summary: '從基礎到應用的教學型 Prompt 訓練。' },
+          { title: 'AI Learning Coach', summary: '以任務導向提供學習節奏與策略建議。' },
+          { title: 'Personalized Feedback System', summary: '依學習風格與成果提供可行動回饋。' },
+        ],
+      },
+      {
+        id: 'automation',
+        label: 'Automation 自動化',
+        cards: [
+          { title: 'n8n Workflow', summary: '串接任務流程與重複性作業自動化。' },
+          { title: 'Notion / Airtable Knowledge Pipeline', summary: '知識資料收集、整理、同步的一致化管線。' },
+          { title: 'Admissions & Admin Automation', summary: '招生與行政流程的智能化與效率提升。' },
+        ],
+      },
+      {
+        id: 'collaboration',
+        label: 'Collaboration 合作',
+        cards: [
+          { title: 'University AI Transformation', summary: '學校場域 AI 轉型與導入路徑設計。' },
+          { title: 'Enterprise AI Solution', summary: '企業合作型 AI 解決方案與原型共創。' },
+          { title: 'ESG × AI Project', summary: '以 ESG 場景結合 AI 的跨域合作計畫。' },
+        ],
+      },
+    ],
+  },
+  en: {
+    eyebrow: 'Capability Map',
+    title: 'Functional Modules by Category',
+    tabs: [
+      {
+        id: 'research',
+        label: 'Research',
+        cards: [
+          { title: 'AI Tutoring Research', summary: 'Designs methods and models for personalized AI tutoring studies.' },
+          { title: 'TAM / Learning Engagement Model', summary: 'Maps technology acceptance and learning engagement indicators.' },
+          { title: 'Literature Knowledge Base', summary: 'Organizes literature, frameworks, and evidence nodes for research.' },
+        ],
+      },
+      {
+        id: 'education',
+        label: 'Education',
+        cards: [
+          { title: 'Prompt Engineering Course', summary: 'Builds prompt skills from foundational principles to classroom practice.' },
+          { title: 'AI Learning Coach', summary: 'Guides learner pace and strategy through goal-based coaching.' },
+          { title: 'Personalized Feedback System', summary: 'Provides actionable feedback by learning style and task outcomes.' },
+        ],
+      },
+      {
+        id: 'automation',
+        label: 'Automation',
+        cards: [
+          { title: 'n8n Workflow', summary: 'Automates repeatable flows and connective operations across tools.' },
+          { title: 'Notion / Airtable Knowledge Pipeline', summary: 'Maintains a consistent pipeline for collecting and syncing knowledge assets.' },
+          { title: 'Admissions & Admin Automation', summary: 'Improves admissions and administrative productivity with AI workflows.' },
+        ],
+      },
+      {
+        id: 'collaboration',
+        label: 'Collaboration',
+        cards: [
+          { title: 'University AI Transformation', summary: 'Plans and executes AI transformation pathways for universities.' },
+          { title: 'Enterprise AI Solution', summary: 'Co-builds practical AI solutions with enterprise partners.' },
+          { title: 'ESG × AI Project', summary: 'Shapes cross-domain ESG initiatives powered by AI.' },
+        ],
+      },
+    ],
+  },
+  ko: {
+    eyebrow: '기능 모듈 맵',
+    title: 'Capability Map',
+    tabs: [
+      {
+        id: 'research',
+        label: 'Research 연구',
+        cards: [
+          { title: 'AI Tutoring Research', summary: '개인화 AI 튜터링 연구 모델과 방법론을 설계합니다.' },
+          { title: 'TAM / Learning Engagement Model', summary: '기술수용과 학습 참여도를 연결한 분석 모델을 구축합니다.' },
+          { title: 'Literature Knowledge Base', summary: '문헌, 이론 프레임, 근거 노드를 체계적으로 관리합니다.' },
+        ],
+      },
+      {
+        id: 'education',
+        label: 'Education 교육',
+        cards: [
+          { title: 'Prompt Engineering Course', summary: '기초부터 실전까지 이어지는 교육형 프롬프트 코스입니다.' },
+          { title: 'AI Learning Coach', summary: '목표 기반 학습 코칭으로 학습 전략과 페이스를 안내합니다.' },
+          { title: 'Personalized Feedback System', summary: '학습 스타일과 과제 결과에 맞춘 실행형 피드백을 제공합니다.' },
+        ],
+      },
+      {
+        id: 'automation',
+        label: 'Automation 자동화',
+        cards: [
+          { title: 'n8n Workflow', summary: '반복 업무와 도구 간 연동 흐름을 자동화합니다.' },
+          { title: 'Notion / Airtable Knowledge Pipeline', summary: '지식 자산 수집·정리·동기화를 일관된 파이프라인으로 운영합니다.' },
+          { title: 'Admissions & Admin Automation', summary: '입학 및 행정 프로세스를 지능화해 효율을 높입니다.' },
+        ],
+      },
+      {
+        id: 'collaboration',
+        label: 'Collaboration 협업',
+        cards: [
+          { title: 'University AI Transformation', summary: '대학의 AI 전환 전략과 도입 경로를 설계합니다.' },
+          { title: 'Enterprise AI Solution', summary: '기업 파트너와 실전형 AI 솔루션을 공동 설계합니다.' },
+          { title: 'ESG × AI Project', summary: 'AI를 접목한 ESG 협력 프로젝트를 기획·실행합니다.' },
+        ],
+      },
+    ],
+  },
+};
+
 function renderMetaLabel(label) {
   if (!label.includes('№')) return label;
   const [left, ...rest] = label.split('№');
@@ -744,6 +1053,192 @@ function Hero({ t }) {
         {t.hero.meta.map((m, i) => (
           <span key={i}>{renderMetaLabel(m)}</span>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function RoleNavigatorSection({ content }) {
+  const [activeRoleId, setActiveRoleId] = useState(content.roles[0]?.id || '');
+  const activeRole = content.roles.find((role) => role.id === activeRoleId) || content.roles[0];
+
+  return (
+    <section id="navigator" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
+      <div className="container" style={{ textAlign: 'center' }}>
+        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
+          — {content.eyebrow}
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 'clamp(36px, 4.6vw, 62px)',
+            lineHeight: 1.08,
+            fontWeight: 400,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {content.title}
+        </h2>
+        <div style={{ marginTop: 10, color: 'var(--fg-3)', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: 12 }}>
+          {content.subtitle}
+        </div>
+      </div>
+
+      <div
+        className="container navigator-grid"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 12, marginTop: 36 }}
+      >
+        {content.roles.map((role) => {
+          const isActive = role.id === activeRole?.id;
+          return (
+            <button
+              key={role.id}
+              className="navigator-card"
+              onClick={() => setActiveRoleId(role.id)}
+              style={{
+                textAlign: 'left',
+                borderRadius: 16,
+                border: '1px solid ' + (isActive ? 'var(--fg-2)' : 'var(--line-1)'),
+                background: isActive ? 'var(--bg-2)' : 'var(--bg-1)',
+                color: 'var(--fg-1)',
+                padding: 16,
+                cursor: 'pointer',
+                transition: 'all 0.28s var(--ease-out)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-fg)' }}>{role.icon}</span>
+                <span className="label" style={{ letterSpacing: '0.08em', color: isActive ? 'var(--fg-2)' : 'var(--fg-3)' }}>
+                  {isActive ? 'ACTIVE' : 'ROLE'}
+                </span>
+              </div>
+              <div style={{ marginTop: 10, fontFamily: 'var(--font-serif)', fontSize: 22, lineHeight: 1.25 }}>{role.title}</div>
+              <p style={{ margin: '10px 0 0', color: 'var(--fg-2)', lineHeight: 1.6, fontSize: 14 }}>{role.value}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      {activeRole ? (
+        <div className="container" style={{ marginTop: 18 }}>
+          <div
+            key={activeRole.id}
+            className="panel-switch-in"
+            style={{
+              borderRadius: 18,
+              border: '1px solid var(--line-1)',
+              background: 'var(--bg-1)',
+              padding: '22px clamp(16px, 3vw, 26px)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px, 3vw, 36px)', lineHeight: 1.2 }}>{activeRole.title}</div>
+              <button className="btn btn-gradient" style={{ padding: '10px 16px', fontSize: 14 }} onClick={() => scrollToSection(activeRole.ctaTarget || 'contact')}>
+                {activeRole.cta}
+              </button>
+            </div>
+
+            <div className="navigator-panel-grid" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 18, marginTop: 16 }}>
+              <div>
+                <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 8 }}>
+                  {content.panelWhyLabel}
+                </div>
+                <div style={{ color: 'var(--fg-2)', lineHeight: 1.72 }}>{activeRole.why}</div>
+              </div>
+              <div>
+                <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 8 }}>
+                  {content.panelFeaturesLabel}
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--fg-2)', lineHeight: 1.75 }}>
+                  {activeRole.features.map((feature) => (
+                    <li key={feature}>{feature}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function CapabilityMapSection({ content }) {
+  const [activeTabId, setActiveTabId] = useState(content.tabs[0]?.id || '');
+  const activeTab = content.tabs.find((tab) => tab.id === activeTabId) || content.tabs[0];
+
+  return (
+    <section id="capability" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
+      <div className="container" style={{ textAlign: 'center' }}>
+        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
+          — {content.eyebrow}
+        </div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 'clamp(36px, 4.5vw, 62px)',
+            lineHeight: 1.08,
+            fontWeight: 400,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {content.title}
+        </h2>
+      </div>
+
+      <div className="container" style={{ marginTop: 34 }}>
+        <div className="capability-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+          {content.tabs.map((tab) => {
+            const isActive = tab.id === activeTab?.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTabId(tab.id)}
+                className="capability-tab"
+                style={{
+                  borderRadius: 999,
+                  border: '1px solid ' + (isActive ? 'var(--fg-1)' : 'var(--line-2)'),
+                  background: isActive ? 'var(--fg-1)' : 'transparent',
+                  color: isActive ? 'var(--bg-0)' : 'var(--fg-2)',
+                  padding: '9px 16px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 12,
+                  letterSpacing: '0.08em',
+                  cursor: 'pointer',
+                  transition: 'all 0.25s var(--ease-out)',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {activeTab ? (
+          <div
+            key={activeTab.id}
+            className="panel-switch-in capability-grid"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14, marginTop: 20 }}
+          >
+            {activeTab.cards.map((card) => (
+              <article
+                key={card.title}
+                style={{
+                  borderRadius: 16,
+                  border: '1px solid var(--line-1)',
+                  background: 'var(--bg-1)',
+                  padding: 18,
+                  minHeight: 140,
+                }}
+              >
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, lineHeight: 1.24 }}>{card.title}</div>
+                <p style={{ margin: '10px 0 0', color: 'var(--fg-2)', fontSize: 14, lineHeight: 1.65 }}>{card.summary}</p>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -1425,6 +1920,8 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
   const locale = INTERACTIVE_CONTENT[lang] || INTERACTIVE_CONTENT.en;
   const uiText = UI_TEXT[lang] || UI_TEXT.en;
   const interactiveContent = CORE_INTERACTION_CONTENT[lang] || CORE_INTERACTION_CONTENT.en;
+  const navigatorContent = ROLE_NAVIGATOR_CONTENT[lang] || ROLE_NAVIGATOR_CONTENT.en;
+  const capabilityMapContent = CAPABILITY_MAP_CONTENT[lang] || CAPABILITY_MAP_CONTENT.en;
   const [detail, setDetail] = useState(null);
   const researchItems = useMemo(() => getResearchItems(lang), [lang]);
   const knowledgeItems = useMemo(() => getKnowledgeItems(lang), [lang]);
@@ -1452,6 +1949,8 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       <NeuralBackground />
       <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
       <Hero t={t} />
+      <RoleNavigatorSection key={`navigator-${lang}`} content={navigatorContent} />
+      <CapabilityMapSection key={`capability-${lang}`} content={capabilityMapContent} />
       <ModulesSection key={`modules-${lang}`} content={interactiveContent.modules} onOpenDetail={setDetail} />
       <ResearchDirectionsSection
         key={`research-${lang}`}
