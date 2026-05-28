@@ -1,7 +1,17 @@
 const DETAIL_ROUTE_PATTERN = /^\/(research|projects|knowledge)\/([^/]+)$/;
+const ROLE_ROUTE_PATTERN = /^\/(students|researchers|university|enterprise|second-brain)$/;
 
 export function parseRoute(pathname) {
-  const match = pathname.match(DETAIL_ROUTE_PATTERN);
+  const normalizedPath = pathname.replace(/\/+$/, '') || '/';
+  const roleMatch = normalizedPath.match(ROLE_ROUTE_PATTERN);
+  if (roleMatch) {
+    return {
+      kind: 'role',
+      role: roleMatch[1],
+    };
+  }
+
+  const match = normalizedPath.match(DETAIL_ROUTE_PATTERN);
   if (!match) {
     return { kind: 'home' };
   }
@@ -20,4 +30,13 @@ export function toDetailPath(type, id) {
 export function navigateTo(path) {
   window.history.pushState({}, '', path);
   window.dispatchEvent(new PopStateEvent('popstate'));
+
+  const [pathnamePart, hashPart] = path.split('#');
+  if (hashPart && (pathnamePart === '' || pathnamePart === '/')) {
+    requestAnimationFrame(() => {
+      const target = document.getElementById(decodeURIComponent(hashPart));
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 }

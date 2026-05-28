@@ -3,6 +3,7 @@ import './styles.css';
 import CONTENT from './content.js';
 import DirectionB from './components/DirectionB.jsx';
 import DetailPage from './components/DetailPage.jsx';
+import RoleDetailPage from './components/RoleDetailPage.jsx';
 import { navigateTo, parseRoute } from './utils/router.js';
 
 export default function App() {
@@ -34,6 +35,8 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-0)' }}>
       {route.kind === 'detail' ? (
         <DetailPage type={route.type} id={route.id} navigate={navigate} lang={lang} />
+      ) : route.kind === 'role' ? (
+        <RoleDetailPage role={route.role} navigate={navigate} lang={lang} setLang={setLang} />
       ) : (
         <DirectionB
           t={t}

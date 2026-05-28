@@ -261,7 +261,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon 協助學生進行個別化學習、Prompt 訓練、學習回饋與研究能力提升。',
         features: ['AI Tutor 個別化學習輔助', 'Prompt Engineering 基礎訓練', '學習風格與任務回饋'],
         cta: '探索 AI 學習路徑',
-        ctaTarget: 'research',
+        detailPath: '/students',
       },
       {
         id: 'professors',
@@ -271,7 +271,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon 展示 AI 教育、個別化學習、TAM、學習參與度與滿意度研究方向。',
         features: ['AI 教育研究模型展示', '文獻與研究資料庫入口', '跨學科研究合作提案'],
         cta: '查看研究方向',
-        ctaTarget: 'research',
+        detailPath: '/researchers',
       },
       {
         id: 'leaders',
@@ -281,7 +281,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon 可作為學校 AI 教育轉型、招生分析、行政自動化與數位創新展示平台。',
         features: ['AI 教育轉型方案', '招生與行政流程自動化', '數據分析與決策輔助'],
         cta: '查看教育創新方案',
-        ctaTarget: 'projects',
+        detailPath: '/university',
       },
       {
         id: 'enterprise',
@@ -291,7 +291,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon 可以把 AI Agent、ESG、教育科技與自動化流程轉化為合作型解決方案。',
         features: ['AI Agent Prototype', 'ESG × AI 應用方案', '自動化與數據分析工作流'],
         cta: '探索合作可能',
-        ctaTarget: 'contact',
+        detailPath: '/enterprise',
       },
       {
         id: 'joey',
@@ -301,7 +301,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon 是 Joey 的研究、課程、AI 工具、項目與知識資產管理中心。',
         features: ['研究主題與文獻管理', '課程與教學素材管理', 'AI 項目與 MVP 管理'],
         cta: '進入知識中樞',
-        ctaTarget: 'knowledge',
+        detailPath: '/second-brain',
       },
     ],
   },
@@ -320,7 +320,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon helps students with personalized learning, prompt training, learning feedback, and research skill growth.',
         features: ['AI Tutor for personalized support', 'Prompt Engineering foundation training', 'Learning-style and task feedback'],
         cta: 'Explore the AI Learning Path',
-        ctaTarget: 'research',
+        detailPath: '/students',
       },
       {
         id: 'professors',
@@ -330,7 +330,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon presents research directions across AI education, personalized learning, TAM, learning engagement, and satisfaction.',
         features: ['AI education research model showcase', 'Literature and research database gateway', 'Interdisciplinary collaboration proposals'],
         cta: 'View Research Directions',
-        ctaTarget: 'research',
+        detailPath: '/researchers',
       },
       {
         id: 'leaders',
@@ -340,7 +340,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon can serve as a platform for AI education transformation, admissions analytics, administrative automation, and digital innovation.',
         features: ['AI education transformation plans', 'Admissions and admin process automation', 'Data analytics and decision support'],
         cta: 'View Innovation Plans',
-        ctaTarget: 'projects',
+        detailPath: '/university',
       },
       {
         id: 'enterprise',
@@ -350,7 +350,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon transforms AI Agents, ESG, educational technology, and automation workflows into collaboration-based solutions.',
         features: ['AI Agent prototype', 'ESG × AI application plan', 'Automation and analytics workflow'],
         cta: 'Explore Partnership Potential',
-        ctaTarget: 'contact',
+        detailPath: '/enterprise',
       },
       {
         id: 'joey',
@@ -360,7 +360,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon is Joey’s management center for research, courses, AI tools, projects, and long-term knowledge assets.',
         features: ['Research themes and literature management', 'Course and teaching material management', 'AI project and MVP management'],
         cta: 'Enter the Knowledge Hub',
-        ctaTarget: 'knowledge',
+        detailPath: '/second-brain',
       },
     ],
   },
@@ -379,7 +379,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon은 학생의 개인화 학습, 프롬프트 훈련, 학습 피드백, 연구 역량 향상을 지원합니다.',
         features: ['AI Tutor 개인화 학습 보조', 'Prompt Engineering 기초 훈련', '학습 스타일 및 과제 피드백'],
         cta: 'AI 학습 경로 탐색',
-        ctaTarget: 'research',
+        detailPath: '/students',
       },
       {
         id: 'professors',
@@ -389,7 +389,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon은 AI 교육, 개인화 학습, TAM, 학습 참여도와 만족도 연구 방향을 제시합니다.',
         features: ['AI 교육 연구 모델 전시', '문헌 및 연구 데이터베이스 진입', '융합 연구 협업 제안'],
         cta: '연구 방향 보기',
-        ctaTarget: 'research',
+        detailPath: '/researchers',
       },
       {
         id: 'leaders',
@@ -399,7 +399,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon은 학교의 AI 교육 전환, 입학 분석, 행정 자동화, 디지털 혁신을 보여주는 플랫폼으로 활용됩니다.',
         features: ['AI 교육 전환 솔루션', '입학 및 행정 프로세스 자동화', '데이터 분석 및 의사결정 지원'],
         cta: '교육 혁신안 보기',
-        ctaTarget: 'projects',
+        detailPath: '/university',
       },
       {
         id: 'enterprise',
@@ -409,7 +409,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon은 AI Agent, ESG, 교육기술, 자동화 흐름을 실제 협업 솔루션으로 연결합니다.',
         features: ['AI Agent Prototype', 'ESG × AI 적용안', '자동화 및 데이터 분석 워크플로'],
         cta: '협업 가능성 탐색',
-        ctaTarget: 'contact',
+        detailPath: '/enterprise',
       },
       {
         id: 'joey',
@@ -419,7 +419,7 @@ const ROLE_NAVIGATOR_CONTENT = {
         why: 'NexAeon은 Joey의 연구, 수업, AI 도구, 프로젝트, 지식 자산을 관리하는 중심 플랫폼입니다.',
         features: ['연구 주제 및 문헌 관리', '수업 및 교육 자료 관리', 'AI 프로젝트 및 MVP 관리'],
         cta: '지식 허브로 이동',
-        ctaTarget: 'knowledge',
+        detailPath: '/second-brain',
       },
     ],
   },
@@ -1057,7 +1057,7 @@ function Hero({ t }) {
   );
 }
 
-function RoleNavigatorSection({ content }) {
+function RoleNavigatorSection({ content, navigate }) {
   const [activeRoleId, setActiveRoleId] = useState(content.roles[0]?.id || '');
   const activeRole = content.roles.find((role) => role.id === activeRoleId) || content.roles[0];
 
@@ -1133,7 +1133,7 @@ function RoleNavigatorSection({ content }) {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px, 3vw, 36px)', lineHeight: 1.2 }}>{activeRole.title}</div>
-              <button className="btn btn-gradient" style={{ padding: '10px 16px', fontSize: 14 }} onClick={() => scrollToSection(activeRole.ctaTarget || 'contact')}>
+              <button className="btn btn-gradient" style={{ padding: '10px 16px', fontSize: 14 }} onClick={() => navigate(activeRole.detailPath || '/')}>
                 {activeRole.cta}
               </button>
             </div>
@@ -1924,7 +1924,7 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       <NeuralBackground />
       <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
       <Hero t={t} />
-      <RoleNavigatorSection key={`navigator-${lang}`} content={navigatorContent} />
+      <RoleNavigatorSection key={`navigator-${lang}`} content={navigatorContent} navigate={navigate} />
       <CapabilityMapSection key={`capability-${lang}`} content={capabilityMapContent} />
       <ModulesSection key={`modules-${lang}`} content={interactiveContent.modules} onOpenDetail={setDetail} />
       <ResearchDirectionsSection
