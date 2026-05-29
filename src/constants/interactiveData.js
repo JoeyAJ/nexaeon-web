@@ -11,6 +11,7 @@ export const INTERACTIVE_CONTENT = {
     common: {
       expand: '展開',
       collapse: '收合',
+      openSubmenu: '展開子菜單',
       details: '詳細',
       externalLink: '外部連結',
       openDetails: '查看',
@@ -22,6 +23,80 @@ export const INTERACTIVE_CONTENT = {
         status: '第一階段整備中',
         nextAction: '完成內容驗證後，進入第二階段實作。',
       },
+    },
+    submenus: {
+      research: {
+        title: 'Research Roadmap',
+        description: '點擊 Research 後展開研究地圖子題，不在首頁一次鋪滿所有研究卡片。',
+        items: ['AI Education', 'Personalized AI Tutoring', 'Learning Engagement / Satisfaction', 'AI Management / AI Business Education', 'NexAeon Research System'],
+      },
+      teaching: {
+        title: 'Teaching Modules',
+        description: '從校園痛點對應到可教、可練、可評估的 AI 課程能力。',
+        items: ['Prompt Engineering', 'AI Research Workflow', 'Automation Workflow', 'AI Presentation / Report Design'],
+      },
+      knowledge: {
+        title: 'Knowledge Lab Lifecycle',
+        description: '資料從想法進入，經過自動化與 RAG，最後進入出版與實作輸出。',
+        items: ['Idea Lab', 'Knowledge Intake', 'AI Tagging / Automation', 'RAG Knowledge Layer', 'MVP / Demo Lab', 'Publishing Hub'],
+      },
+      projects: {
+        title: 'Demo / MVP Lab',
+        description: '保留原型作為 Practice Proof，但首頁只呈現入口，細節由子菜單展開。',
+        items: ['AI Tutoring MVP', 'Woosong Buddy', 'NexAeon Website', 'NexAeon Knowledge Hub'],
+      },
+      contact: {
+        title: 'Collaboration Funnel',
+        description: '依合作對象分流，讓第一次對話直接對準研究、課程、培訓或共創需求。',
+        items: ['For Professors', 'For Universities', 'For Companies', 'For Students'],
+      },
+    },
+    roleGuide: {
+      eyebrow: 'Choose Your Role｜選擇你的身份入口',
+      title: '五種身份，五個進入 NexAeon 的方式',
+      subtitle: '這裡只作為入口導覽。選擇身份後，可以前往對應角色頁或先閱讀簡短定位。',
+    },
+    primaryModules: {
+      eyebrow: 'Primary Navigation',
+      title: '一級菜單核心介紹',
+      subtitle: '首頁只呈現每個一級菜單的核心目的與入口，子內容會在點擊一級菜單後以子菜單方式展開。',
+      cards: [
+        {
+          id: 'research',
+          name: 'Research｜研究核心',
+          position: '理論引擎',
+          intro: 'NexAeon 的 Research 是理論引擎，用 AI Education、TAM、VARK、SRL、Learning Engagement 等理論，把教育問題轉化為可驗證的研究模型。它負責提出問題、建立框架與定義可被檢驗的證據路徑。',
+          cta: '展開 Research Roadmap',
+        },
+        {
+          id: 'teaching',
+          name: 'Teaching｜教學設計',
+          position: '從校園痛點出發的 AI 課程能力',
+          intro: 'Teaching 將跨文化學生、AI 提問能力、可靠性判斷與成果轉化等問題，整理成可教學的課程模組。它讓學生不只會使用工具，也能把 AI 結果轉成作業、研究與展示成果。',
+          cta: '展開 Teaching Modules',
+        },
+        {
+          id: 'knowledge',
+          name: 'Knowledge Lab｜第二大腦',
+          position: '自我生長的知識系統',
+          intro: 'Knowledge Lab 管理想法、資料、標籤、自動化與 RAG 知識層。它把零散資料沉澱成研究、課程、簡報、網站內容、Demo/MVP 與合作方案。',
+          cta: '展開 Knowledge Lifecycle',
+        },
+        {
+          id: 'projects',
+          name: 'Demo / MVP｜實踐原型',
+          position: 'Practice Proof',
+          intro: 'Demo / MVP 是 NexAeon 將研究命題做成可展示、可測試、可迭代系統的證據。它不是一般作品集，而是研究落地與教學沙盒。',
+          cta: '展開 Demo Lab',
+        },
+        {
+          id: 'contact',
+          name: 'Collaboration｜合作入口',
+          position: '合作漏斗',
+          intro: 'Collaboration 依教授、大學、企業與學生分流合作需求。它將共同研究、AI 課程、培訓、自動化與 MVP 共創導向合適的第一步。',
+          cta: '展開 Collaboration Funnel',
+        },
+      ],
     },
     research: {
       eyebrow: 'Research Roadmap',
@@ -176,6 +251,7 @@ export const INTERACTIVE_CONTENT = {
     common: {
       expand: 'Expand',
       collapse: 'Collapse',
+      openSubmenu: 'Open Submenu',
       details: 'Details',
       externalLink: 'External Link',
       openDetails: 'Open',
@@ -187,6 +263,80 @@ export const INTERACTIVE_CONTENT = {
         status: 'In phase-one buildout',
         nextAction: 'Validate content quality, then move into phase-two implementation.',
       },
+    },
+    submenus: {
+      research: {
+        title: 'Research Roadmap',
+        description: 'Research opens as a roadmap submenu instead of exposing every research card on the homepage.',
+        items: ['AI Education', 'Personalized AI Tutoring', 'Learning Engagement / Satisfaction', 'AI Management / AI Business Education', 'NexAeon Research System'],
+      },
+      teaching: {
+        title: 'Teaching Modules',
+        description: 'Campus pain points are mapped into teachable, practiceable, assessable AI capabilities.',
+        items: ['Prompt Engineering', 'AI Research Workflow', 'Automation Workflow', 'AI Presentation / Report Design'],
+      },
+      knowledge: {
+        title: 'Knowledge Lab Lifecycle',
+        description: 'Ideas move through intake, automation, RAG, prototypes, and publishing outputs.',
+        items: ['Idea Lab', 'Knowledge Intake', 'AI Tagging / Automation', 'RAG Knowledge Layer', 'MVP / Demo Lab', 'Publishing Hub'],
+      },
+      projects: {
+        title: 'Demo / MVP Lab',
+        description: 'Prototypes remain Practice Proof, but homepage detail stays behind expandable navigation.',
+        items: ['AI Tutoring MVP', 'Woosong Buddy', 'NexAeon Website', 'NexAeon Knowledge Hub'],
+      },
+      contact: {
+        title: 'Collaboration Funnel',
+        description: 'Collaboration is routed by audience so the first conversation starts from the right need.',
+        items: ['For Professors', 'For Universities', 'For Companies', 'For Students'],
+      },
+    },
+    roleGuide: {
+      eyebrow: 'Choose Your Role',
+      title: 'Five roles, five ways to enter NexAeon',
+      subtitle: 'This is an entry guide only. Choose a role to open the relevant role page or read a compact positioning note.',
+    },
+    primaryModules: {
+      eyebrow: 'Primary Navigation',
+      title: 'Core Purpose of Each Top-Level Menu',
+      subtitle: 'The homepage shows only each primary menu’s purpose and entry point. Child topics appear after clicking a top-level menu.',
+      cards: [
+        {
+          id: 'research',
+          name: 'Research',
+          position: 'Theoretical engine',
+          intro: 'NexAeon Research is the theoretical engine. It uses AI Education, TAM, VARK, SRL, and Learning Engagement to turn educational problems into verifiable research models and evidence paths.',
+          cta: 'Open Research Roadmap',
+        },
+        {
+          id: 'teaching',
+          name: 'Teaching',
+          position: 'AI course design from campus pain points',
+          intro: 'Teaching translates cross-cultural learning issues, AI questioning, reliability judgment, and output transformation into course modules. Students learn how to turn AI outputs into assignments, research, and presentations.',
+          cta: 'Open Teaching Modules',
+        },
+        {
+          id: 'knowledge',
+          name: 'Knowledge Lab',
+          position: 'Self-growing second brain',
+          intro: 'Knowledge Lab manages ideas, sources, tags, automation, and the RAG knowledge layer. It turns scattered material into research, courses, decks, website content, Demo/MVPs, and collaboration offers.',
+          cta: 'Open Knowledge Lifecycle',
+        },
+        {
+          id: 'projects',
+          name: 'Demo / MVP',
+          position: 'Practice Proof',
+          intro: 'Demo / MVP proves that NexAeon has built visible, testable, iteratable systems from research questions. It is not a portfolio list; it is research landing and teaching sandbox evidence.',
+          cta: 'Open Demo Lab',
+        },
+        {
+          id: 'contact',
+          name: 'Collaboration',
+          position: 'Collaboration funnel',
+          intro: 'Collaboration routes professors, universities, companies, and students toward the right first step. It connects joint research, AI curriculum, training, automation, and MVP co-development.',
+          cta: 'Open Collaboration Funnel',
+        },
+      ],
     },
     research: {
       eyebrow: 'Research Roadmap',
@@ -341,6 +491,7 @@ export const INTERACTIVE_CONTENT = {
     common: {
       expand: '열기',
       collapse: '닫기',
+      openSubmenu: '하위 메뉴 열기',
       details: '상세',
       externalLink: '외부 링크',
       openDetails: '열기',
@@ -352,6 +503,80 @@ export const INTERACTIVE_CONTENT = {
         status: '1단계 구축 진행 중',
         nextAction: '콘텐츠 검증 후 2단계 구현으로 확장합니다.',
       },
+    },
+    submenus: {
+      research: {
+        title: 'Research Roadmap',
+        description: 'Research를 클릭하면 연구 카드 전체가 홈에 펼쳐지는 대신 연구 지도 하위 메뉴가 열립니다.',
+        items: ['AI Education', 'Personalized AI Tutoring', 'Learning Engagement / Satisfaction', 'AI Management / AI Business Education', 'NexAeon Research System'],
+      },
+      teaching: {
+        title: 'Teaching Modules',
+        description: '캠퍼스 문제를 가르치고 연습하고 평가할 수 있는 AI 역량으로 연결합니다.',
+        items: ['Prompt Engineering', 'AI Research Workflow', 'Automation Workflow', 'AI Presentation / Report Design'],
+      },
+      knowledge: {
+        title: 'Knowledge Lab Lifecycle',
+        description: '아이디어가 수집, 자동화, RAG, 프로토타입, 출판 산출물로 이어지는 흐름입니다.',
+        items: ['Idea Lab', 'Knowledge Intake', 'AI Tagging / Automation', 'RAG Knowledge Layer', 'MVP / Demo Lab', 'Publishing Hub'],
+      },
+      projects: {
+        title: 'Demo / MVP Lab',
+        description: '프로토타입은 Practice Proof로 유지하되, 상세 항목은 펼침 메뉴 안에서 보여줍니다.',
+        items: ['AI Tutoring MVP', 'Woosong Buddy', 'NexAeon Website', 'NexAeon Knowledge Hub'],
+      },
+      contact: {
+        title: 'Collaboration Funnel',
+        description: '협력 대상을 기준으로 첫 대화를 적절한 요구와 연결합니다.',
+        items: ['For Professors', 'For Universities', 'For Companies', 'For Students'],
+      },
+    },
+    roleGuide: {
+      eyebrow: 'Choose Your Role｜역할별 입구 선택',
+      title: '다섯 역할, 다섯 개의 NexAeon 입구',
+      subtitle: '이 모듈은 입구 안내만 담당합니다. 역할을 선택하면 해당 역할 페이지로 이동하거나 짧은 설명을 확인할 수 있습니다.',
+    },
+    primaryModules: {
+      eyebrow: 'Primary Navigation',
+      title: '1차 메뉴 핵심 소개',
+      subtitle: '홈페이지는 각 1차 메뉴의 목적과 입구만 보여줍니다. 하위 주제는 1차 메뉴 클릭 후 펼쳐집니다.',
+      cards: [
+        {
+          id: 'research',
+          name: 'Research｜연구 핵심',
+          position: '이론 엔진',
+          intro: 'NexAeon Research는 이론 엔진입니다. AI Education, TAM, VARK, SRL, Learning Engagement 이론을 활용해 교육 문제를 검증 가능한 연구 모델과 증거 경로로 전환합니다.',
+          cta: 'Research Roadmap 열기',
+        },
+        {
+          id: 'teaching',
+          name: 'Teaching｜교육 설계',
+          position: '캠퍼스 문제에서 출발하는 AI 수업 역량',
+          intro: 'Teaching은 다문화 학습, AI 질문, 신뢰성 판단, 결과물 전환 문제를 수업 모듈로 정리합니다. 학생은 AI 결과를 과제, 연구, 발표 결과물로 바꾸는 법을 배웁니다.',
+          cta: 'Teaching Modules 열기',
+        },
+        {
+          id: 'knowledge',
+          name: 'Knowledge Lab｜제2의 뇌',
+          position: '자가 성장형 지식 시스템',
+          intro: 'Knowledge Lab은 아이디어, 자료, 태그, 자동화, RAG 지식층을 관리합니다. 흩어진 자료를 연구, 수업, 슬라이드, 웹 콘텐츠, Demo/MVP, 협업 제안으로 축적합니다.',
+          cta: 'Knowledge Lifecycle 열기',
+        },
+        {
+          id: 'projects',
+          name: 'Demo / MVP｜실천 프로토타입',
+          position: 'Practice Proof',
+          intro: 'Demo / MVP는 연구 질문을 전시, 테스트, 반복 가능한 시스템으로 구현했다는 증거입니다. 일반 포트폴리오가 아니라 연구 적용과 교육 샌드박스입니다.',
+          cta: 'Demo Lab 열기',
+        },
+        {
+          id: 'contact',
+          name: 'Collaboration｜협업 입구',
+          position: '협업 퍼널',
+          intro: 'Collaboration은 교수, 대학, 기업, 학생의 요구를 적절한 첫 단계로 분류합니다. 공동 연구, AI 커리큘럼, 교육, 자동화, MVP 공동개발을 연결합니다.',
+          cta: 'Collaboration Funnel 열기',
+        },
+      ],
     },
     research: {
       eyebrow: 'Research Roadmap',

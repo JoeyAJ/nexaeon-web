@@ -298,6 +298,59 @@ body {
   cursor: pointer;
 }
 
+.nav-links button[data-active='true'] {
+  color: var(--accent-fg) !important;
+}
+
+.nav-submenu-panel {
+  border-top: 1px solid var(--line-1);
+  background: color-mix(in srgb, var(--bg-1) 82%, transparent);
+  backdrop-filter: blur(20px) saturate(165%);
+  -webkit-backdrop-filter: blur(20px) saturate(165%);
+}
+
+.nav-submenu-inner {
+  min-height: 112px;
+  padding-top: 16px;
+  padding-bottom: 18px;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.nav-submenu-copy p {
+  margin: 8px 0 0;
+  color: var(--fg-2);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.nav-submenu-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.nav-submenu-items button {
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-2) 64%, transparent);
+  color: var(--fg-2);
+  padding: 9px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 0.22s var(--ease-out), border-color 0.22s var(--ease-out), transform 0.22s var(--ease-out);
+}
+
+.nav-submenu-items button:hover {
+  color: var(--fg-1);
+  border-color: var(--line-3);
+  transform: translateY(-1px);
+}
+
 .detail-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1547,6 +1600,79 @@ body {
     linear-gradient(180deg, color-mix(in srgb, var(--bg-1) 92%, transparent) 0%, var(--bg-0) 36%);
 }
 
+.role-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.role-entry-card {
+  border: none;
+  border-radius: 18px;
+  padding: 18px;
+  color: var(--fg-1);
+  text-align: left;
+  cursor: pointer;
+  min-height: 188px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.role-entry-card span {
+  color: var(--accent-fg);
+  font-family: var(--font-mono);
+  font-size: 18px;
+}
+
+.role-entry-card div {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.role-entry-card p {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: 14px;
+  line-height: 1.62;
+}
+
+.primary-module-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.primary-module-card {
+  border-radius: 20px;
+  padding: 22px;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.primary-module-title {
+  margin-top: 14px;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  line-height: 1.14;
+}
+
+.primary-module-card p {
+  margin: 14px 0 20px;
+  color: var(--fg-2);
+  line-height: 1.68;
+  font-size: 14px;
+}
+
+.primary-module-card .btn {
+  margin-top: auto;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
 .research-roadmap {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -2020,6 +2146,9 @@ body {
   .navigator-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .navigator-panel-grid { grid-template-columns: 1fr !important; }
   .capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .nav-submenu-inner { grid-template-columns: 1fr !important; align-items: start !important; }
+  .role-entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .primary-module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .hero-dual-panel { grid-template-columns: 1fr !important; padding: 18px !important; }
   .research-roadmap { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .theory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
@@ -2069,6 +2198,27 @@ body {
   .action-option-grid { grid-template-columns: 1fr !important; }
   .navigator-grid { grid-template-columns: 1fr !important; }
   .capability-grid { grid-template-columns: 1fr !important; }
+  .role-entry-grid,
+  .primary-module-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .role-entry-card,
+  .primary-module-card {
+    min-height: auto !important;
+  }
+  .nav-submenu-inner {
+    padding-top: 14px !important;
+    padding-bottom: 16px !important;
+  }
+  .nav-submenu-items {
+    gap: 7px !important;
+  }
+  .nav-submenu-items button {
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+    line-height: 1.35;
+  }
   .hero-centerpiece { height: 320px !important; margin-bottom: 40px !important; }
   .hero-signal-waves { width: min(320px, 84vw) !important; }
   .hero-title { font-size: clamp(38px, 11.6vw, 62px) !important; line-height: 0.97 !important; }

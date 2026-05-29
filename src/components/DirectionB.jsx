@@ -2,10 +2,6 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
 import NeuralBackground from './NeuralBackground.jsx';
 import { INTERACTIVE_CONTENT } from '../constants/interactiveData.js';
-import {
-  getKnowledgeItems,
-  getProjectItems,
-} from '../lib/contentSource.js';
 import { toDetailPath } from '../utils/router.js';
 
 const UI_TEXT = {
@@ -1118,8 +1114,9 @@ function DetailModal({ detail, locale, uiText, onClose }) {
   );
 }
 
-function Nav({ locale, lang, setLang, theme, setTheme }) {
+function Nav({ locale, lang, setLang, theme, setTheme, activeMenu, onOpenMenu }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const activePanel = activeMenu ? locale.submenus?.[activeMenu] : null;
 
   useEffect(() => {
     const closeOnResize = () => {
@@ -1134,7 +1131,14 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
   }, []);
 
   const handleNavClick = (id) => {
-    scrollToSection(id);
+    if (id === 'home') {
+      onOpenMenu('');
+      scrollToSection('home');
+      setIsMobileMenuOpen(false);
+      return;
+    }
+
+    onOpenMenu(id);
     setIsMobileMenuOpen(false);
   };
 
@@ -1161,6 +1165,7 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
         <button
           className="main-logo-link"
           onClick={() => {
+            onOpenMenu('');
             scrollToSection('home');
             setIsMobileMenuOpen(false);
           }}
@@ -1195,6 +1200,8 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
+              data-active={activeMenu === item.id ? 'true' : 'false'}
+              aria-expanded={item.id !== 'home' ? activeMenu === item.id : undefined}
               style={{
                 border: 'none',
                 background: 'transparent',
@@ -1237,6 +1244,26 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
           </button>
         </div>
       </div>
+
+      {activePanel ? (
+        <div className="nav-submenu-panel">
+          <div className="container nav-submenu-inner">
+            <div className="nav-submenu-copy">
+              <div className="label" style={{ color: 'var(--accent-fg)' }}>
+                {activePanel.title}
+              </div>
+              <p>{activePanel.description}</p>
+            </div>
+            <div className="nav-submenu-items">
+              {activePanel.items.map((item) => (
+                <button key={item} onClick={() => scrollToSection(activeMenu)}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </nav>
   );
 }
@@ -1296,8 +1323,17 @@ function SectionHeader({ eyebrow, title, subtitle, align = 'center' }) {
   );
 }
 
-function Hero({ t }) {
-  const nextTitle = t.hero.dualTitle || 'Research × Practice';
+function Hero({ t, onOpenMenu }) {
+  const nextTitle = t.forWhom?.title?.split('\n')[0] || 'Choose Your Role';
+  const openMenuFromHero = (id) => {
+    if (!id || id === 'home') {
+      scrollToSection('home');
+      return;
+    }
+
+    onOpenMenu(id);
+    scrollToSection(id);
+  };
 
   return (
     <section id="home" className="hero-shell" style={{ position: 'relative', overflow: 'hidden', scrollMarginTop: 80 }}>
@@ -1400,14 +1436,14 @@ function Hero({ t }) {
           <button
             className="btn btn-glass hero-cta-main"
             style={{ fontSize: 15 }}
-            onClick={() => scrollToSection('research')}
+            onClick={() => openMenuFromHero('research')}
           >
             {t.hero.cta1} <ArrowIcon />
           </button>
           <button
             className="btn btn-ghost hero-cta-secondary"
             style={{ fontSize: 15 }}
-            onClick={() => scrollToSection('projects')}
+            onClick={() => openMenuFromHero('projects')}
           >
             {t.hero.cta2}
           </button>
@@ -1438,13 +1474,13 @@ function Hero({ t }) {
         <div className="hero-entry-strip" aria-label={t.hero.entryLabel}>
           <span className="hero-entry-label">{t.hero.entryLabel}</span>
           {t.hero.entries.map((entry) => (
-            <button key={entry.target} onClick={() => scrollToSection(entry.target)}>
+            <button key={entry.target} onClick={() => openMenuFromHero(entry.target)}>
               {entry.label}
             </button>
           ))}
         </div>
 
-        <button className="hero-scroll-cue" onClick={() => scrollToSection('research')}>
+        <button className="hero-scroll-cue" onClick={() => scrollToSection('role-guide')}>
           <span>{t.hero.scrollCue}</span>
           <span className="hero-scroll-cue-arrow" aria-hidden="true">↓</span>
         </button>
@@ -1469,8 +1505,8 @@ function Hero({ t }) {
         ))}
       </div>
 
-      <button className="hero-next-peek" onClick={() => scrollToSection('research')}>
-        <span className="hero-next-peek-label">Research Roadmap</span>
+      <button className="hero-next-peek" onClick={() => scrollToSection('role-guide')}>
+        <span className="hero-next-peek-label">Choose Your Role</span>
         <span className="hero-next-peek-title">{nextTitle}</span>
         <span className="hero-next-peek-arrow" aria-hidden="true">↓</span>
       </button>
@@ -1584,6 +1620,55 @@ function RoleNavigatorSection({ content, navigate }) {
           </div>
         </div>
       ) : null}
+    </section>
+  );
+}
+
+function RoleEntrySection({ content, guide, navigate }) {
+  return (
+    <section id="role-guide" className="section navigator-section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
+      <SectionHeader eyebrow={guide.eyebrow} title={guide.title} subtitle={guide.subtitle} />
+
+      <div className="container role-entry-grid" style={{ marginTop: 36 }}>
+        {content.roles.map((role) => (
+          <button
+            key={role.id}
+            className="role-entry-card liquid-glass-card"
+            onClick={() => navigate(role.detailPath || '/')}
+          >
+            <span>{role.icon}</span>
+            <div>{role.title}</div>
+            <p>{role.value}</p>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PrimaryModulesSection({ locale, onOpenMenu }) {
+  return (
+    <section id="core-modules" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
+      <SectionHeader
+        eyebrow={locale.primaryModules.eyebrow}
+        title={locale.primaryModules.title}
+        subtitle={locale.primaryModules.subtitle}
+      />
+
+      <div className="container primary-module-grid" style={{ marginTop: 42 }}>
+        {locale.primaryModules.cards.map((card) => (
+          <article key={card.id} id={card.id} className="primary-module-card liquid-glass-card">
+            <div className="label" style={{ color: 'var(--accent-fg)' }}>
+              {card.position}
+            </div>
+            <div className="primary-module-title">{card.name}</div>
+            <p>{card.intro}</p>
+            <button className="btn btn-glass" onClick={() => onOpenMenu(card.id)}>
+              {card.cta}
+            </button>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -2791,11 +2876,17 @@ void [
   CAPABILITY_MAP_CONTENT,
   ADVISOR_CONTENT,
   ACTION_CENTER_CONTENT,
+  DetailModal,
   RoleNavigatorSection,
   CapabilityMapSection,
   AdvisorSection,
   ActionCenterSection,
   ModulesSection,
+  ResearchDirectionsSection,
+  TeachingSection,
+  KnowledgeSection,
+  ProjectsSection,
+  ContactSection,
   INTERNAL_DATA_LAYER_CONFIG,
   IntegrationRoadmapSection,
   AssistantSection,
@@ -2805,6 +2896,8 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
   const rootRef = useRef(null);
   const locale = INTERACTIVE_CONTENT[lang] || INTERACTIVE_CONTENT.en;
   const uiText = UI_TEXT[lang] || UI_TEXT.en;
+  const navigatorContent = ROLE_NAVIGATOR_CONTENT[lang] || ROLE_NAVIGATOR_CONTENT.en;
+  const [activeMenu, setActiveMenu] = useState('');
   const [introPhase, setIntroPhase] = useState(() => {
     try {
       return window.sessionStorage.getItem(INTRO_STORAGE_KEY) === '1' ? 'done' : 'playing';
@@ -2812,9 +2905,6 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       return 'playing';
     }
   });
-  const [detail, setDetail] = useState(null);
-  const knowledgeItems = useMemo(() => getKnowledgeItems(lang), [lang]);
-  const projectItems = useMemo(() => getProjectItems(lang), [lang]);
 
   const closeIntro = () => {
     if (introPhase !== 'playing') return;
@@ -2870,22 +2960,19 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
         />
       ) : null}
       <NeuralBackground />
-      <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
-      <Hero t={t} />
-      <ResearchDirectionsSection
-        key={`research-${lang}`}
+      <Nav
         locale={locale}
-        projectItems={projectItems}
-        onOpenDetail={setDetail}
-        navigate={navigate}
-        uiText={uiText}
+        lang={lang}
+        setLang={setLang}
+        theme={theme}
+        setTheme={setTheme}
+        activeMenu={activeMenu}
+        onOpenMenu={setActiveMenu}
       />
-      <TeachingSection key={`teaching-${lang}`} locale={locale} />
-      <KnowledgeSection key={`knowledge-${lang}`} locale={locale} items={knowledgeItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
-      <ProjectsSection key={`projects-${lang}`} locale={locale} items={projectItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
-      <ContactSection key={`contact-${lang}`} locale={locale} />
+      <Hero t={t} onOpenMenu={setActiveMenu} />
+      <RoleEntrySection key={`role-guide-${lang}`} content={navigatorContent} guide={locale.roleGuide} navigate={navigate} />
+      <PrimaryModulesSection key={`primary-modules-${lang}`} locale={locale} onOpenMenu={setActiveMenu} />
       <Footer t={t} />
-      <DetailModal detail={detail} locale={locale} uiText={uiText} onClose={() => setDetail(null)} />
     </div>
   );
 }
