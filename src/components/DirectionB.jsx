@@ -1695,23 +1695,26 @@ function AdvisorSection({ content, navigate }) {
             <button
               key={option.id}
               className="option-chip"
+              data-selected={isActive ? 'true' : 'false'}
+              aria-pressed={isActive}
               onClick={() => onSelect(option.id)}
               style={{
                 borderRadius: 12,
-                border: '1px solid ' + (isActive ? 'var(--fg-2)' : 'var(--line-1)'),
-                background: isActive ? 'var(--bg-2)' : 'transparent',
-                color: isActive ? 'var(--fg-1)' : 'var(--fg-2)',
+                border: '1px solid var(--line-1)',
+                background: 'transparent',
+                color: 'var(--fg-2)',
                 padding: '11px 12px',
                 fontFamily: 'var(--font-sans)',
                 fontSize: 13,
                 lineHeight: 1.4,
                 textAlign: 'left',
                 cursor: 'pointer',
-                transition: 'all 0.22s var(--ease-out)',
+                transition: 'all 0.25s ease',
                 minHeight: 72,
               }}
             >
               {option.label}
+              {isActive ? <span className="checkBadge" aria-hidden="true">✓</span> : null}
             </button>
           );
         })}
@@ -1889,23 +1892,26 @@ function ActionCenterSection({ content, capabilityLabels, navigate }) {
             <button
               key={option.id}
               className="option-chip"
+              data-selected={isActive ? 'true' : 'false'}
+              aria-pressed={isActive}
               onClick={() => onSelect(option.id)}
               style={{
                 borderRadius: 12,
-                border: '1px solid ' + (isActive ? 'var(--fg-2)' : 'var(--line-1)'),
-                background: isActive ? 'var(--bg-2)' : 'transparent',
-                color: isActive ? 'var(--fg-1)' : 'var(--fg-2)',
+                border: '1px solid var(--line-1)',
+                background: 'transparent',
+                color: 'var(--fg-2)',
                 padding: '11px 12px',
                 fontFamily: 'var(--font-sans)',
                 fontSize: 13,
                 lineHeight: 1.4,
                 textAlign: 'left',
                 cursor: 'pointer',
-                transition: 'all 0.22s var(--ease-out)',
+                transition: 'all 0.25s ease',
                 minHeight: 72,
               }}
             >
               {option.label}
+              {isActive ? <span className="checkBadge" aria-hidden="true">✓</span> : null}
             </button>
           );
         })}
