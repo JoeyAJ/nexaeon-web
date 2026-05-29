@@ -14,33 +14,25 @@ const UI_TEXT = {
     viewDetail: '查看詳情',
     allCategory: '全部',
     detailDescriptionLabel: '詳細說明',
+    skipIntro: '跳過',
   },
   en: {
     quickPreview: 'Quick Preview',
     viewDetail: 'View Details',
     allCategory: 'All',
     detailDescriptionLabel: 'Description',
+    skipIntro: 'Skip',
   },
   ko: {
     quickPreview: '빠른 미리보기',
     viewDetail: '상세 보기',
     allCategory: '전체',
     detailDescriptionLabel: '상세 설명',
+    skipIntro: '건너뛰기',
   },
 };
 
-const HERO_PARTICLES = [
-  { left: '7%', top: '26%', size: 3, delay: '0s', duration: '9s' },
-  { left: '16%', top: '62%', size: 4, delay: '1.4s', duration: '11s' },
-  { left: '24%', top: '18%', size: 2, delay: '2.2s', duration: '8s' },
-  { left: '34%', top: '72%', size: 3, delay: '0.8s', duration: '10s' },
-  { left: '46%', top: '24%', size: 5, delay: '2.6s', duration: '12s' },
-  { left: '56%', top: '64%', size: 3, delay: '1.2s', duration: '9s' },
-  { left: '64%', top: '30%', size: 2, delay: '0.3s', duration: '7.4s' },
-  { left: '74%', top: '70%', size: 4, delay: '2s', duration: '10.6s' },
-  { left: '82%', top: '22%', size: 3, delay: '1.1s', duration: '8.8s' },
-  { left: '91%', top: '58%', size: 2, delay: '2.8s', duration: '11.4s' },
-];
+const INTRO_STORAGE_KEY = 'nexaeon_intro_seen_v1';
 
 const CORE_INTERACTION_CONTENT = {
   zh: {
@@ -1282,121 +1274,22 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
   );
 }
 
-function HeroCenterpiece() {
-  const videoRef = useRef(null);
-  const [ended, setEnded] = useState(false);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const playPromise = video.play();
-    if (playPromise && typeof playPromise.catch === 'function') {
-      playPromise.catch(() => {});
-    }
-  }, []);
-
+function IntroOverlay({ skipLabel, phase, onSkip, onEnded }) {
   return (
-    <div
-      className="hero-centerpiece"
-      style={{
-        position: 'relative',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: -26,
-        marginBottom: 56,
-        height: 500,
-      }}
-    >
-      <div className="hero-signal-waves" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-      <div className="hero-particle-layer" aria-hidden="true">
-        {HERO_PARTICLES.map((particle) => (
-          <span
-            key={`${particle.left}-${particle.top}`}
-            className="hero-particle"
-            style={{
-              left: particle.left,
-              top: particle.top,
-              width: particle.size,
-              height: particle.size,
-              animationDelay: particle.delay,
-              animationDuration: particle.duration,
-            }}
-          />
-        ))}
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          width: 760,
-          height: 480,
-          background:
-            'radial-gradient(ellipse at center, rgba(139,92,246,0.55) 0%, rgba(91,61,214,0.28) 30%, transparent 65%)',
-          filter: 'blur(60px)',
-          pointerEvents: 'none',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 60,
-          width: 420,
-          height: 40,
-          background: 'radial-gradient(ellipse, rgba(40,20,90,0.6) 0%, transparent 70%)',
-          filter: 'blur(14px)',
-          transform: 'rotateX(70deg)',
-        }}
-      />
-
+    <div className={`intro-overlay ${phase === 'fading' ? 'is-fading' : ''}`} aria-hidden={phase === 'done'}>
       <video
-        ref={videoRef}
+        className="intro-video"
         src="/assets/nexaeon-hero-v1.3.mov"
         autoPlay
         muted
         playsInline
         preload="auto"
-        onEnded={() => setEnded(true)}
-        style={{
-          position: 'absolute',
-          zIndex: 2,
-          height: 460,
-          width: 'auto',
-          maxWidth: '100%',
-          objectFit: 'contain',
-          mixBlendMode: 'screen',
-          filter:
-            'drop-shadow(0 30px 60px rgba(20,10,50,0.85)) drop-shadow(0 0 80px rgba(200,168,255,0.4))',
-          opacity: ended ? 0 : 1,
-          transition: 'opacity 800ms ease',
-          pointerEvents: ended ? 'none' : 'auto',
-        }}
+        onEnded={onEnded}
       />
-
-      <img
-        src="/assets/nexaeon-eye.png"
-        alt=""
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          zIndex: 3,
-          height: 380,
-          width: 'auto',
-          maxWidth: '100%',
-          objectFit: 'contain',
-          mixBlendMode: 'screen',
-          filter:
-            'drop-shadow(0 30px 60px rgba(20,10,50,0.85)) drop-shadow(0 0 80px rgba(200,168,255,0.45))',
-          opacity: ended ? 1 : 0,
-          transform: ended ? 'scale(1)' : 'scale(0.94)',
-          transition:
-            'opacity 900ms ease 120ms, transform 1200ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms',
-          pointerEvents: 'none',
-        }}
-      />
+      <div className="intro-overlay-gradient" />
+      <button className="intro-skip-btn" onClick={onSkip} aria-label={skipLabel}>
+        {skipLabel}
+      </button>
     </div>
   );
 }
@@ -1523,8 +1416,6 @@ function Hero({ t }) {
           <span className="hero-scroll-cue-arrow" aria-hidden="true">↓</span>
         </button>
       </div>
-
-      <HeroCenterpiece />
 
       <div
         className="container meta-strip"
@@ -2798,10 +2689,28 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
   const capabilityMapContent = CAPABILITY_MAP_CONTENT[lang] || CAPABILITY_MAP_CONTENT.en;
   const advisorContent = ADVISOR_CONTENT[lang] || ADVISOR_CONTENT.en;
   const actionCenterContent = ACTION_CENTER_CONTENT[lang] || ACTION_CENTER_CONTENT.en;
+  const [introPhase, setIntroPhase] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(INTRO_STORAGE_KEY) === '1' ? 'done' : 'playing';
+    } catch {
+      return 'playing';
+    }
+  });
   const [detail, setDetail] = useState(null);
   const researchItems = useMemo(() => getResearchItems(lang), [lang]);
   const knowledgeItems = useMemo(() => getKnowledgeItems(lang), [lang]);
   const projectItems = useMemo(() => getProjectItems(lang), [lang]);
+
+  const closeIntro = () => {
+    if (introPhase !== 'playing') return;
+    setIntroPhase('fading');
+    window.setTimeout(() => {
+      try {
+        window.sessionStorage.setItem(INTRO_STORAGE_KEY, '1');
+      } catch {}
+      setIntroPhase('done');
+    }, 420);
+  };
 
   useEffect(() => {
     const el = rootRef.current;
@@ -2820,8 +2729,29 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    if (introPhase !== 'done') {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = originalOverflow;
+    }
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [introPhase]);
+
   return (
     <div ref={rootRef} className="direction-shell">
+      {introPhase !== 'done' ? (
+        <IntroOverlay
+          skipLabel={uiText.skipIntro}
+          phase={introPhase}
+          onSkip={closeIntro}
+          onEnded={closeIntro}
+        />
+      ) : null}
       <NeuralBackground />
       <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
       <Hero t={t} />
