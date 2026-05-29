@@ -1,10 +1,10 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
+import NeuralBackground from './NeuralBackground.jsx';
 import { INTERACTIVE_CONTENT } from '../constants/interactiveData.js';
 import {
   getKnowledgeItems,
   getProjectItems,
-  getResearchItems,
 } from '../lib/contentSource.js';
 import { toDetailPath } from '../utils/router.js';
 
@@ -1049,7 +1049,7 @@ function DetailModal({ detail, locale, uiText, onClose }) {
   return (
     <div className="detail-modal-backdrop" onClick={onClose}>
       <div
-        className="detail-modal-panel"
+        className="detail-modal-panel liquid-glass-card"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -1114,40 +1114,6 @@ function DetailModal({ detail, locale, uiText, onClose }) {
           </a>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function NeuralBackground() {
-  return (
-    <div className="neural-bg" aria-hidden="true">
-      <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
-        <g className="neural-orbits">
-          <path d="M-120 470 C 160 260, 510 240, 860 310 C 1160 370, 1500 340, 1620 210" />
-          <path d="M-80 730 C 290 580, 690 510, 1100 620 C 1320 680, 1520 720, 1630 610" />
-          <path d="M150 120 C 420 200, 700 360, 980 320 C 1230 280, 1430 190, 1620 120" />
-          <path d="M10 840 C 320 760, 620 720, 880 760 C 1170 810, 1390 860, 1620 800" />
-          <path d="M260 70 C 490 280, 560 560, 470 850" />
-          <path d="M1130 50 C 1240 250, 1240 520, 1080 850" />
-          <path d="M-120 210 C 140 180, 390 260, 580 470 C 770 680, 1060 760, 1540 760" />
-        </g>
-
-        <g className="neural-nodes">
-          <circle cx="120" cy="420" r="4" />
-          <circle cx="420" cy="260" r="4" />
-          <circle cx="630" cy="540" r="5" />
-          <circle cx="900" cy="250" r="5" />
-          <circle cx="1120" cy="510" r="4" />
-          <circle cx="1310" cy="350" r="4" />
-          <circle cx="1360" cy="690" r="5" />
-          <circle cx="1050" cy="760" r="4" />
-          <circle cx="720" cy="760" r="4" />
-          <circle cx="450" cy="690" r="4" />
-          <circle cx="230" cy="610" r="4" />
-          <circle cx="70" cy="770" r="3.5" />
-          <circle cx="980" cy="110" r="4" />
-        </g>
-      </svg>
     </div>
   );
 }
@@ -1295,8 +1261,43 @@ function IntroOverlay({ skipLabel, phase, onSkip, onEnded }) {
   );
 }
 
+function SectionHeader({ eyebrow, title, subtitle, align = 'center' }) {
+  return (
+    <div className="container" style={{ textAlign: align }}>
+      <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
+        — {eyebrow}
+      </div>
+      <h2
+        style={{
+          fontFamily: 'var(--font-serif)',
+          fontSize: 'clamp(40px, 5vw, 72px)',
+          lineHeight: 1.05,
+          fontWeight: 400,
+          margin: 0,
+          letterSpacing: '-0.02em',
+        }}
+      >
+        {title}
+      </h2>
+      {subtitle ? (
+        <p
+          style={{
+            margin: align === 'center' ? '16px auto 0' : '16px 0 0',
+            maxWidth: 900,
+            color: 'var(--fg-2)',
+            lineHeight: 1.74,
+            fontSize: 16,
+          }}
+        >
+          {subtitle}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function Hero({ t }) {
-  const navigatorTitle = t.forWhom?.title?.split('\n')[0] || 'Explore the next section';
+  const nextTitle = t.hero.dualTitle || 'Research × Practice';
 
   return (
     <section id="home" className="hero-shell" style={{ position: 'relative', overflow: 'hidden', scrollMarginTop: 80 }}>
@@ -1399,20 +1400,51 @@ function Hero({ t }) {
           <button
             className="btn btn-glass hero-cta-main"
             style={{ fontSize: 15 }}
-            onClick={() => scrollToSection('modules')}
+            onClick={() => scrollToSection('research')}
           >
             {t.hero.cta1} <ArrowIcon />
           </button>
           <button
             className="btn btn-ghost hero-cta-secondary"
             style={{ fontSize: 15 }}
-            onClick={() => scrollToSection('research')}
+            onClick={() => scrollToSection('projects')}
           >
             {t.hero.cta2}
           </button>
         </div>
 
-        <button className="hero-scroll-cue" onClick={() => scrollToSection('navigator')}>
+        <div className="hero-dual-panel liquid-glass-card">
+          <div>
+            <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 8 }}>
+              {t.hero.dualLabel}
+            </div>
+            <div className="hero-dual-title">{t.hero.dualTitle}</div>
+            <p className="hero-dual-summary">{t.hero.dualSummary}</p>
+          </div>
+          <div className="hero-dual-tracks">
+            {t.hero.dualTracks.map((track) => (
+              <div key={track.label} className="hero-dual-track">
+                <div className="hero-dual-track-label">{track.label}</div>
+                <div className="hero-dual-track-items">
+                  {track.items.map((item) => (
+                    <span key={item}>{item}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="hero-entry-strip" aria-label={t.hero.entryLabel}>
+          <span className="hero-entry-label">{t.hero.entryLabel}</span>
+          {t.hero.entries.map((entry) => (
+            <button key={entry.target} onClick={() => scrollToSection(entry.target)}>
+              {entry.label}
+            </button>
+          ))}
+        </div>
+
+        <button className="hero-scroll-cue" onClick={() => scrollToSection('research')}>
           <span>{t.hero.scrollCue}</span>
           <span className="hero-scroll-cue-arrow" aria-hidden="true">↓</span>
         </button>
@@ -1437,9 +1469,9 @@ function Hero({ t }) {
         ))}
       </div>
 
-      <button className="hero-next-peek" onClick={() => scrollToSection('navigator')}>
-        <span className="hero-next-peek-label">{t.forWhom?.label || 'Next Section'}</span>
-        <span className="hero-next-peek-title">{navigatorTitle}</span>
+      <button className="hero-next-peek" onClick={() => scrollToSection('research')}>
+        <span className="hero-next-peek-label">Research Roadmap</span>
+        <span className="hero-next-peek-title">{nextTitle}</span>
         <span className="hero-next-peek-arrow" aria-hidden="true">↓</span>
       </button>
     </section>
@@ -1486,7 +1518,7 @@ function RoleNavigatorSection({ content, navigate }) {
           return (
             <button
               key={role.id}
-              className="navigator-card"
+              className="navigator-card liquid-glass-card"
               onClick={() => setActiveRoleId(role.id)}
               style={{
                 textAlign: 'left',
@@ -1516,7 +1548,7 @@ function RoleNavigatorSection({ content, navigate }) {
         <div className="container" style={{ marginTop: 18 }}>
           <div
             key={activeRole.id}
-            className="panel-switch-in navigator-detail-panel"
+            className="panel-switch-in navigator-detail-panel liquid-glass-card"
             style={{
               borderRadius: 18,
               border: '1px solid var(--line-1)',
@@ -1619,7 +1651,7 @@ function CapabilityMapSection({ content }) {
             {activeTab.cards.map((card) => (
               <article
                 key={card.title}
-                className="capability-card"
+                className="capability-card liquid-glass-card"
                 style={{
                   borderRadius: 16,
                   border: '1px solid var(--line-1)',
@@ -1677,7 +1709,7 @@ function AdvisorSection({ content, navigate }) {
 
   const renderOptionGroup = (questionKey, selectedValue, onSelect, options) => (
     <div
-      className="question-group"
+      className="question-group liquid-glass-card"
       style={{
         borderRadius: 16,
         border: '1px solid var(--line-1)',
@@ -1749,7 +1781,7 @@ function AdvisorSection({ content, navigate }) {
         {renderOptionGroup('support', support, setSupport, content.options.support)}
 
         <div
-          className="advisor-result-panel"
+          className="advisor-result-panel liquid-glass-card"
           style={{
             borderRadius: 18,
             border: '1px solid var(--line-1)',
@@ -1868,13 +1900,9 @@ function ActionCenterSection({ content, capabilityLabels, navigate }) {
     };
   }, [capabilityLabels, content.panel, isComplete, selectedAction, selectedNeed, selectedRole]);
 
-  useEffect(() => {
-    setCopyStatus('');
-  }, [role, need, action]);
-
   const renderOptionGroup = (questionKey, selectedValue, onSelect, options) => (
     <div
-      className="question-group"
+      className="question-group liquid-glass-card"
       style={{
         borderRadius: 16,
         border: '1px solid var(--line-1)',
@@ -1946,7 +1974,7 @@ function ActionCenterSection({ content, capabilityLabels, navigate }) {
         {renderOptionGroup('action', action, setAction, content.options.action)}
 
         <div
-          className="action-result-panel"
+          className="action-result-panel liquid-glass-card"
           style={{
             borderRadius: 18,
             border: '1px solid var(--line-1)',
@@ -2055,7 +2083,7 @@ function ModulesSection({ content, onOpenDetail }) {
         {content.cards.map((card) => (
           <button
             key={card.id}
-            className="module-card"
+            className="module-card liquid-glass-card"
             onClick={() =>
               onOpenDetail({
                 title: card.title,
@@ -2092,116 +2120,129 @@ function ModulesSection({ content, onOpenDetail }) {
   );
 }
 
-function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate, uiText, researchFocusContent }) {
-  const [activeFocusId, setActiveFocusId] = useState(researchFocusContent.cards[0]?.id || '');
-  const activeFocus =
-    researchFocusContent.cards.find((card) => card.id === activeFocusId) || researchFocusContent.cards[0];
-
+function ResearchDirectionsSection({ locale, projectItems, onOpenDetail, navigate, uiText }) {
   return (
     <section id="research" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
-      <div className="container" style={{ textAlign: 'center' }}>
-        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
-          — {locale.research.eyebrow}
-        </div>
-        <h2
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(40px, 5vw, 72px)',
-            lineHeight: 1.05,
-            fontWeight: 400,
-            margin: 0,
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {locale.research.title}
-        </h2>
-      </div>
+      <SectionHeader
+        eyebrow={locale.research.eyebrow}
+        title={locale.research.title}
+        subtitle={locale.research.subtitle}
+      />
 
-      <div className="container" style={{ marginTop: 40 }}>
+      <div className="container" style={{ marginTop: 46 }}>
         <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 14 }}>
-          — {researchFocusContent.eyebrow}
+          — {locale.research.roadmapLabel}
         </div>
-        <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-          {researchFocusContent.cards.map((card) => {
-            const isActive = card.id === activeFocus?.id;
-            return (
-              <button
-                key={card.id}
-                className="research-focus-card"
-                onClick={() => setActiveFocusId(card.id)}
-                style={{
-                  textAlign: 'left',
-                  borderRadius: 14,
-                  border: '1px solid ' + (isActive ? 'var(--fg-2)' : 'var(--line-1)'),
-                  background: isActive ? 'var(--bg-2)' : 'var(--bg-1)',
-                  color: 'var(--fg-1)',
-                  padding: 14,
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, lineHeight: 1.35 }}>{card.title}</div>
-              </button>
-            );
-          })}
-        </div>
-        {activeFocus ? (
-          <div
-            className="research-focus-detail"
-            style={{
-              marginTop: 14,
-              borderRadius: 14,
-              border: '1px solid var(--line-1)',
-              background: 'var(--bg-1)',
-              padding: 16,
-              color: 'var(--fg-2)',
-              lineHeight: 1.7,
-            }}
-          >
-            <div className="label" style={{ marginBottom: 8 }}>{researchFocusContent.hint}</div>
-            {activeFocus.description}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 44 }}>
-        {items.map((item) => {
-          return (
-            <article
-              key={item.id}
-              className="research-card"
-              style={{
-                textAlign: 'left',
-                borderRadius: 20,
-                border: '1px solid var(--line-1)',
-                background: 'var(--bg-1)',
-                padding: 24,
-                color: 'inherit',
-                transition: 'all 0.3s var(--ease-out)',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, lineHeight: 1.2 }}>{item.title}</div>
-                <span className="label" style={{ color: 'var(--fg-3)', letterSpacing: '0.08em' }}>
-                  {item.status}
-                </span>
-              </div>
-              <p style={{ marginTop: 10, color: 'var(--fg-2)', lineHeight: 1.6, fontSize: 15 }}>{item.subtitle}</p>
-              <p style={{ marginTop: 10, color: 'var(--fg-3)', lineHeight: 1.6, fontSize: 14 }}>{item.summary}</p>
-              <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button className="btn btn-ghost" style={{ padding: '9px 14px' }} onClick={() => onOpenDetail(createDetailItem(item, locale))}>
-                  {uiText.quickPreview}
-                </button>
-                <button
-                  className="btn btn-gradient"
-                  style={{ padding: '9px 14px' }}
-                  onClick={() => navigate(toDetailPath('research', item.id))}
-                >
-                  {uiText.viewDetail}
-                </button>
+        <div className="research-roadmap">
+          {locale.research.roadmap.map((node, index) => (
+            <article key={node.title} className="research-roadmap-node liquid-glass-card">
+              <div className="research-roadmap-index">{String(index + 1).padStart(2, '0')}</div>
+              <div className="research-roadmap-title">{node.title}</div>
+              <p>{node.summary}</p>
+              <div className="research-roadmap-tags">
+                {node.connects.map((tag) => (
+                  <span key={tag} className="content-tag">
+                    {tag}
+                  </span>
+                ))}
               </div>
             </article>
-          );
-        })}
+          ))}
+        </div>
+      </div>
+
+      <div className="container" style={{ marginTop: 34 }}>
+        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 14 }}>
+          — {locale.research.theoryLabel}
+        </div>
+        <div className="theory-grid">
+          {locale.research.theories.map((theory) => (
+            <article key={theory.title} className="theory-card liquid-glass-card">
+              <div>{theory.title}</div>
+              <p>{theory.summary}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div className="container" style={{ marginTop: 44 }}>
+        <div className="research-projects-panel liquid-glass-card">
+          <div>
+            <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 10 }}>
+              — {locale.research.projectsLabel}
+            </div>
+            <p>{locale.research.projectsDescription}</p>
+          </div>
+          <div className="research-project-mini-grid">
+            {projectItems.slice(0, 3).map((item) => (
+              <button
+                key={item.id}
+                className="research-project-mini"
+                onClick={() => navigate(toDetailPath('projects', item.id))}
+              >
+                <span>{item.title}</span>
+                <small>{item.status}</small>
+              </button>
+            ))}
+          </div>
+          {projectItems[0] ? (
+            <button className="btn btn-ghost" onClick={() => onOpenDetail(createDetailItem(projectItems[0], locale))}>
+              {uiText.quickPreview}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TeachingSection({ locale }) {
+  return (
+    <section id="teaching" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
+      <SectionHeader
+        eyebrow={locale.teaching.eyebrow}
+        title={locale.teaching.title}
+        subtitle={locale.teaching.subtitle}
+      />
+
+      <div className="container teaching-layout" style={{ marginTop: 50 }}>
+        <div className="teaching-pain-panel liquid-glass-card">
+          <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 14 }}>
+            — {locale.teaching.painLabel}
+          </div>
+          <div className="teaching-pain-list">
+            {locale.teaching.painPoints.map((point, index) => (
+              <div key={point} className="teaching-pain-item">
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <p>{point}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="teaching-solution-panel">
+          <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 14 }}>
+            — {locale.teaching.solutionLabel}
+          </div>
+          <div className="teaching-module-grid">
+            {locale.teaching.modules.map((module) => (
+              <article key={module.course} className="teaching-module-card liquid-glass-card">
+                <div className="teaching-module-title">{module.course}</div>
+                <div className="teaching-module-solves">{module.solves}</div>
+                <p>{module.output}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="container" style={{ marginTop: 22 }}>
+        <div className="teaching-sandbox liquid-glass-card">
+          <div className="label" style={{ color: 'var(--accent-fg)' }}>
+            — {locale.teaching.sandboxLabel}
+          </div>
+          <p>{locale.teaching.sandbox}</p>
+        </div>
       </div>
     </section>
   );
@@ -2231,25 +2272,31 @@ function KnowledgeSection({ locale, items, onOpenDetail, navigate, uiText }) {
 
   return (
     <section id="knowledge" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
-      <div className="container" style={{ textAlign: 'center' }}>
-        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
-          — {locale.knowledge.eyebrow}
+      <SectionHeader
+        eyebrow={locale.knowledge.eyebrow}
+        title={locale.knowledge.title}
+        subtitle={locale.knowledge.subtitle}
+      />
+
+      <div className="container" style={{ marginTop: 46 }}>
+        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 14 }}>
+          — {locale.knowledge.lifecycleLabel}
         </div>
-        <h2
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(40px, 5vw, 72px)',
-            lineHeight: 1.05,
-            fontWeight: 400,
-            margin: 0,
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {locale.knowledge.title}
-        </h2>
+        <div className="knowledge-lifecycle">
+          {locale.knowledge.lifecycle.map((step, index) => (
+            <article key={step} className="knowledge-lifecycle-step liquid-glass-card">
+              <div className="knowledge-lifecycle-index">{String(index + 1).padStart(2, '0')}</div>
+              <div className="knowledge-lifecycle-title">{step}</div>
+              <p>{locale.knowledge.lifecycleDetails[index]}</p>
+            </article>
+          ))}
+        </div>
       </div>
 
-      <div className="container" style={{ marginTop: 56 }}>
+      <div className="container" style={{ marginTop: 44 }}>
+        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 14 }}>
+          — {locale.knowledge.searchLabel}
+        </div>
         <div style={{ display: 'grid', gap: 14 }}>
           <input
             className="glass-input"
@@ -2273,12 +2320,14 @@ function KnowledgeSection({ locale, items, onOpenDetail, navigate, uiText }) {
               <button
                 key={item.key}
                 className="filter-chip"
+                data-selected={categoryKey === item.key ? 'true' : 'false'}
+                aria-pressed={categoryKey === item.key}
                 onClick={() => setCategoryKey(item.key)}
                 style={{
                   borderRadius: 999,
-                  border: '1px solid ' + (categoryKey === item.key ? 'var(--fg-1)' : 'var(--line-2)'),
-                  background: categoryKey === item.key ? 'var(--fg-1)' : 'transparent',
-                  color: categoryKey === item.key ? 'var(--bg-0)' : 'var(--fg-2)',
+                  border: '1px solid var(--line-2)',
+                  background: 'transparent',
+                  color: 'var(--fg-2)',
                   padding: '8px 14px',
                   fontFamily: 'var(--font-mono)',
                   fontSize: 12,
@@ -2294,14 +2343,14 @@ function KnowledgeSection({ locale, items, onOpenDetail, navigate, uiText }) {
 
         <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 20 }}>
           {filtered.length === 0 ? (
-            <div style={{ border: '1px solid var(--line-1)', borderRadius: 16, padding: 20, color: 'var(--fg-3)' }}>
+            <div className="liquid-glass-card" style={{ borderRadius: 16, padding: 20, color: 'var(--fg-3)' }}>
               {locale.knowledge.noResults}
             </div>
           ) : (
             filtered.map((item) => (
               <article
                 key={item.id}
-                className="knowledge-card"
+                className="knowledge-card liquid-glass-card"
                 style={{
                   textAlign: 'left',
                   borderRadius: 16,
@@ -2347,32 +2396,22 @@ function KnowledgeSection({ locale, items, onOpenDetail, navigate, uiText }) {
 }
 
 function ProjectsSection({ locale, items, onOpenDetail, navigate, uiText }) {
+  const labels = locale.projects.cardLabels;
+
   return (
     <section id="projects" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
-      <div className="container" style={{ textAlign: 'center' }}>
-        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
-          — {locale.projects.eyebrow}
-        </div>
-        <h2
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(40px, 5vw, 72px)',
-            lineHeight: 1.05,
-            fontWeight: 400,
-            margin: 0,
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {locale.projects.title}
-        </h2>
-      </div>
+      <SectionHeader
+        eyebrow={locale.projects.eyebrow}
+        title={locale.projects.title}
+        subtitle={locale.projects.subtitle}
+      />
 
-      <div className="container grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 60 }}>
+      <div className="container demo-grid" style={{ marginTop: 52 }}>
         {items.map((item) => {
           return (
             <article
               key={item.id}
-              className="project-card"
+              className="project-card liquid-glass-card"
               style={{
                 textAlign: 'left',
                 borderRadius: 20,
@@ -2382,14 +2421,29 @@ function ProjectsSection({ locale, items, onOpenDetail, navigate, uiText }) {
                 color: 'inherit',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'baseline' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, lineHeight: 1.2 }}>{item.title}</div>
-                <span className="label" style={{ color: 'var(--fg-3)', letterSpacing: '0.08em' }}>
-                  {item.status}
-                </span>
+              <div className="demo-card-head">
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 25, lineHeight: 1.2 }}>{item.title}</div>
+                <span className="content-tag">{item.status}</span>
               </div>
-              <p style={{ marginTop: 10, color: 'var(--fg-2)', fontSize: 14 }}>{item.subtitle}</p>
-              <p style={{ marginTop: 12, color: 'var(--fg-3)', fontSize: 14, lineHeight: 1.6 }}>{item.summary}</p>
+              <p className="demo-card-subtitle">{item.subtitle}</p>
+              <div className="demo-card-fields">
+                <div>
+                  <span>{labels.problem}</span>
+                  <p>{item.problem || item.summary}</p>
+                </div>
+                <div>
+                  <span>{labels.aiLogic}</span>
+                  <p>{item.aiLogic || item.description}</p>
+                </div>
+                <div>
+                  <span>{labels.useCase}</span>
+                  <p>{item.useCase || item.nextStep}</p>
+                </div>
+                <div>
+                  <span>{labels.status}</span>
+                  <p>{item.status}</p>
+                </div>
+              </div>
               <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn btn-ghost" style={{ padding: '8px 12px' }} onClick={() => onOpenDetail(createDetailItem(item, locale))}>
                   {uiText.quickPreview}
@@ -2439,10 +2493,9 @@ function IntegrationRoadmapSection() {
           {phases.map((phase) => (
             <article
               key={phase}
+              className="liquid-glass-card"
               style={{
                 borderRadius: 16,
-                border: '1px solid var(--line-1)',
-                background: 'var(--bg-1)',
                 padding: 18,
                 color: 'var(--fg-2)',
                 lineHeight: 1.7,
@@ -2529,7 +2582,7 @@ function AssistantSection({ locale }) {
         </div>
 
         <div
-          className="assistant-panel"
+          className="assistant-panel liquid-glass-card"
           style={{
             borderRadius: 20,
             border: '1px solid var(--line-1)',
@@ -2609,51 +2662,93 @@ function ContactSection({ locale }) {
 
   return (
     <section id="contact" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
-      <div className="container" style={{ textAlign: 'center' }}>
-        <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
-          — {locale.contact.eyebrow}
-        </div>
-        <h2
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(40px, 5vw, 72px)',
-            lineHeight: 1.05,
-            fontWeight: 400,
-            margin: 0,
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {locale.contact.title}
-        </h2>
-      </div>
+      <SectionHeader
+        eyebrow={locale.contact.eyebrow}
+        title={locale.contact.title}
+        subtitle={locale.contact.description}
+      />
 
-      <div className="container" style={{ marginTop: 56 }}>
-        <div
-          className="contact-panel"
-          style={{
-            maxWidth: 760,
-            margin: '0 auto',
-            borderRadius: 24,
-            border: '1px solid var(--line-1)',
-            background: 'var(--bg-1)',
-            padding: 28,
-            textAlign: 'center',
+      <div className="container collaboration-layout" style={{ marginTop: 52 }}>
+        <div className="collaboration-funnel">
+          <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 14 }}>
+            — {locale.contact.funnelLabel}
+          </div>
+          <div className="collaboration-funnel-grid">
+            {locale.contact.funnels.map((funnel) => (
+              <article key={funnel.title} className="collaboration-funnel-card liquid-glass-card">
+                <div>{funnel.title}</div>
+                <ul>
+                  {funnel.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+          <div className="collaboration-email-panel liquid-glass-card">
+            <span>{locale.contact.email}</span>
+            <div>
+              <a href={`mailto:${locale.contact.email}`} className="btn btn-gradient">
+                {locale.contact.mailtoCta}
+              </a>
+              <button onClick={copyEmail} className="btn btn-ghost">
+                {locale.contact.copyCta}
+              </button>
+            </div>
+            {status ? <small>{status}</small> : null}
+          </div>
+        </div>
+
+        <form
+          className="collaboration-form liquid-glass-card"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setStatus(locale.contact.formNote);
           }}
         >
-          <p style={{ color: 'var(--fg-2)', lineHeight: 1.7, margin: 0 }}>{locale.contact.description}</p>
-          <div style={{ marginTop: 18, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--accent-fg)' }}>
-            {locale.contact.email}
+          <div className="label" style={{ color: 'var(--accent-fg)' }}>
+            — {locale.contact.formLabel}
           </div>
-          <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href={`mailto:${locale.contact.email}`} className="btn btn-gradient">
-              {locale.contact.mailtoCta}
-            </a>
-            <button onClick={copyEmail} className="btn btn-ghost">
-              {locale.contact.copyCta}
-            </button>
+          <div className="collaboration-form-grid">
+            <label>
+              <span>{locale.contact.fields.name}</span>
+              <input className="glass-input" type="text" />
+            </label>
+            <label>
+              <span>{locale.contact.fields.organization}</span>
+              <input className="glass-input" type="text" />
+            </label>
+            <label>
+              <span>{locale.contact.fields.role}</span>
+              <input className="glass-input" type="text" />
+            </label>
+            <label>
+              <span>{locale.contact.fields.email}</span>
+              <input className="glass-input" type="email" />
+            </label>
+            <label className="collaboration-form-wide">
+              <span>{locale.contact.fields.collaborationType}</span>
+              <select className="glass-input" defaultValue="">
+                <option value="" disabled>
+                  {locale.contact.fields.collaborationType}
+                </option>
+                {locale.contact.types.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="collaboration-form-wide">
+              <span>{locale.contact.fields.message}</span>
+              <textarea className="glass-input" rows="5" />
+            </label>
           </div>
-          {status ? <div style={{ marginTop: 10, color: 'var(--fg-2)', fontSize: 14 }}>{status}</div> : null}
-        </div>
+          <p>{locale.contact.formNote}</p>
+          <button className="btn btn-glass" type="submit">
+            {locale.contact.submitLabel}
+          </button>
+        </form>
       </div>
     </section>
   );
@@ -2689,15 +2784,27 @@ function Footer({ t }) {
   );
 }
 
+// Preserved for future interactive routes while the homepage foregrounds the IA roadmap.
+void [
+  CORE_INTERACTION_CONTENT,
+  ROLE_NAVIGATOR_CONTENT,
+  CAPABILITY_MAP_CONTENT,
+  ADVISOR_CONTENT,
+  ACTION_CENTER_CONTENT,
+  RoleNavigatorSection,
+  CapabilityMapSection,
+  AdvisorSection,
+  ActionCenterSection,
+  ModulesSection,
+  INTERNAL_DATA_LAYER_CONFIG,
+  IntegrationRoadmapSection,
+  AssistantSection,
+];
+
 export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate }) {
   const rootRef = useRef(null);
   const locale = INTERACTIVE_CONTENT[lang] || INTERACTIVE_CONTENT.en;
   const uiText = UI_TEXT[lang] || UI_TEXT.en;
-  const interactiveContent = CORE_INTERACTION_CONTENT[lang] || CORE_INTERACTION_CONTENT.en;
-  const navigatorContent = ROLE_NAVIGATOR_CONTENT[lang] || ROLE_NAVIGATOR_CONTENT.en;
-  const capabilityMapContent = CAPABILITY_MAP_CONTENT[lang] || CAPABILITY_MAP_CONTENT.en;
-  const advisorContent = ADVISOR_CONTENT[lang] || ADVISOR_CONTENT.en;
-  const actionCenterContent = ACTION_CENTER_CONTENT[lang] || ACTION_CENTER_CONTENT.en;
   const [introPhase, setIntroPhase] = useState(() => {
     try {
       return window.sessionStorage.getItem(INTRO_STORAGE_KEY) === '1' ? 'done' : 'playing';
@@ -2706,7 +2813,6 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
     }
   });
   const [detail, setDetail] = useState(null);
-  const researchItems = useMemo(() => getResearchItems(lang), [lang]);
   const knowledgeItems = useMemo(() => getKnowledgeItems(lang), [lang]);
   const projectItems = useMemo(() => getProjectItems(lang), [lang]);
 
@@ -2716,7 +2822,9 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
     window.setTimeout(() => {
       try {
         window.sessionStorage.setItem(INTRO_STORAGE_KEY, '1');
-      } catch {}
+      } catch {
+        // Some browser privacy modes block sessionStorage.
+      }
       setIntroPhase('done');
     }, 420);
   };
@@ -2752,7 +2860,7 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
   }, [introPhase]);
 
   return (
-    <div ref={rootRef} className="direction-shell">
+    <div ref={rootRef} className="direction-shell page-shell liquid-page-shell">
       {introPhase !== 'done' ? (
         <IntroOverlay
           skipLabel={uiText.skipIntro}
@@ -2764,28 +2872,17 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       <NeuralBackground />
       <Nav locale={locale} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} />
       <Hero t={t} />
-      <RoleNavigatorSection key={`navigator-${lang}`} content={navigatorContent} navigate={navigate} />
-      <CapabilityMapSection key={`capability-${lang}`} content={capabilityMapContent} />
-      <AdvisorSection key={`advisor-${lang}`} content={advisorContent} navigate={navigate} />
-      <ActionCenterSection
-        key={`action-center-${lang}`}
-        content={actionCenterContent}
-        capabilityLabels={advisorContent.results.capabilityLabels}
-        navigate={navigate}
-      />
-      <ModulesSection key={`modules-${lang}`} content={interactiveContent.modules} onOpenDetail={setDetail} />
       <ResearchDirectionsSection
         key={`research-${lang}`}
         locale={locale}
-        items={researchItems}
+        projectItems={projectItems}
         onOpenDetail={setDetail}
         navigate={navigate}
         uiText={uiText}
-        researchFocusContent={interactiveContent.researchFocus}
       />
+      <TeachingSection key={`teaching-${lang}`} locale={locale} />
       <KnowledgeSection key={`knowledge-${lang}`} locale={locale} items={knowledgeItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
       <ProjectsSection key={`projects-${lang}`} locale={locale} items={projectItems} onOpenDetail={setDetail} navigate={navigate} uiText={uiText} />
-      <AssistantSection key={`assistant-${lang}`} locale={locale} />
       <ContactSection key={`contact-${lang}`} locale={locale} />
       <Footer t={t} />
       <DetailModal detail={detail} locale={locale} uiText={uiText} onClose={() => setDetail(null)} />

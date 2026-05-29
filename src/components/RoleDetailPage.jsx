@@ -1,4 +1,5 @@
 import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
+import NeuralBackground from './NeuralBackground.jsx';
 
 const ROLE_DETAIL_CONTENT = {
   zh: {
@@ -401,7 +402,7 @@ const ROLE_DETAIL_CONTENT = {
 
 function ListCardSection({ title, items }) {
   return (
-    <section style={{ marginTop: 18 }}>
+    <section className="liquid-glass-card" style={{ marginTop: 18, borderRadius: 20, padding: '16px clamp(14px, 2.8vw, 22px)' }}>
       <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 12 }}>
         {title}
       </div>
@@ -409,10 +410,9 @@ function ListCardSection({ title, items }) {
         {items.map((item) => (
           <article
             key={item}
+            className="liquid-glass-card"
             style={{
               borderRadius: 16,
-              border: '1px solid var(--line-1)',
-              background: 'var(--bg-2)',
               padding: 16,
               color: 'var(--fg-2)',
               lineHeight: 1.7,
@@ -429,7 +429,8 @@ function ListCardSection({ title, items }) {
 
 function NotFound({ locale, navigate, setLang, lang }) {
   return (
-    <main style={{ minHeight: '100vh', paddingTop: 90, paddingBottom: 120 }}>
+    <main className="direction-shell subpage-shell" style={{ minHeight: '100vh', paddingTop: 90, paddingBottom: 120 }}>
+      <NeuralBackground />
       <div className="container">
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 24 }}>
           <button
@@ -451,12 +452,11 @@ function NotFound({ locale, navigate, setLang, lang }) {
           <LangSwitcher lang={lang} setLang={setLang} />
         </div>
         <div
+          className="content-detail-card"
           style={{
             maxWidth: 760,
             margin: '0 auto',
             borderRadius: 24,
-            border: '1px solid var(--line-1)',
-            background: 'var(--bg-1)',
             padding: 32,
             textAlign: 'center',
           }}
@@ -483,7 +483,8 @@ export default function RoleDetailPage({ role, navigate, lang, setLang }) {
   }
 
   return (
-    <main style={{ minHeight: '100vh', paddingTop: 78, paddingBottom: 100 }}>
+    <main className="direction-shell subpage-shell" style={{ minHeight: '100vh', paddingTop: 78, paddingBottom: 100 }}>
+      <NeuralBackground />
       <div className="container">
         <header style={{ display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center', marginBottom: 24 }}>
           <button
@@ -507,10 +508,9 @@ export default function RoleDetailPage({ role, navigate, lang, setLang }) {
         </header>
 
         <section
+          className="liquid-glass-card content-detail-card"
           style={{
             borderRadius: 24,
-            border: '1px solid var(--line-1)',
-            background: 'var(--bg-1)',
             padding: '28px clamp(18px, 4vw, 40px)',
           }}
         >
@@ -543,11 +543,10 @@ export default function RoleDetailPage({ role, navigate, lang, setLang }) {
         <ListCardSection title={locale.common.capabilitiesTitle} items={roleContent.capabilities} />
 
         <section
+          className="liquid-glass-card"
           style={{
             marginTop: 18,
             borderRadius: 20,
-            border: '1px solid var(--line-1)',
-            background: 'var(--bg-1)',
             padding: '20px clamp(16px, 3vw, 24px)',
           }}
         >
@@ -563,11 +562,10 @@ export default function RoleDetailPage({ role, navigate, lang, setLang }) {
         </section>
 
         <section
+          className="liquid-glass-card"
           style={{
             marginTop: 18,
             borderRadius: 20,
-            border: '1px solid var(--line-1)',
-            background: 'var(--bg-1)',
             padding: '20px clamp(16px, 3vw, 24px)',
             textAlign: 'center',
           }}

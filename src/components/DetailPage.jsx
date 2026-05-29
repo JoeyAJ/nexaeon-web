@@ -1,4 +1,5 @@
 import { getAllContentItems } from '../lib/contentSource.js';
+import NeuralBackground from './NeuralBackground.jsx';
 
 const DETAIL_TEXT = {
   zh: {
@@ -51,29 +52,31 @@ function Badge({ children }) {
 
 function NotFound({ navigate, text }) {
   return (
-    <div className="container" style={{ paddingTop: 120, paddingBottom: 120 }}>
-      <div
-        style={{
-          maxWidth: 760,
-          margin: '0 auto',
-          borderRadius: 24,
-          border: '1px solid var(--line-1)',
-          background: 'var(--bg-1)',
-          padding: 32,
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(34px, 5vw, 56px)', lineHeight: 1.1 }}>
-          {text.notFoundTitle}
+    <main className="direction-shell subpage-shell" style={{ minHeight: '100vh', paddingTop: 88, paddingBottom: 100 }}>
+      <NeuralBackground />
+      <div className="container" style={{ paddingTop: 32, paddingBottom: 32 }}>
+        <div
+          className="content-detail-card"
+          style={{
+            maxWidth: 760,
+            margin: '0 auto',
+            borderRadius: 24,
+            padding: 32,
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(34px, 5vw, 56px)', lineHeight: 1.1 }}>
+            {text.notFoundTitle}
+          </div>
+          <p style={{ marginTop: 16, color: 'var(--fg-2)', lineHeight: 1.7 }}>
+            {text.notFoundBody}
+          </p>
+          <button className="btn btn-ghost" style={{ marginTop: 18 }} onClick={() => navigate('/')}>
+            {text.backHome}
+          </button>
         </div>
-        <p style={{ marginTop: 16, color: 'var(--fg-2)', lineHeight: 1.7 }}>
-          {text.notFoundBody}
-        </p>
-        <button className="btn btn-ghost" style={{ marginTop: 18 }} onClick={() => navigate('/')}>
-          {text.backHome}
-        </button>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -86,7 +89,8 @@ export default function DetailPage({ type, id, navigate, lang }) {
   }
 
   return (
-    <main style={{ minHeight: '100vh', paddingTop: 88, paddingBottom: 100 }}>
+    <main className="direction-shell subpage-shell" style={{ minHeight: '100vh', paddingTop: 88, paddingBottom: 100 }}>
+      <NeuralBackground />
       <div className="container">
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <button className="btn btn-ghost" onClick={() => navigate('/')}>
@@ -94,11 +98,10 @@ export default function DetailPage({ type, id, navigate, lang }) {
           </button>
 
           <article
+            className="content-detail-card"
             style={{
               marginTop: 24,
               borderRadius: 24,
-              border: '1px solid var(--line-1)',
-              background: 'var(--bg-1)',
               padding: '30px clamp(20px, 4vw, 40px)',
             }}
           >

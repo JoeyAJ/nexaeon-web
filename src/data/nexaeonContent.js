@@ -177,6 +177,21 @@ const CONTENT_ITEMS = {
         en: 'Complete the content layer, detail pages, and event instrumentation plan.',
         ko: '콘텐츠 레이어, 상세 페이지, 이벤트 계측 계획을 완료합니다.',
       },
+      problem: {
+        zh: '不同受眾難以快速理解 NexAeon 的研究、教學與合作價值。',
+        en: 'Different audiences need a fast way to understand NexAeon research, teaching, and collaboration value.',
+        ko: '다양한 독자가 NexAeon의 연구, 수업, 협력 가치를 빠르게 이해하기 어렵습니다.',
+      },
+      aiLogic: {
+        zh: '以結構化內容層、角色入口與可擴充資料源支撐研究所型網站。',
+        en: 'Uses a structured content layer, role pathways, and extensible data sources for an institute-style site.',
+        ko: '구조화된 콘텐츠 레이어, 역할별 입구, 확장 가능한 데이터 소스로 연구소형 웹사이트를 지원합니다.',
+      },
+      useCase: {
+        zh: '品牌主站、研究展示、課程入口、合作簡報與 Demo 導覽。',
+        en: 'Brand site, research showcase, course gateway, collaboration deck, and demo navigation.',
+        ko: '브랜드 사이트, 연구 소개, 수업 입구, 협업 제안, 데모 안내에 활용됩니다.',
+      },
     },
     {
       id: 'nexaeon-knowledge-hub',
@@ -204,6 +219,21 @@ const CONTENT_ITEMS = {
         zh: '加入更多實證案例，並規劃知識節點間的關聯視圖。',
         en: 'Add more empirical cases and plan relationship views across knowledge nodes.',
         ko: '실증 사례를 추가하고 지식 노드 간 연관 뷰를 설계합니다.',
+      },
+      problem: {
+        zh: '研究筆記、課程素材與專案文件容易分散，難以被再次利用。',
+        en: 'Research notes, teaching assets, and project documents are often scattered and hard to reuse.',
+        ko: '연구 노트, 수업 자료, 프로젝트 문서가 흩어져 재사용하기 어렵습니다.',
+      },
+      aiLogic: {
+        zh: '以分類、標籤、檢索與未來 RAG 層，讓知識節點可被重組。',
+        en: 'Combines taxonomy, tagging, search, and a future RAG layer so knowledge nodes can be recomposed.',
+        ko: '분류, 태깅, 검색, 향후 RAG 레이어로 지식 노드를 재조합 가능하게 만듭니다.',
+      },
+      useCase: {
+        zh: '研究整理、課程設計、簡報準備、網站內容與合作提案生成。',
+        en: 'Research organization, curriculum design, slide prep, website content, and collaboration proposals.',
+        ko: '연구 정리, 커리큘럼 설계, 발표 준비, 웹 콘텐츠, 협업 제안서 생성.',
       },
     },
     {
@@ -233,6 +263,21 @@ const CONTENT_ITEMS = {
         en: 'Consolidate first-round test results and define response-quality criteria for v1.1.',
         ko: '1차 테스트 결과를 정리하고 v1.1 응답 품질 기준을 수립합니다.',
       },
+      problem: {
+        zh: '學生不知道如何提問，也難以判斷 AI 回覆是否能推動學習。',
+        en: 'Students often do not know how to ask, or whether an AI answer truly moves learning forward.',
+        ko: '학생은 질문 방법을 모르고 AI 답변이 학습을 진전시키는지 판단하기 어렵습니다.',
+      },
+      aiLogic: {
+        zh: '使用問題分流、分層回覆、提示調節與學習回饋品質評估。',
+        en: 'Uses question triage, layered responses, prompt control, and learning-feedback quality evaluation.',
+        ko: '질문 분류, 계층형 응답, 프롬프트 조절, 학습 피드백 품질 평가를 사용합니다.',
+      },
+      useCase: {
+        zh: 'AI 輔學、跨文化學生支持、作業引導、課堂練習與教師回饋。',
+        en: 'AI tutoring, cross-cultural student support, assignment guidance, classroom practice, and teacher feedback.',
+        ko: 'AI 튜터링, 다문화 학생 지원, 과제 안내, 수업 실습, 교사 피드백.',
+      },
     },
     {
       id: 'woosong-buddy',
@@ -261,6 +306,21 @@ const CONTENT_ITEMS = {
         en: 'Clean high-frequency question data and improve guidance flow and response accuracy.',
         ko: '고빈도 질문 데이터를 정제하고 안내 흐름과 응답 정확도를 고도화합니다.',
       },
+      problem: {
+        zh: '新生與跨文化學生需要可靠、快速且一致的校園資訊入口。',
+        en: 'New and cross-cultural students need a reliable, fast, and consistent campus information entry point.',
+        ko: '신입생과 다문화 학생에게 신뢰할 수 있고 빠르며 일관된 캠퍼스 정보 입구가 필요합니다.',
+      },
+      aiLogic: {
+        zh: '結構化 FAQ、情境導引、校園知識庫與可信來源回覆邏輯。',
+        en: 'Structured FAQs, contextual guidance, campus knowledge base, and source-aware response logic.',
+        ko: '구조화 FAQ, 맥락형 안내, 캠퍼스 지식베이스, 출처 기반 응답 로직.',
+      },
+      useCase: {
+        zh: '新生導覽、行政問答、課程資訊、校園生活支持與服務設計。',
+        en: 'New student onboarding, administrative Q&A, course information, campus life support, and service design.',
+        ko: '신입생 안내, 행정 Q&A, 수업 정보, 캠퍼스 생활 지원, 서비스 설계.',
+      },
     },
     {
       id: 'admissions-pdf-system',
@@ -288,6 +348,21 @@ const CONTENT_ITEMS = {
         zh: '完成審查欄位模板 v1，並導入試行批次資料。',
         en: 'Finalize review-field template v1 and onboard pilot batch data.',
         ko: '심사 필드 템플릿 v1을 완성하고 파일럿 배치 데이터를 도입합니다.',
+      },
+      problem: {
+        zh: '招生文件非結構化，審查流程容易耗時且標準不一致。',
+        en: 'Admissions documents are unstructured, making review slow and inconsistent.',
+        ko: '입학 서류는 비정형이라 검토가 느리고 기준이 불일치하기 쉽습니다.',
+      },
+      aiLogic: {
+        zh: '文件抽取、欄位標準化、審查摘要與流程自動化。',
+        en: 'Document extraction, field normalization, review summaries, and workflow automation.',
+        ko: '문서 추출, 필드 표준화, 심사 요약, 워크플로 자동화.',
+      },
+      useCase: {
+        zh: '招生審查、行政流程、資料比對、風險標記與管理報告。',
+        en: 'Admissions review, administrative workflows, data comparison, risk marking, and management reporting.',
+        ko: '입학 심사, 행정 워크플로, 데이터 비교, 리스크 표시, 관리 보고.',
       },
     },
   ],
@@ -452,6 +527,9 @@ function localizeItem(item, lang) {
     summary: pickLocalized(item.summary, lang),
     description: pickLocalized(item.description, lang),
     nextStep: pickLocalized(item.nextStep, lang),
+    problem: pickLocalized(item.problem, lang),
+    aiLogic: pickLocalized(item.aiLogic, lang),
+    useCase: pickLocalized(item.useCase, lang),
   };
 }
 

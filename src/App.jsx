@@ -6,6 +6,28 @@ import DetailPage from './components/DetailPage.jsx';
 import RoleDetailPage from './components/RoleDetailPage.jsx';
 import { navigateTo, parseRoute } from './utils/router.js';
 
+const BACK_TO_TOP_TEXT = {
+  zh: '回到頂部',
+  en: 'Back to top',
+  ko: '맨 위로',
+};
+
+function BackToTopButton({ lang }) {
+  const label = BACK_TO_TOP_TEXT[lang] || BACK_TO_TOP_TEXT.en;
+
+  return (
+    <button
+      className="back-to-top-btn"
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+    >
+      ↑
+    </button>
+  );
+}
+
 export default function App() {
   const [lang, setLang] = useState('zh');
   const [theme, setTheme] = useState('dark');
@@ -32,7 +54,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-0)' }}>
+    <div className="app-shell">
       {route.kind === 'detail' ? (
         <DetailPage type={route.type} id={route.id} navigate={navigate} lang={lang} />
       ) : route.kind === 'role' ? (
@@ -47,6 +69,7 @@ export default function App() {
           navigate={navigate}
         />
       )}
+      <BackToTopButton lang={lang} />
     </div>
   );
 }
