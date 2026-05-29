@@ -428,7 +428,13 @@ body {
   position: fixed;
   inset: 0;
   z-index: 120;
-  background: #05060A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(78% 62% at 50% 50%, rgba(34, 42, 76, 0.42) 0%, rgba(8, 10, 16, 0.96) 100%),
+    linear-gradient(155deg, #070914 0%, #090E1D 52%, #070A13 100%);
   opacity: 1;
   transition: opacity 420ms var(--ease-out);
 }
@@ -439,19 +445,20 @@ body {
 }
 
 .intro-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
   object-position: center;
   display: block;
+  background: transparent;
 }
 
 .intro-overlay-gradient {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(70% 46% at 50% 72%, rgba(10, 13, 22, 0.1) 0%, rgba(8, 9, 16, 0.6) 100%),
-    linear-gradient(180deg, rgba(5, 6, 10, 0.16) 0%, rgba(5, 6, 10, 0.42) 100%);
+    radial-gradient(72% 54% at 50% 76%, rgba(10, 13, 22, 0.08) 0%, rgba(8, 9, 16, 0.52) 100%),
+    linear-gradient(180deg, rgba(5, 6, 10, 0.14) 0%, rgba(5, 6, 10, 0.36) 100%);
   pointer-events: none;
 }
 
@@ -480,13 +487,15 @@ body {
 }
 
 [data-theme="light"] .intro-overlay {
-  background: #ECF2FF;
+  background:
+    radial-gradient(84% 66% at 50% 52%, rgba(198, 217, 255, 0.5) 0%, rgba(228, 236, 255, 0.94) 100%),
+    linear-gradient(146deg, #EEF4FF 0%, #E8F0FF 50%, #EDF3FF 100%);
 }
 
 [data-theme="light"] .intro-overlay-gradient {
   background:
-    radial-gradient(68% 44% at 50% 74%, rgba(244, 248, 255, 0.08) 0%, rgba(229, 237, 255, 0.48) 100%),
-    linear-gradient(180deg, rgba(239, 244, 255, 0.12) 0%, rgba(226, 236, 255, 0.38) 100%);
+    radial-gradient(68% 44% at 50% 74%, rgba(244, 248, 255, 0.05) 0%, rgba(222, 232, 255, 0.42) 100%),
+    linear-gradient(180deg, rgba(239, 244, 255, 0.09) 0%, rgba(226, 236, 255, 0.32) 100%);
 }
 
 [data-theme="light"] .intro-skip-btn {
@@ -1101,6 +1110,11 @@ body {
   .for-whom-tabs button { padding: 10px 16px !important; font-size: 12px !important; }
   .footer-links { flex-wrap: wrap !important; gap: 16px !important; justify-content: center !important; }
   .meta-strip { gap: 24px !important; font-size: 10px !important; }
+  .intro-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
   .intro-skip-btn {
     top: max(12px, env(safe-area-inset-top));
     right: max(12px, env(safe-area-inset-right));
