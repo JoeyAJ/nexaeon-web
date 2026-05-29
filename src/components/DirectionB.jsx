@@ -1589,6 +1589,8 @@ function CapabilityMapSection({ content }) {
                 key={tab.id}
                 onClick={() => setActiveTabId(tab.id)}
                 className="capability-tab"
+                data-active={isActive ? 'true' : 'false'}
+                aria-pressed={isActive}
                 style={{
                   borderRadius: 999,
                   border: '1px solid ' + (isActive ? 'var(--fg-1)' : 'var(--line-2)'),
