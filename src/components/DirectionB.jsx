@@ -29,6 +29,19 @@ const UI_TEXT = {
   },
 };
 
+const HERO_PARTICLES = [
+  { left: '7%', top: '26%', size: 3, delay: '0s', duration: '9s' },
+  { left: '16%', top: '62%', size: 4, delay: '1.4s', duration: '11s' },
+  { left: '24%', top: '18%', size: 2, delay: '2.2s', duration: '8s' },
+  { left: '34%', top: '72%', size: 3, delay: '0.8s', duration: '10s' },
+  { left: '46%', top: '24%', size: 5, delay: '2.6s', duration: '12s' },
+  { left: '56%', top: '64%', size: 3, delay: '1.2s', duration: '9s' },
+  { left: '64%', top: '30%', size: 2, delay: '0.3s', duration: '7.4s' },
+  { left: '74%', top: '70%', size: 4, delay: '2s', duration: '10.6s' },
+  { left: '82%', top: '22%', size: 3, delay: '1.1s', duration: '8.8s' },
+  { left: '91%', top: '58%', size: 2, delay: '2.8s', duration: '11.4s' },
+];
+
 const CORE_INTERACTION_CONTENT = {
   zh: {
     modules: {
@@ -1289,11 +1302,32 @@ function HeroCenterpiece() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: -20,
-        marginBottom: 80,
+        marginTop: -26,
+        marginBottom: 56,
         height: 500,
       }}
     >
+      <div className="hero-signal-waves" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="hero-particle-layer" aria-hidden="true">
+        {HERO_PARTICLES.map((particle) => (
+          <span
+            key={`${particle.left}-${particle.top}`}
+            className="hero-particle"
+            style={{
+              left: particle.left,
+              top: particle.top,
+              width: particle.size,
+              height: particle.size,
+              animationDelay: particle.delay,
+              animationDuration: particle.duration,
+            }}
+          />
+        ))}
+      </div>
       <div
         style={{
           position: 'absolute',
@@ -1367,27 +1401,36 @@ function HeroCenterpiece() {
 }
 
 function Hero({ t }) {
+  const navigatorTitle = t.forWhom?.title?.split('\n')[0] || 'Explore the next section';
+
   return (
-    <section id="home" style={{ position: 'relative', overflow: 'hidden', scrollMarginTop: 80 }}>
+    <section id="home" className="hero-shell" style={{ position: 'relative', overflow: 'hidden', scrollMarginTop: 80 }}>
+      <div className="hero-atmosphere" aria-hidden="true">
+        <div className="hero-parallax hero-parallax-a" />
+        <div className="hero-parallax hero-parallax-b" />
+      </div>
       <div
         className="hero-padding"
-        style={{ textAlign: 'center', padding: '120px 32px 80px', position: 'relative', zIndex: 2 }}
+        style={{ textAlign: 'center', padding: '108px 32px 54px', position: 'relative', zIndex: 2 }}
       >
         <div
+          className="hero-eyebrow"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: 10,
-            padding: '8px 16px',
+            padding: '8px 15px',
             borderRadius: 999,
-            border: '2px double var(--line-2)',
-            background: 'var(--bg-1)',
+            border: '1px solid var(--line-2)',
+            background: 'color-mix(in srgb, var(--bg-1) 80%, transparent)',
+            backdropFilter: 'blur(10px)',
             fontFamily: 'var(--font-mono)',
-            letterSpacing: '0.15em',
+            letterSpacing: '0.12em',
             textTransform: 'uppercase',
             color: 'var(--fg-2)',
-            marginBottom: 32,
-            fontSize: 13,
+            marginBottom: 30,
+            fontSize: 12,
+            fontWeight: 560,
           }}
         >
           <span
@@ -1406,23 +1449,25 @@ function Hero({ t }) {
           className="hero-title"
           style={{
             fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(72px, 11vw, 176px)',
-            lineHeight: 0.92,
+            fontSize: 'clamp(58px, 9.4vw, 152px)',
+            lineHeight: 0.93,
             margin: 0,
-            fontWeight: 400,
-            letterSpacing: '-0.035em',
+            fontWeight: 460,
+            letterSpacing: '-0.03em',
           }}
         >
           {t.hero.titleSerif}
         </h1>
         <div
+          className="hero-title-subline"
           style={{
             fontFamily: 'var(--font-serif)',
             fontStyle: 'italic',
-            fontSize: 'clamp(24px, 3.2vw, 48px)',
+            fontSize: 'clamp(22px, 3vw, 44px)',
             color: 'var(--fg-2)',
-            marginTop: 8,
+            marginTop: 10,
             fontWeight: 400,
+            lineHeight: 1.18,
           }}
         >
           {t.hero.titleSerifSub}{' '}
@@ -1430,8 +1475,8 @@ function Hero({ t }) {
             style={{
               fontFamily: 'var(--font-sans)',
               fontStyle: 'normal',
-              fontWeight: 300,
-              color: 'var(--fg-3)',
+              fontWeight: 430,
+              color: 'var(--fg-2)',
             }}
           >
             — {t.hero.titleSans}
@@ -1442,34 +1487,40 @@ function Hero({ t }) {
           className="hero-sub"
           style={{
             fontFamily: 'var(--font-sans)',
-            fontWeight: 300,
-            fontSize: 18,
-            color: 'var(--fg-2)',
-            maxWidth: 620,
-            margin: '40px auto 0',
+            fontWeight: 430,
+            fontSize: 20,
+            color: 'color-mix(in srgb, var(--fg-1) 85%, var(--fg-2))',
+            maxWidth: 760,
+            margin: '32px auto 0',
             whiteSpace: 'pre-line',
-            lineHeight: 1.65,
+            lineHeight: 1.72,
+            letterSpacing: '0.005em',
           }}
         >
           {t.hero.sub}
         </p>
 
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 48 }}>
+        <div className="hero-actions" style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 40 }}>
           <button
-            className="btn btn-gradient"
+            className="btn btn-glass hero-cta-main"
             style={{ fontSize: 15 }}
             onClick={() => scrollToSection('modules')}
           >
             {t.hero.cta1} <ArrowIcon />
           </button>
           <button
-            className="btn btn-ghost"
+            className="btn btn-ghost hero-cta-secondary"
             style={{ fontSize: 15 }}
             onClick={() => scrollToSection('research')}
           >
             {t.hero.cta2}
           </button>
         </div>
+
+        <button className="hero-scroll-cue" onClick={() => scrollToSection('navigator')}>
+          <span>{t.hero.scrollCue}</span>
+          <span className="hero-scroll-cue-arrow" aria-hidden="true">↓</span>
+        </button>
       </div>
 
       <HeroCenterpiece />
@@ -1485,13 +1536,19 @@ function Hero({ t }) {
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
           color: 'var(--fg-3)',
-          paddingBottom: 48,
+          paddingBottom: 22,
         }}
       >
         {t.hero.meta.map((m, i) => (
           <span key={i}>{renderMetaLabel(m)}</span>
         ))}
       </div>
+
+      <button className="hero-next-peek" onClick={() => scrollToSection('navigator')}>
+        <span className="hero-next-peek-label">{t.forWhom?.label || 'Next Section'}</span>
+        <span className="hero-next-peek-title">{navigatorTitle}</span>
+        <span className="hero-next-peek-arrow" aria-hidden="true">↓</span>
+      </button>
     </section>
   );
 }
@@ -1501,7 +1558,11 @@ function RoleNavigatorSection({ content, navigate }) {
   const activeRole = content.roles.find((role) => role.id === activeRoleId) || content.roles[0];
 
   return (
-    <section id="navigator" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
+    <section
+      id="navigator"
+      className="section navigator-section"
+      style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80, marginTop: -52, paddingTop: 112, position: 'relative', zIndex: 3 }}
+    >
       <div className="container" style={{ textAlign: 'center' }}>
         <div className="label" style={{ color: 'var(--accent-fg)', marginBottom: 16 }}>
           — {content.eyebrow}
