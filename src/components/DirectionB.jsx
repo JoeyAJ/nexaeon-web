@@ -1193,6 +1193,7 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
         }}
       >
         <button
+          className="main-logo-link"
           onClick={() => {
             scrollToSection('home');
             setIsMobileMenuOpen(false);
