@@ -1182,6 +1182,7 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
 
   return (
     <nav
+      className="main-nav"
       style={{
         position: 'sticky',
         top: 0,
@@ -1191,7 +1192,7 @@ function Nav({ locale, lang, setLang, theme, setTheme }) {
       }}
     >
       <div
-        className="container"
+        className="container main-nav-inner"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -1623,7 +1624,7 @@ function RoleNavigatorSection({ content, navigate }) {
         <div className="container" style={{ marginTop: 18 }}>
           <div
             key={activeRole.id}
-            className="panel-switch-in"
+            className="panel-switch-in navigator-detail-panel"
             style={{
               borderRadius: 18,
               border: '1px solid var(--line-1)',
@@ -1724,6 +1725,7 @@ function CapabilityMapSection({ content }) {
             {activeTab.cards.map((card) => (
               <article
                 key={card.title}
+                className="capability-card"
                 style={{
                   borderRadius: 16,
                   border: '1px solid var(--line-1)',
@@ -1781,6 +1783,7 @@ function AdvisorSection({ content, navigate }) {
 
   const renderOptionGroup = (questionKey, selectedValue, onSelect, options) => (
     <div
+      className="question-group"
       style={{
         borderRadius: 16,
         border: '1px solid var(--line-1)',
@@ -1797,6 +1800,7 @@ function AdvisorSection({ content, navigate }) {
           return (
             <button
               key={option.id}
+              className="option-chip"
               onClick={() => onSelect(option.id)}
               style={{
                 borderRadius: 12,
@@ -1848,6 +1852,7 @@ function AdvisorSection({ content, navigate }) {
         {renderOptionGroup('support', support, setSupport, content.options.support)}
 
         <div
+          className="advisor-result-panel"
           style={{
             borderRadius: 18,
             border: '1px solid var(--line-1)',
@@ -1972,6 +1977,7 @@ function ActionCenterSection({ content, capabilityLabels, navigate }) {
 
   const renderOptionGroup = (questionKey, selectedValue, onSelect, options) => (
     <div
+      className="question-group"
       style={{
         borderRadius: 16,
         border: '1px solid var(--line-1)',
@@ -1988,6 +1994,7 @@ function ActionCenterSection({ content, capabilityLabels, navigate }) {
           return (
             <button
               key={option.id}
+              className="option-chip"
               onClick={() => onSelect(option.id)}
               style={{
                 borderRadius: 12,
@@ -2039,6 +2046,7 @@ function ActionCenterSection({ content, capabilityLabels, navigate }) {
         {renderOptionGroup('action', action, setAction, content.options.action)}
 
         <div
+          className="action-result-panel"
           style={{
             borderRadius: 18,
             border: '1px solid var(--line-1)',
@@ -2147,6 +2155,7 @@ function ModulesSection({ content, onOpenDetail }) {
         {content.cards.map((card) => (
           <button
             key={card.id}
+            className="module-card"
             onClick={() =>
               onOpenDetail({
                 title: card.title,
@@ -2218,6 +2227,7 @@ function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate, uiTe
             return (
               <button
                 key={card.id}
+                className="research-focus-card"
                 onClick={() => setActiveFocusId(card.id)}
                 style={{
                   textAlign: 'left',
@@ -2236,6 +2246,7 @@ function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate, uiTe
         </div>
         {activeFocus ? (
           <div
+            className="research-focus-detail"
             style={{
               marginTop: 14,
               borderRadius: 14,
@@ -2257,6 +2268,7 @@ function ResearchDirectionsSection({ locale, items, onOpenDetail, navigate, uiTe
           return (
             <article
               key={item.id}
+              className="research-card"
               style={{
                 textAlign: 'left',
                 borderRadius: 20,
@@ -2340,6 +2352,7 @@ function KnowledgeSection({ locale, items, onOpenDetail, navigate, uiText }) {
       <div className="container" style={{ marginTop: 56 }}>
         <div style={{ display: 'grid', gap: 14 }}>
           <input
+            className="glass-input"
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             placeholder={locale.knowledge.searchPlaceholder}
@@ -2359,6 +2372,7 @@ function KnowledgeSection({ locale, items, onOpenDetail, navigate, uiText }) {
             {categories.map((item) => (
               <button
                 key={item.key}
+                className="filter-chip"
                 onClick={() => setCategoryKey(item.key)}
                 style={{
                   borderRadius: 999,
@@ -2387,6 +2401,7 @@ function KnowledgeSection({ locale, items, onOpenDetail, navigate, uiText }) {
             filtered.map((item) => (
               <article
                 key={item.id}
+                className="knowledge-card"
                 style={{
                   textAlign: 'left',
                   borderRadius: 16,
@@ -2457,6 +2472,7 @@ function ProjectsSection({ locale, items, onOpenDetail, navigate, uiText }) {
           return (
             <article
               key={item.id}
+              className="project-card"
               style={{
                 textAlign: 'left',
                 borderRadius: 20,
@@ -2613,6 +2629,7 @@ function AssistantSection({ locale }) {
         </div>
 
         <div
+          className="assistant-panel"
           style={{
             borderRadius: 20,
             border: '1px solid var(--line-1)',
@@ -2626,6 +2643,7 @@ function AssistantSection({ locale }) {
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
+              className={`assistant-bubble ${message.role === 'user' ? 'assistant-bubble-user' : 'assistant-bubble-ai'}`}
               style={{
                 marginBottom: 12,
                 marginLeft: message.role === 'user' ? 'auto' : 0,
@@ -2648,6 +2666,7 @@ function AssistantSection({ locale }) {
 
         <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
           <input
+            className="glass-input"
             value={input}
             onChange={(event) => setInput(event.target.value)}
             placeholder={locale.assistant.inputPlaceholder}
@@ -2710,6 +2729,7 @@ function ContactSection({ locale }) {
 
       <div className="container" style={{ marginTop: 56 }}>
         <div
+          className="contact-panel"
           style={{
             maxWidth: 760,
             margin: '0 auto',
