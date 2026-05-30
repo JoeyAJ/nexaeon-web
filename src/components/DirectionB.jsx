@@ -1324,7 +1324,7 @@ function SectionHeader({ eyebrow, title, subtitle, align = 'center' }) {
 }
 
 function Hero({ t, onOpenMenu }) {
-  const nextTitle = t.forWhom?.title?.split('\n')[0] || 'Choose Your Role';
+  const nextTitle = t.hero.nextPeekTitle || t.forWhom?.title?.split('\n')[0] || 'Choose Your Role';
   const openMenuFromHero = (id) => {
     if (!id || id === 'home') {
       scrollToSection('home');
@@ -1506,7 +1506,7 @@ function Hero({ t, onOpenMenu }) {
       </div>
 
       <button className="hero-next-peek" onClick={() => scrollToSection('role-guide')}>
-        <span className="hero-next-peek-label">Choose Your Role</span>
+        <span className="hero-next-peek-label">{t.hero.nextPeekLabel}</span>
         <span className="hero-next-peek-title">{nextTitle}</span>
         <span className="hero-next-peek-arrow" aria-hidden="true">↓</span>
       </button>
@@ -1640,33 +1640,6 @@ function RoleEntrySection({ content, guide, navigate }) {
             <div>{role.title}</div>
             <p>{role.value}</p>
           </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function PrimaryModulesSection({ locale, onOpenMenu }) {
-  return (
-    <section id="core-modules" className="section" style={{ borderTop: '1px solid var(--line-1)', scrollMarginTop: 80 }}>
-      <SectionHeader
-        eyebrow={locale.primaryModules.eyebrow}
-        title={locale.primaryModules.title}
-        subtitle={locale.primaryModules.subtitle}
-      />
-
-      <div className="container primary-module-grid" style={{ marginTop: 42 }}>
-        {locale.primaryModules.cards.map((card) => (
-          <article key={card.id} id={card.id} className="primary-module-card liquid-glass-card">
-            <div className="label" style={{ color: 'var(--accent-fg)' }}>
-              {card.position}
-            </div>
-            <div className="primary-module-title">{card.name}</div>
-            <p>{card.intro}</p>
-            <button className="btn btn-glass" onClick={() => onOpenMenu(card.id)}>
-              {card.cta}
-            </button>
-          </article>
         ))}
       </div>
     </section>
@@ -2971,7 +2944,6 @@ export default function DirectionB({ t, lang, setLang, theme, setTheme, navigate
       />
       <Hero t={t} onOpenMenu={setActiveMenu} />
       <RoleEntrySection key={`role-guide-${lang}`} content={navigatorContent} guide={locale.roleGuide} navigate={navigate} />
-      <PrimaryModulesSection key={`primary-modules-${lang}`} locale={locale} onOpenMenu={setActiveMenu} />
       <Footer t={t} />
     </div>
   );
