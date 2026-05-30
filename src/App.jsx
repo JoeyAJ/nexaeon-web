@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import './styles.css';
-import CONTENT from './content.js';
 import DirectionB from './components/DirectionB.jsx';
 import DetailPage from './components/DetailPage.jsx';
 import RoleDetailPage from './components/RoleDetailPage.jsx';
@@ -51,9 +50,7 @@ export default function App() {
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: 'auto' });
     });
-  }, [route.kind, route.role, route.type, route.id]);
-
-  const t = CONTENT[lang];
+  }, [route.kind, route.type, route.id, route.role]);
 
   const navigate = (path) => {
     navigateTo(path);
@@ -63,12 +60,19 @@ export default function App() {
   return (
     <div className="app-shell">
       {route.kind === 'detail' ? (
-        <DetailPage type={route.type} id={route.id} navigate={navigate} lang={lang} />
+        <DetailPage
+          type={route.type}
+          id={route.id}
+          navigate={navigate}
+          lang={lang}
+          setLang={setLang}
+          theme={theme}
+          setTheme={setTheme}
+        />
       ) : route.kind === 'role' ? (
         <RoleDetailPage role={route.role} navigate={navigate} lang={lang} setLang={setLang} />
       ) : (
         <DirectionB
-          t={t}
           lang={lang}
           setLang={setLang}
           theme={theme}

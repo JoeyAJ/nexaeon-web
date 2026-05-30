@@ -1,4 +1,4 @@
-const DETAIL_ROUTE_PATTERN = /^\/(research|projects|knowledge)\/([^/]+)$/;
+const DETAIL_ROUTE_PATTERN = /^\/(identity|research|teaching|knowledge-lab|projects|field-lab)\/([^/]+)$/;
 const ROLE_ROUTE_PATTERN = /^\/(students|researchers|university|enterprise|second-brain)$/;
 
 export function parseRoute(pathname) {

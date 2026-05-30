@@ -1,47 +1,59 @@
-import { getContentByType } from '../data/nexaeonContent.js';
+import {
+  findContentItem,
+  getAllContentItems,
+  getContentByType,
+  getModuleById,
+  getModules,
+  getSiteContent,
+} from '../data/nexaeonContent.js';
 
 const DATA_SOURCE = {
   current: 'local-static',
-  future: ['notion', 'airtable', 'n8n'],
+  future: ['notion', 'airtable', 'n8n', 'rag'],
 };
 
-function readFromLocalStatic(type, lang) {
-  return getContentByType(type, lang);
+export function getLocalizedSite(lang = 'zh') {
+  return getSiteContent(lang);
 }
 
-function readContentByType(type, lang = 'zh') {
-  switch (DATA_SOURCE.current) {
-    case 'local-static':
-      return readFromLocalStatic(type, lang);
-    default:
-      return readFromLocalStatic(type, lang);
-  }
+export function getModuleItems(lang = 'zh') {
+  return getModules(lang);
+}
+
+export function getModuleContent(moduleId, lang = 'zh') {
+  return getModuleById(moduleId, lang);
+}
+
+export function getDetailItem(type, id, lang = 'zh') {
+  return findContentItem(type, id, lang);
 }
 
 export function getResearchItems(lang = 'zh') {
-  return readContentByType('research', lang);
+  return getContentByType('research', lang);
 }
 
-export function getProjectItems(lang = 'zh') {
-  return readContentByType('projects', lang);
+export function getTeachingItems(lang = 'zh') {
+  return getContentByType('teaching', lang);
 }
 
 export function getKnowledgeItems(lang = 'zh') {
-  return readContentByType('knowledge', lang);
+  return getContentByType('knowledge-lab', lang);
 }
 
-export function getAllContentItems(lang = 'zh') {
-  return [
-    ...getResearchItems(lang),
-    ...getProjectItems(lang),
-    ...getKnowledgeItems(lang),
-  ];
+export function getProjectItems(lang = 'zh') {
+  return getContentByType('projects', lang);
 }
+
+export function getFieldLabItems(lang = 'zh') {
+  return getContentByType('field-lab', lang);
+}
+
+export { getAllContentItems, getContentByType };
 
 export function getDataSourceStatus() {
   return {
     currentSource: 'Local Static Content',
-    futureSource: 'Notion / Airtable / n8n',
+    futureSource: DATA_SOURCE.future.join(' / '),
     status: 'Ready for Integration',
   };
 }
