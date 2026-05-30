@@ -257,7 +257,7 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'students',
         icon: '◉',
-        title: '學生 Students',
+        title: '學生',
         value: '把 AI 變成可持續的學習夥伴，而不是一次性工具。',
         why: 'NexAeon 協助學生進行個別化學習、Prompt 訓練、學習回饋與研究能力提升。',
         features: ['AI Tutor 個別化學習輔助', 'Prompt Engineering 基礎訓練', '學習風格與任務回饋'],
@@ -267,7 +267,7 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'professors',
         icon: '△',
-        title: '教授 / 研究者 Professors & Researchers',
+        title: '教授／研究者',
         value: '把研究問題、模型與合作提案整理成可展示路徑。',
         why: 'NexAeon 展示 AI 教育、個別化學習、TAM、學習參與度與滿意度研究方向。',
         features: ['AI 教育研究模型展示', '文獻與研究資料庫入口', '跨學科研究合作提案'],
@@ -277,7 +277,7 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'leaders',
         icon: '◻',
-        title: '學校 / 管理者 University Leaders',
+        title: '學校／管理者',
         value: '以可視化方式推進校務 AI 轉型與決策節奏。',
         why: 'NexAeon 可作為學校 AI 教育轉型、招生分析、行政自動化與數位創新展示平台。',
         features: ['AI 教育轉型方案', '招生與行政流程自動化', '數據分析與決策輔助'],
@@ -287,7 +287,7 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'enterprise',
         icon: '◆',
-        title: '企業 / 合作方 Enterprise Partners',
+        title: '企業／合作方',
         value: '把 AI 教育與自動化能力轉成可共創的合作方案。',
         why: 'NexAeon 可以把 AI Agent、ESG、教育科技與自動化流程轉化為合作型解決方案。',
         features: ['AI Agent Prototype', 'ESG × AI 應用方案', '自動化與數據分析工作流'],
@@ -297,7 +297,7 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'joey',
         icon: '◎',
-        title: 'Joey 的第二大腦 Joey’s Second Brain',
+        title: 'Joey 的第二大腦',
         value: '把研究、課程與產品資產整合成同一套知識中樞。',
         why: 'NexAeon 是 Joey 的研究、課程、AI 工具、項目與知識資產管理中心。',
         features: ['研究主題與文獻管理', '課程與教學素材管理', 'AI 項目與 MVP 管理'],
@@ -375,7 +375,7 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'students',
         icon: '◉',
-        title: '학생 Students',
+        title: '학생',
         value: 'AI를 일회성 도구가 아닌 지속형 학습 파트너로 만듭니다.',
         why: 'NexAeon은 학생의 개인화 학습, 프롬프트 훈련, 학습 피드백, 연구 역량 향상을 지원합니다.',
         features: ['AI Tutor 개인화 학습 보조', 'Prompt Engineering 기초 훈련', '학습 스타일 및 과제 피드백'],
@@ -385,7 +385,7 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'professors',
         icon: '△',
-        title: '교수 / 연구자 Professors & Researchers',
+        title: '교수／연구자',
         value: '연구 모델과 협업 제안을 한 흐름으로 보여줍니다.',
         why: 'NexAeon은 AI 교육, 개인화 학습, TAM, 학습 참여도와 만족도 연구 방향을 제시합니다.',
         features: ['AI 교육 연구 모델 전시', '문헌 및 연구 데이터베이스 진입', '융합 연구 협업 제안'],
@@ -395,7 +395,7 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'leaders',
         icon: '◻',
-        title: '학교 / 관리자 University Leaders',
+        title: '학교／관리자',
         value: 'AI 전환 전략을 운영 데이터와 함께 명확하게 시각화합니다.',
         why: 'NexAeon은 학교의 AI 교육 전환, 입학 분석, 행정 자동화, 디지털 혁신을 보여주는 플랫폼으로 활용됩니다.',
         features: ['AI 교육 전환 솔루션', '입학 및 행정 프로세스 자동화', '데이터 분석 및 의사결정 지원'],
@@ -405,8 +405,8 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'enterprise',
         icon: '◆',
-        title: '기업 / 파트너 Enterprise Partners',
-        value: 'AI Agent, ESG, EdTech 역량을 협력형 솔루션으로 전환합니다.',
+        title: '기업／협력 파트너',
+        value: 'AI 에이전트, ESG, 교육기술 역량을 협력형 솔루션으로 전환합니다.',
         why: 'NexAeon은 AI Agent, ESG, 교육기술, 자동화 흐름을 실제 협업 솔루션으로 연결합니다.',
         features: ['AI Agent Prototype', 'ESG × AI 적용안', '자동화 및 데이터 분석 워크플로'],
         cta: '협업 가능성 탐색',
@@ -415,7 +415,7 @@ const ROLE_NAVIGATOR_CONTENT = {
       {
         id: 'joey',
         icon: '◎',
-        title: 'Joey의 두 번째 뇌 Joey’s Second Brain',
+        title: 'Joey의 두 번째 두뇌',
         value: '연구, 수업, AI 프로젝트 자산을 하나의 지식 허브로 통합합니다.',
         why: 'NexAeon은 Joey의 연구, 수업, AI 도구, 프로젝트, 지식 자산을 관리하는 중심 플랫폼입니다.',
         features: ['연구 주제 및 문헌 관리', '수업 및 교육 자료 관리', 'AI 프로젝트 및 MVP 관리'],
@@ -1024,6 +1024,10 @@ function scrollToSection(id) {
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function scrollToPageTop(behavior = 'auto') {
+  window.scrollTo({ top: 0, behavior });
+}
+
 function createDetailItem(item, locale) {
   return {
     title: item.title,
@@ -1133,18 +1137,28 @@ function Nav({ locale, lang, setLang, theme, setTheme, activeMenu, onOpenMenu })
   const handleNavClick = (id) => {
     if (id === 'home') {
       onOpenMenu('');
-      scrollToSection('home');
+      scrollToPageTop('auto');
       setIsMobileMenuOpen(false);
       return;
     }
 
     onOpenMenu(id);
+    scrollToPageTop('auto');
     setIsMobileMenuOpen(false);
+  };
+
+  const handleNavHover = (id) => {
+    if (id === 'home') {
+      onOpenMenu('');
+      return;
+    }
+    onOpenMenu(id);
   };
 
   return (
     <nav
       className="main-nav"
+      onMouseLeave={() => onOpenMenu('')}
       style={{
         position: 'sticky',
         top: 0,
@@ -1166,7 +1180,7 @@ function Nav({ locale, lang, setLang, theme, setTheme, activeMenu, onOpenMenu })
           className="main-logo-link"
           onClick={() => {
             onOpenMenu('');
-            scrollToSection('home');
+            scrollToPageTop('auto');
             setIsMobileMenuOpen(false);
           }}
           aria-label="Back to home"
@@ -1200,6 +1214,8 @@ function Nav({ locale, lang, setLang, theme, setTheme, activeMenu, onOpenMenu })
             <button
               key={item.id}
               onClick={() => handleNavClick(item.id)}
+              onMouseEnter={() => handleNavHover(item.id)}
+              onFocus={() => handleNavHover(item.id)}
               data-active={activeMenu === item.id ? 'true' : 'false'}
               aria-expanded={item.id !== 'home' ? activeMenu === item.id : undefined}
               style={{
@@ -1256,7 +1272,7 @@ function Nav({ locale, lang, setLang, theme, setTheme, activeMenu, onOpenMenu })
             </div>
             <div className="nav-submenu-items">
               {activePanel.items.map((item) => (
-                <button key={item} onClick={() => scrollToSection(activeMenu)}>
+                <button key={item} onClick={() => scrollToPageTop('auto')}>
                   {item}
                 </button>
               ))}
@@ -1327,12 +1343,12 @@ function Hero({ t, onOpenMenu }) {
   const nextTitle = t.hero.nextPeekTitle || t.forWhom?.title?.split('\n')[0] || 'Choose Your Role';
   const openMenuFromHero = (id) => {
     if (!id || id === 'home') {
-      scrollToSection('home');
+      scrollToPageTop('auto');
       return;
     }
 
     onOpenMenu(id);
-    scrollToSection(id);
+    scrollToPageTop('auto');
   };
 
   return (
@@ -1469,15 +1485,6 @@ function Hero({ t, onOpenMenu }) {
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="hero-entry-strip" aria-label={t.hero.entryLabel}>
-          <span className="hero-entry-label">{t.hero.entryLabel}</span>
-          {t.hero.entries.map((entry) => (
-            <button key={entry.target} onClick={() => openMenuFromHero(entry.target)}>
-              {entry.label}
-            </button>
-          ))}
         </div>
 
         <button className="hero-scroll-cue" onClick={() => scrollToSection('role-guide')}>

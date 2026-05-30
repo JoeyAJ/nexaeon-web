@@ -35,8 +35,16 @@ export function navigateTo(path) {
   if (hashPart && (pathnamePart === '' || pathnamePart === '/')) {
     requestAnimationFrame(() => {
       const target = document.getElementById(decodeURIComponent(hashPart));
-      if (!target) return;
+      if (!target) {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+        return;
+      }
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+    return;
   }
+
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  });
 }

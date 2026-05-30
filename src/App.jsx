@@ -46,6 +46,13 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
+  useEffect(() => {
+    if (route.kind === 'home' && window.location.hash) return;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    });
+  }, [route.kind, route.role, route.type, route.id]);
+
   const t = CONTENT[lang];
 
   const navigate = (path) => {
