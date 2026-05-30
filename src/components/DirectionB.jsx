@@ -1431,24 +1431,7 @@ function Hero({ t, onOpenMenu }) {
           </span>
         </div>
 
-        <p
-          className="hero-sub"
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontWeight: 430,
-            fontSize: 20,
-            color: 'color-mix(in srgb, var(--fg-1) 85%, var(--fg-2))',
-            maxWidth: 760,
-            margin: '32px auto 0',
-            whiteSpace: 'pre-line',
-            lineHeight: 1.72,
-            letterSpacing: '0.005em',
-          }}
-        >
-          {t.hero.sub}
-        </p>
-
-        <div className="hero-actions" style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 40 }}>
+        <div className="hero-actions" style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 30 }}>
           <button
             className="btn btn-glass hero-cta-main"
             style={{ fontSize: 15 }}
