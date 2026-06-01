@@ -32,7 +32,7 @@ const SITE_CONTENT = {
       eyebrow: 'NexAeon Modules',
       title: '一級模塊地圖',
       intro:
-        '首頁只保留 NexAeon 的總定位與六個入口。每個模塊承接一組完整子頁，用於展示 Joey 的研究身份、課程設計、知識系統與實踐現場。',
+        '六個核心入口構成 NexAeon 的品牌架構，連接研究身份、學術方向、教學實踐、知識系統、原型項目與現場實驗。',
       activeHint: '選擇一個模塊後，可從這裡進入對應子頁。',
     },
     footer: {
@@ -45,8 +45,9 @@ const SITE_CONTENT = {
         id: 'identity',
         code: '01',
         label: 'Identity',
-        title: 'Identity｜身份導航',
-        summary: '定義 NexAeon、Joey、Nexōn 與 Logo 哲學的核心身份層。',
+        title: '身份導航',
+        summary: '定義 NexAeon、Joey 與 Nexōn 的核心關係，呈現個人研究品牌、學術身份與未來定位。',
+        cta: '進入身份導航',
         position: '這裡說明 NexAeon 為何存在，以及它如何作為 Joey 的 AI 時代個人研究所與第二大腦運作。',
         items: [
           {
@@ -176,8 +177,9 @@ const SITE_CONTENT = {
         id: 'research',
         code: '02',
         label: 'Research',
-        title: 'Research｜研究地圖',
-        summary: '整理 AI 教育、個別化輔導、學習分析與 AI 管理轉型的研究主軸。',
+        title: '研究地圖',
+        summary: '聚焦 AI 教育、個人化學習、學習分析與智能系統，整理 Joey 的核心研究主軸。',
+        cta: '展開研究地圖',
         position: '研究地圖把問題、方法、目前階段與未來方向放在同一個架構中，方便後續延伸為論文、模型與實驗。',
         items: [
           {
@@ -261,8 +263,9 @@ const SITE_CONTENT = {
         id: 'teaching',
         code: '03',
         label: 'Teaching',
-        title: 'Teaching｜教學與課程',
-        summary: '展示 Joey 作為未來教授、AI 教育者與學生教練的教學設計。',
+        title: '教學與課程',
+        summary: '展示 AI 應用教學、Prompt Engineering、課程設計與未來教師教練化的實踐方案。',
+        cta: '展開教學內容',
         position: '這裡不是賣課頁，而是把課程理念、教學方法與教材系統作為研究成果展示。',
         items: [
           {
@@ -346,8 +349,9 @@ const SITE_CONTENT = {
         id: 'knowledge-lab',
         code: '04',
         label: 'Knowledge Lab',
-        title: 'Knowledge Lab｜知識實驗室',
-        summary: 'NexAeon 的第二大腦，用於整理文獻、工具流程、研究筆記與概念地圖。',
+        title: '知識實驗室',
+        summary: '整合文獻、工具、案例、研究筆記與概念地圖，建立 NexAeon 的第二大腦系統。',
+        cta: '展開知識系統',
         position: '目前先以靜態內容框架呈現，之後可接 Notion、Airtable、n8n、RAG 或資料庫。',
         items: [
           {
@@ -431,8 +435,9 @@ const SITE_CONTENT = {
         id: 'projects',
         code: '05',
         label: 'Projects',
-        title: 'Projects｜MVP 與實踐項目',
-        summary: '展示 AI 輔導、碳訊通、語言學習、招生文件與銀髮照護等實踐項目。',
+        title: 'MVP 與實踐項目',
+        summary: '展示 AI 輔導、碳訊通、語言學習、招生文件與銀髮照護等可驗證的原型實作。',
+        cta: '展開實踐項目',
         position: '每個項目以問題、解法、技術、狀態與下一步呈現，避免變成銷售頁。',
         items: [
           {
@@ -521,8 +526,9 @@ const SITE_CONTENT = {
         id: 'field-lab',
         code: '06',
         label: 'Field Lab',
-        title: 'Field Lab｜現場實驗室',
-        summary: '呈現 Joey 如何把 AI、教育、研究與行政現場結合起來。',
+        title: '現場實驗室',
+        summary: '記錄 Joey 如何將 AI、教育、研究與行政現場連結，形成可持續迭代的實踐場域。',
+        cta: '展開現場實驗',
         position: 'Field Lab 不是聯絡我們或合作導流，而是記錄 AI 在大學現場與學生支援中的實踐語境。',
         items: [
           {
@@ -637,7 +643,7 @@ const SITE_CONTENT = {
       eyebrow: 'NexAeon Modules',
       title: 'Primary Module Map',
       intro:
-        'The homepage keeps only NexAeon’s overall position and six primary entries. Each module connects to full subpages for Joey’s research identity, teaching design, knowledge system, projects, and field practice.',
+        'Six primary gateways define the NexAeon brand architecture, connecting research identity, academic direction, teaching practice, knowledge systems, prototype work, and field experimentation.',
       activeHint: 'Choose a module here, then enter one of its subpages.',
     },
     footer: {
@@ -650,8 +656,9 @@ const SITE_CONTENT = {
         id: 'identity',
         code: '01',
         label: 'Identity',
-        title: 'Identity｜Identity Navigation',
-        summary: 'The identity layer for NexAeon, Joey, Nexōn, and the symbol philosophy.',
+        title: 'Identity Navigation',
+        summary: 'Defines the relationship between NexAeon, Joey, and Nexōn, presenting Joey’s research identity, academic positioning, and future direction.',
+        cta: 'Enter Identity Navigation',
         position: 'This module explains why NexAeon exists and how it works as Joey’s personal AI-era institute and second brain.',
         items: [
           {
@@ -720,8 +727,9 @@ const SITE_CONTENT = {
         id: 'research',
         code: '02',
         label: 'Research',
-        title: 'Research｜Research Map',
-        summary: 'A map of AI education, personalized tutoring, learning analytics, and AI management transformation.',
+        title: 'Research Map',
+        summary: 'Organizes Joey’s core research directions around AI education, personalized learning, learning analytics, and intelligent systems.',
+        cta: 'Open Research Map',
         position: 'The research map keeps questions, methods, current stages, and future directions in one structure for papers, models, and experiments.',
         items: [
           {
@@ -800,8 +808,9 @@ const SITE_CONTENT = {
         id: 'teaching',
         code: '03',
         label: 'Teaching',
-        title: 'Teaching｜Courses',
-        summary: 'Joey’s teaching philosophy as a future professor, AI educator, and student coach.',
+        title: 'Teaching & Curriculum',
+        summary: 'Presents AI-based teaching, Prompt Engineering, curriculum design, and the future model of professors as learning coaches.',
+        cta: 'Open Teaching Content',
         position: 'This is not a course-sales page. It presents teaching design, course research, and reusable learning materials.',
         items: [
           {
@@ -880,8 +889,9 @@ const SITE_CONTENT = {
         id: 'knowledge-lab',
         code: '04',
         label: 'Knowledge Lab',
-        title: 'Knowledge Lab｜Second Brain',
-        summary: 'NexAeon’s second brain for literature, tool workflows, research notes, and concept maps.',
+        title: 'Knowledge Lab',
+        summary: 'Integrates literature, tools, cases, research notes, and concept maps into NexAeon’s second-brain knowledge system.',
+        cta: 'Open Knowledge System',
         position: 'The lab starts as a static framework and can later connect to Notion, Airtable, n8n, RAG, or a database.',
         items: [
           {
@@ -960,8 +970,9 @@ const SITE_CONTENT = {
         id: 'projects',
         code: '05',
         label: 'Projects',
-        title: 'Projects｜MVPs and Practice',
-        summary: 'AI tutoring, GreenTrace, language-learning companion, admissions PDFs, and elder-care emotion support.',
+        title: 'MVP & Practice Projects',
+        summary: 'Showcases verifiable prototypes such as AI tutoring, GreenTrace, language learning, admissions automation, and senior care.',
+        cta: 'Open Practice Projects',
         position: 'Each project is shown through problem, solution, technology, status, and next step rather than sales copy.',
         items: [
           {
@@ -1045,8 +1056,9 @@ const SITE_CONTENT = {
         id: 'field-lab',
         code: '06',
         label: 'Field Lab',
-        title: 'Field Lab｜Field Laboratory',
-        summary: 'How Joey connects AI, education, research, and administrative reality.',
+        title: 'Field Lab',
+        summary: 'Documents how Joey connects AI, education, research, and administrative practice into a continuously evolving field of experimentation.',
+        cta: 'Open Field Lab',
         position: 'Field Lab is not a contact funnel. It records the practice context where AI meets universities and student support.',
         items: [
           {
@@ -1156,7 +1168,7 @@ const SITE_CONTENT = {
       eyebrow: 'NexAeon Modules',
       title: '1차 모듈 지도',
       intro:
-        '홈페이지는 NexAeon의 전체 정체성과 여섯 개의 1차 입구만 보여줍니다. 각 모듈은 Joey의 연구 정체성, 교육 설계, 지식 시스템, 프로젝트와 현장 실천을 연결하는 하위 페이지로 이어집니다.',
+        '여섯 개의 핵심 입구는 NexAeon의 브랜드 구조를 이루며 연구 정체성, 학술 방향, 교육 실천, 지식 시스템, 프로토타입, 현장 실험을 연결합니다.',
       activeHint: '모듈을 선택한 뒤 해당 하위 페이지로 들어갈 수 있습니다.',
     },
     footer: {
@@ -1169,8 +1181,9 @@ const SITE_CONTENT = {
         id: 'identity',
         code: '01',
         label: 'Identity',
-        title: 'Identity｜정체성 내비게이션',
-        summary: 'NexAeon, Joey, Nexōn, 그리고 로고 철학을 정의하는 정체성 레이어입니다.',
+        title: '정체성 내비게이션',
+        summary: 'NexAeon, Joey, Nexōn의 핵심 관계를 정의하고 개인 연구 브랜드, 학술적 정체성, 미래 방향성을 보여준다.',
+        cta: '정체성 내비게이션으로 이동',
         position: 'NexAeon이 왜 존재하며 Joey의 AI 시대 개인 연구소이자 두 번째 뇌로 어떻게 작동하는지 설명합니다.',
         items: [
           {
@@ -1239,8 +1252,9 @@ const SITE_CONTENT = {
         id: 'research',
         code: '02',
         label: 'Research',
-        title: 'Research｜연구 지도',
-        summary: 'AI 교육, 개인화 튜터링, 학습분석, AI 경영 전환의 연구 축을 정리합니다.',
+        title: '연구 지도',
+        summary: 'AI 교육, 개인화 학습, 학습 분석, 지능형 시스템을 중심으로 Joey의 핵심 연구 축을 정리한다.',
+        cta: '연구 지도 펼치기',
         position: '연구 지도는 질문, 방법, 현재 단계, 미래 방향을 한 구조에 두어 논문, 모델, 실험으로 확장합니다.',
         items: [
           {
@@ -1319,8 +1333,9 @@ const SITE_CONTENT = {
         id: 'teaching',
         code: '03',
         label: 'Teaching',
-        title: 'Teaching｜교육과 코스',
-        summary: '미래 교수, AI 교육자, 학생 코치로서 Joey의 교육 설계를 보여줍니다.',
+        title: '교육과 커리큘럼',
+        summary: 'AI 활용 교육, Prompt Engineering, 수업 설계, 미래형 교수·코치 모델의 실천 방안을 보여준다.',
+        cta: '교육 콘텐츠 펼치기',
         position: '판매용 강의 페이지가 아니라 교육 설계와 코스 연구를 보여주는 공간입니다.',
         items: [
           {
@@ -1399,8 +1414,9 @@ const SITE_CONTENT = {
         id: 'knowledge-lab',
         code: '04',
         label: 'Knowledge Lab',
-        title: 'Knowledge Lab｜지식 실험실',
-        summary: '문헌, 도구 흐름, 연구 노트, 개념 지도를 정리하는 NexAeon의 두 번째 뇌입니다.',
+        title: '지식 실험실',
+        summary: '문헌, 도구, 사례, 연구 노트, 개념 지도를 통합하여 NexAeon의 제2의 뇌 시스템을 구축한다.',
+        cta: '지식 시스템 펼치기',
         position: '현재는 정적 콘텐츠 프레임워크이며 이후 Notion, Airtable, n8n, RAG, 데이터베이스에 연결할 수 있습니다.',
         items: [
           {
@@ -1479,8 +1495,9 @@ const SITE_CONTENT = {
         id: 'projects',
         code: '05',
         label: 'Projects',
-        title: 'Projects｜MVP와 실천 프로젝트',
-        summary: 'AI 튜터링, GreenTrace, 언어 학습 친구, 입학 PDF, 시니어 정서 케어 프로젝트를 보여줍니다.',
+        title: 'MVP와 실천 프로젝트',
+        summary: 'AI 튜터링, GreenTrace, 언어 학습, 입학 문서 자동화, 시니어 케어 등 검증 가능한 프로토타입을 보여준다.',
+        cta: '실천 프로젝트 펼치기',
         position: '각 프로젝트는 판매 문구가 아니라 문제, 해법, 기술, 상태, 다음 단계로 제시됩니다.',
         items: [
           {
@@ -1564,8 +1581,9 @@ const SITE_CONTENT = {
         id: 'field-lab',
         code: '06',
         label: 'Field Lab',
-        title: 'Field Lab｜현장 실험실',
-        summary: 'Joey가 AI, 교육, 연구, 행정 현장을 어떻게 연결하는지 보여줍니다.',
+        title: '현장 실험실',
+        summary: 'Joey가 AI, 교육, 연구, 행정 현장을 연결하여 지속적으로 진화하는 실천 공간을 기록한다.',
+        cta: '현장 실험 펼치기',
         position: 'Field Lab은 연락처나 협업 유도 페이지가 아니라 AI가 대학 현장과 학생 지원을 만나는 실천 맥락입니다.',
         items: [
           {
@@ -1649,25 +1667,25 @@ const MODULE_LABELS = {
     identity: '身份',
     research: '研究',
     teaching: '教學',
-    'knowledge-lab': '知識實驗室',
+    'knowledge-lab': '知識系統',
     projects: '實踐項目',
-    'field-lab': '現場實驗室',
+    'field-lab': '現場實驗',
   },
   en: {
     identity: 'Identity',
     research: 'Research',
     teaching: 'Teaching',
-    'knowledge-lab': 'Knowledge Lab',
-    projects: 'Projects',
-    'field-lab': 'Field Lab',
+    'knowledge-lab': 'Knowledge System',
+    projects: 'Practice Projects',
+    'field-lab': 'Field Experiment',
   },
   ko: {
     identity: '정체성',
     research: '연구',
     teaching: '교육',
-    'knowledge-lab': '지식 실험실',
+    'knowledge-lab': '지식 시스템',
     projects: '실천 프로젝트',
-    'field-lab': '현장 실험실',
+    'field-lab': '현장 실험',
   },
 };
 

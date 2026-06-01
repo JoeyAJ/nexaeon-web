@@ -39,6 +39,12 @@ function scrollToSection(id) {
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function formatEntryCount(count, lang) {
+  if (lang === 'en') return `${count} ${count === 1 ? 'Entry' : 'Entries'}`;
+  if (lang === 'ko') return `${count}개 입구`;
+  return `${count} 個入口`;
+}
+
 function IntroOverlay({ skipLabel, phase, onSkip, onEnded }) {
   const videoRef = useRef(null);
 
@@ -244,7 +250,7 @@ function Hero({ content, onOpenResearch }) {
   );
 }
 
-function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, navigate }) {
+function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, navigate, lang }) {
   const activeModule = modules.find((module) => module.id === activeModuleId);
 
   const openModule = (moduleId) => {
@@ -270,10 +276,10 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
             <p>{module.summary}</p>
             <div className="module-card-footer">
               <span className="content-tag">
-                {module.items.length} {content.common.entries}
+                {formatEntryCount(module.items.length, lang)}
               </span>
               <button className="btn btn-ghost" onClick={() => openModule(module.id)} type="button">
-                {content.common.openModule}
+                {module.cta || content.common.openModule}
               </button>
             </div>
           </article>
@@ -447,6 +453,7 @@ export default function DirectionB({ lang, setLang, theme, setTheme, navigate })
         activeModuleId={activeModuleId}
         setActiveModuleId={setActiveModuleId}
         navigate={navigate}
+        lang={lang}
       />
       <Footer content={content} modules={modules} setActiveModuleId={setActiveModuleId} navigate={navigate} />
     </div>
