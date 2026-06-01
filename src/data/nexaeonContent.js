@@ -3,6 +3,7 @@ const SITE_CONTENT = {
     common: {
       skipIntro: '跳過',
       backHome: '返回首頁',
+      backPrevious: '返回上一層',
       backToTop: '返回頂部',
       openModule: '展開子內容',
       openPage: '進入頁面',
@@ -11,7 +12,7 @@ const SITE_CONTENT = {
       notFoundTitle: '內容尚未建立',
       notFoundBody: '這個條目目前沒有可顯示的資料。',
       moduleLabel: '一級模塊',
-      tags: 'Tags',
+      tags: '標籤',
     },
     hero: {
       eyebrow: 'AI 時代的數位研究所',
@@ -607,6 +608,7 @@ const SITE_CONTENT = {
     common: {
       skipIntro: 'Skip',
       backHome: 'Back to Home',
+      backPrevious: 'Back',
       backToTop: 'Back to top',
       openModule: 'Open Entries',
       openPage: 'Open Page',
@@ -1125,6 +1127,7 @@ const SITE_CONTENT = {
     common: {
       skipIntro: '건너뛰기',
       backHome: '홈으로 돌아가기',
+      backPrevious: '이전으로',
       backToTop: '맨 위로',
       openModule: '하위 콘텐츠 열기',
       openPage: '페이지 열기',
@@ -1133,7 +1136,7 @@ const SITE_CONTENT = {
       notFoundTitle: '콘텐츠 준비 중',
       notFoundBody: '이 항목은 아직 표시할 콘텐츠가 없습니다.',
       moduleLabel: '1차 모듈',
-      tags: 'Tags',
+      tags: '태그',
     },
     hero: {
       eyebrow: 'AI 시대의 디지털 연구소',
@@ -1641,8 +1644,83 @@ const SITE_CONTENT = {
   },
 };
 
+const MODULE_LABELS = {
+  zh: {
+    identity: '身份',
+    research: '研究',
+    teaching: '教學',
+    'knowledge-lab': '知識實驗室',
+    projects: '實踐項目',
+    'field-lab': '現場實驗室',
+  },
+  en: {
+    identity: 'Identity',
+    research: 'Research',
+    teaching: 'Teaching',
+    'knowledge-lab': 'Knowledge Lab',
+    projects: 'Projects',
+    'field-lab': 'Field Lab',
+  },
+  ko: {
+    identity: '정체성',
+    research: '연구',
+    teaching: '교육',
+    'knowledge-lab': '지식 실험실',
+    projects: '실천 프로젝트',
+    'field-lab': '현장 실험실',
+  },
+};
+
+const LOCALIZED_CONTENT_CACHE = new Map();
+
+function localizeDelimitedText(text) {
+  if (typeof text !== 'string' || !text.includes('｜')) return text;
+
+  const parts = text.split('｜').map((part) => part.trim()).filter(Boolean);
+  if (!parts.length) return text;
+
+  return parts[parts.length - 1];
+}
+
+function normalizeSection(section) {
+  return {
+    ...section,
+    label: localizeDelimitedText(section.label),
+  };
+}
+
+function normalizeContentEntry(entry) {
+  return {
+    ...entry,
+    title: localizeDelimitedText(entry.title),
+    sections: entry.sections?.map((section) => normalizeSection(section)) || [],
+  };
+}
+
+function normalizeModule(module, lang) {
+  return {
+    ...module,
+    label: MODULE_LABELS[lang]?.[module.id] || localizeDelimitedText(module.label),
+    title: localizeDelimitedText(module.title),
+    items: module.items.map((item) => normalizeContentEntry(item)),
+  };
+}
+
+function normalizeLocaleContent(content, lang) {
+  return {
+    ...content,
+    modules: content.modules.map((module) => normalizeModule(module, lang)),
+  };
+}
+
 function getLocale(lang = 'zh') {
-  return SITE_CONTENT[lang] || SITE_CONTENT.zh;
+  const resolvedLang = SITE_CONTENT[lang] ? lang : 'zh';
+
+  if (!LOCALIZED_CONTENT_CACHE.has(resolvedLang)) {
+    LOCALIZED_CONTENT_CACHE.set(resolvedLang, normalizeLocaleContent(SITE_CONTENT[resolvedLang], resolvedLang));
+  }
+
+  return LOCALIZED_CONTENT_CACHE.get(resolvedLang);
 }
 
 function normalizeItem(module, item) {

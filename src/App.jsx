@@ -3,7 +3,7 @@ import './styles.css';
 import DirectionB from './components/DirectionB.jsx';
 import DetailPage from './components/DetailPage.jsx';
 import RoleDetailPage from './components/RoleDetailPage.jsx';
-import { navigateTo, parseRoute } from './utils/router.js';
+import { goBack, markInitialHistoryEntry, navigateTo, parseRoute } from './utils/router.js';
 
 const BACK_TO_TOP_TEXT = {
   zh: '回到頂部',
@@ -30,15 +30,23 @@ function BackToTopButton({ lang }) {
 export default function App() {
   const [lang, setLang] = useState('zh');
   const [theme, setTheme] = useState('dark');
-  const [route, setRoute] = useState(() => parseRoute(window.location.pathname));
+  const [route, setRoute] = useState(() => ({
+    ...parseRoute(window.location.pathname),
+    hash: window.location.hash,
+  }));
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   useEffect(() => {
+    markInitialHistoryEntry();
+
     const onPopState = () => {
-      setRoute(parseRoute(window.location.pathname));
+      setRoute({
+        ...parseRoute(window.location.pathname),
+        hash: window.location.hash,
+      });
     };
 
     window.addEventListener('popstate', onPopState);
@@ -52,9 +60,16 @@ export default function App() {
     });
   }, [route.kind, route.type, route.id, route.role]);
 
-  const navigate = (path) => {
-    navigateTo(path);
-    setRoute(parseRoute(window.location.pathname));
+  const navigate = (path, options) => {
+    navigateTo(path, options);
+    setRoute({
+      ...parseRoute(window.location.pathname),
+      hash: window.location.hash,
+    });
+  };
+
+  const navigateBack = (fallbackPath) => {
+    goBack(fallbackPath);
   };
 
   return (
@@ -68,9 +83,10 @@ export default function App() {
           setLang={setLang}
           theme={theme}
           setTheme={setTheme}
+          navigateBack={navigateBack}
         />
       ) : route.kind === 'role' ? (
-        <RoleDetailPage role={route.role} navigate={navigate} lang={lang} setLang={setLang} />
+        <RoleDetailPage role={route.role} navigate={navigate} navigateBack={navigateBack} lang={lang} setLang={setLang} />
       ) : (
         <DirectionB
           lang={lang}

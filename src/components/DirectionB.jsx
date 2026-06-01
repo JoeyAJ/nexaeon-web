@@ -1,12 +1,36 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
 import NeuralBackground from './NeuralBackground.jsx';
 import { getLocalizedSite } from '../lib/contentSource.js';
 import { toDetailPath } from '../utils/router.js';
 
+const INTRO_SEEN_KEY = 'nexaeon_intro_seen';
+
 function renderMetaLabel(label) {
   if (!label.includes('№') && !label.includes('No.')) return label;
   return label.replace('№', 'No.');
+}
+
+function hasSeenIntro() {
+  try {
+    return window.sessionStorage.getItem(INTRO_SEEN_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function markIntroSeen() {
+  try {
+    window.sessionStorage.setItem(INTRO_SEEN_KEY, 'true');
+  } catch {
+    // The intro should still close if storage is unavailable.
+  }
+}
+
+function getModuleIdFromHash(hash, modules) {
+  const moduleId = decodeURIComponent((hash || '').replace(/^#/, ''));
+  if (!moduleId) return null;
+  return modules.some((module) => module.id === moduleId) ? moduleId : null;
 }
 
 function scrollToSection(id) {
@@ -16,9 +40,23 @@ function scrollToSection(id) {
 }
 
 function IntroOverlay({ skipLabel, phase, onSkip, onEnded }) {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+
+    return () => {
+      if (!video) return;
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, []);
+
   return (
     <div className={`intro-overlay ${phase === 'fading' ? 'is-fading' : ''}`} aria-hidden={phase === 'done'}>
       <video
+        ref={videoRef}
         className="intro-video"
         src="/assets/nexaeon-hero-v1.3.mov"
         autoPlay
@@ -62,7 +100,8 @@ function Nav({
   }, []);
 
   const handleModuleClick = (moduleId) => {
-    setActiveModuleId((current) => (current === moduleId ? moduleId : moduleId));
+    setActiveModuleId(moduleId);
+    navigate(`/#${moduleId}`, { scroll: false });
     setIsMobileMenuOpen(false);
   };
 
@@ -72,6 +111,7 @@ function Nav({
         <button
           className="main-logo-link"
           onClick={() => {
+            navigate('/', { scroll: false });
             scrollToSection('home');
             setActiveModuleId(null);
             setIsMobileMenuOpen(false);
@@ -209,6 +249,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
 
   const openModule = (moduleId) => {
     setActiveModuleId(moduleId);
+    navigate(`/#${moduleId}`, { scroll: false });
     requestAnimationFrame(() => scrollToSection('module-entries'));
   };
 
@@ -271,7 +312,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
   );
 }
 
-function Footer({ content, modules, setActiveModuleId }) {
+function Footer({ content, modules, setActiveModuleId, navigate }) {
   return (
     <footer style={{ borderTop: '1px solid var(--line-1)', padding: '48px 0 56px' }}>
       <div className="container footer-links" style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'center' }}>
@@ -288,6 +329,7 @@ function Footer({ content, modules, setActiveModuleId }) {
               className="footer-link-button"
               onClick={() => {
                 setActiveModuleId(module.id);
+                navigate(`/#${module.id}`, { scroll: false });
                 scrollToSection('module-entries');
               }}
               type="button"
@@ -303,10 +345,11 @@ function Footer({ content, modules, setActiveModuleId }) {
 
 export default function DirectionB({ lang, setLang, theme, setTheme, navigate }) {
   const rootRef = useRef(null);
+  const introTimerRef = useRef(null);
   const content = getLocalizedSite(lang);
   const modules = content.modules;
-  const [activeModuleId, setActiveModuleId] = useState(null);
-  const [introPhase, setIntroPhase] = useState('playing');
+  const [activeModuleId, setActiveModuleId] = useState(() => getModuleIdFromHash(window.location.hash, modules));
+  const [introPhase, setIntroPhase] = useState(() => (hasSeenIntro() ? 'done' : 'playing'));
 
   useEffect(() => {
     const el = rootRef.current;
@@ -326,6 +369,20 @@ export default function DirectionB({ lang, setLang, theme, setTheme, navigate })
   }, []);
 
   useEffect(() => {
+    const syncModuleFromHistory = () => {
+      const moduleId = getModuleIdFromHash(window.location.hash, modules);
+      setActiveModuleId(moduleId);
+
+      if (moduleId) {
+        requestAnimationFrame(() => scrollToSection('module-entries'));
+      }
+    };
+
+    window.addEventListener('popstate', syncModuleFromHistory);
+    return () => window.removeEventListener('popstate', syncModuleFromHistory);
+  }, [modules]);
+
+  useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     if (introPhase !== 'done') {
       document.body.style.overflow = 'hidden';
@@ -338,16 +395,26 @@ export default function DirectionB({ lang, setLang, theme, setTheme, navigate })
     };
   }, [introPhase]);
 
-  const closeIntro = () => {
+  const closeIntro = useCallback(() => {
     if (introPhase !== 'playing') return;
+    markIntroSeen();
     setIntroPhase('fading');
-    window.setTimeout(() => {
+    introTimerRef.current = window.setTimeout(() => {
       setIntroPhase('done');
     }, 420);
-  };
+  }, [introPhase]);
+
+  useEffect(() => {
+    return () => {
+      if (introTimerRef.current) {
+        window.clearTimeout(introTimerRef.current);
+      }
+    };
+  }, []);
 
   const openResearch = () => {
     setActiveModuleId('research');
+    navigate('/#research', { scroll: false });
     requestAnimationFrame(() => scrollToSection('module-entries'));
   };
 
@@ -381,7 +448,7 @@ export default function DirectionB({ lang, setLang, theme, setTheme, navigate })
         setActiveModuleId={setActiveModuleId}
         navigate={navigate}
       />
-      <Footer content={content} modules={modules} setActiveModuleId={setActiveModuleId} />
+      <Footer content={content} modules={modules} setActiveModuleId={setActiveModuleId} navigate={navigate} />
     </div>
   );
 }

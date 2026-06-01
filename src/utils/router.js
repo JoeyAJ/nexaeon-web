@@ -27,9 +27,44 @@ export function toDetailPath(type, id) {
   return `/${type}/${encodeURIComponent(id)}`;
 }
 
-export function navigateTo(path) {
-  window.history.pushState({}, '', path);
+function getCurrentPath() {
+  return `${window.location.pathname}${window.location.hash}`;
+}
+
+function getNavigationDepth() {
+  return Number(window.history.state?.nexaeonDepth || 0);
+}
+
+export function markInitialHistoryEntry() {
+  if (window.history.state?.nexaeonEntry) return;
+
+  window.history.replaceState(
+    {
+      ...(window.history.state || {}),
+      nexaeonEntry: true,
+      nexaeonDepth: 0,
+    },
+    '',
+    getCurrentPath(),
+  );
+}
+
+export function navigateTo(path, options = {}) {
+  const { scroll = true } = options;
+  const nextState = {
+    nexaeonEntry: true,
+    nexaeonDepth: getNavigationDepth() + 1,
+  };
+
+  if (getCurrentPath() === path) {
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    return;
+  }
+
+  window.history.pushState(nextState, '', path);
   window.dispatchEvent(new PopStateEvent('popstate'));
+
+  if (!scroll) return;
 
   const [pathnamePart, hashPart] = path.split('#');
   if (hashPart && (pathnamePart === '' || pathnamePart === '/')) {
@@ -47,4 +82,13 @@ export function navigateTo(path) {
   requestAnimationFrame(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   });
+}
+
+export function goBack(fallbackPath = '/') {
+  if (getNavigationDepth() > 0) {
+    window.history.back();
+    return;
+  }
+
+  navigateTo(fallbackPath);
 }

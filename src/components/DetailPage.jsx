@@ -44,7 +44,7 @@ function renderBody(body) {
   return <p>{body}</p>;
 }
 
-function NotFound({ navigate, content, lang, setLang, theme, setTheme }) {
+function NotFound({ navigate, navigateBack, content, lang, setLang, theme, setTheme }) {
   const { common } = content;
 
   return (
@@ -55,8 +55,8 @@ function NotFound({ navigate, content, lang, setLang, theme, setTheme }) {
         <div className="content-detail-card detail-empty-card">
           <div className="detail-empty-title">{common.notFoundTitle}</div>
           <p>{common.notFoundBody}</p>
-          <button className="btn btn-ghost" onClick={() => navigate('/')} type="button">
-            {common.backHome}
+          <button className="btn btn-ghost" onClick={() => navigateBack('/')} type="button">
+            {common.backPrevious}
           </button>
         </div>
       </div>
@@ -64,15 +64,17 @@ function NotFound({ navigate, content, lang, setLang, theme, setTheme }) {
   );
 }
 
-export default function DetailPage({ type, id, navigate, lang, setLang, theme, setTheme }) {
+export default function DetailPage({ type, id, navigate, navigateBack, lang, setLang, theme, setTheme }) {
   const content = getLocalizedSite(lang);
   const { common } = content;
   const item = getDetailItem(type, id, lang);
+  const parentPath = `/#${type}`;
 
   if (!item) {
     return (
       <NotFound
         navigate={navigate}
+        navigateBack={navigateBack}
         content={content}
         lang={lang}
         setLang={setLang}
@@ -87,8 +89,8 @@ export default function DetailPage({ type, id, navigate, lang, setLang, theme, s
       <NeuralBackground />
       <DetailTopbar common={common} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} navigate={navigate} />
       <div className="container subpage-content">
-        <button className="btn btn-ghost" onClick={() => navigate('/')} type="button">
-          {common.backHome}
+        <button className="btn btn-ghost" onClick={() => navigateBack(parentPath)} type="button">
+          {common.backPrevious}
         </button>
 
         <article className="content-detail-card module-detail-card">

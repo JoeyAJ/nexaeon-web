@@ -6,6 +6,7 @@ const ROLE_DETAIL_CONTENT = {
     common: {
       roleDetailLabel: '身份頁面',
       backHome: '返回首頁',
+      backPrevious: '返回上一層',
       challengeTitle: '這個角色面臨的問題',
       solutionTitle: 'NexAeon 如何協助',
       capabilitiesTitle: '相關能力模組',
@@ -138,6 +139,7 @@ const ROLE_DETAIL_CONTENT = {
     common: {
       roleDetailLabel: 'Role Detail Page',
       backHome: 'Back to Home',
+      backPrevious: 'Back',
       challengeTitle: "This role's challenge",
       solutionTitle: 'How NexAeon helps',
       capabilitiesTitle: 'Related Capabilities',
@@ -270,6 +272,7 @@ const ROLE_DETAIL_CONTENT = {
     common: {
       roleDetailLabel: '역할 상세 페이지',
       backHome: '홈으로 돌아가기',
+      backPrevious: '이전으로',
       challengeTitle: '이 역할의 문제',
       solutionTitle: 'NexAeon의 지원 방식',
       capabilitiesTitle: '관련 역량 모듈',
@@ -427,7 +430,7 @@ function ListCardSection({ title, items }) {
   );
 }
 
-function NotFound({ locale, navigate, setLang, lang }) {
+function NotFound({ locale, navigate, navigateBack, setLang, lang }) {
   return (
     <main className="direction-shell subpage-shell" style={{ minHeight: '100vh', paddingTop: 90, paddingBottom: 120 }}>
       <NeuralBackground />
@@ -465,8 +468,8 @@ function NotFound({ locale, navigate, setLang, lang }) {
             {locale.common.notFoundTitle}
           </div>
           <p style={{ marginTop: 16, color: 'var(--fg-2)', lineHeight: 1.7 }}>{locale.common.notFoundBody}</p>
-          <button className="btn btn-ghost" style={{ marginTop: 18 }} onClick={() => navigate('/')}>
-            {locale.common.backHome}
+          <button className="btn btn-ghost" style={{ marginTop: 18 }} onClick={() => navigateBack('/')}>
+            {locale.common.backPrevious}
           </button>
         </div>
       </div>
@@ -474,12 +477,12 @@ function NotFound({ locale, navigate, setLang, lang }) {
   );
 }
 
-export default function RoleDetailPage({ role, navigate, lang, setLang }) {
+export default function RoleDetailPage({ role, navigate, navigateBack, lang, setLang }) {
   const locale = ROLE_DETAIL_CONTENT[lang] || ROLE_DETAIL_CONTENT.en;
   const roleContent = locale.roles[role];
 
   if (!roleContent) {
-    return <NotFound locale={locale} navigate={navigate} setLang={setLang} lang={lang} />;
+    return <NotFound locale={locale} navigate={navigate} navigateBack={navigateBack} setLang={setLang} lang={lang} />;
   }
 
   return (
@@ -532,8 +535,8 @@ export default function RoleDetailPage({ role, navigate, lang, setLang }) {
           <p style={{ marginTop: 14, color: 'var(--fg-1)', fontSize: 20, lineHeight: 1.45 }}>{roleContent.tagline}</p>
           <p style={{ marginTop: 12, color: 'var(--fg-2)', lineHeight: 1.72, maxWidth: 900 }}>{roleContent.description}</p>
           <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn btn-ghost" onClick={() => navigate('/')}>
-              {locale.common.backHome}
+            <button className="btn btn-ghost" onClick={() => navigateBack('/')}>
+              {locale.common.backPrevious}
             </button>
           </div>
         </section>
