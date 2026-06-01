@@ -11,7 +11,7 @@ const SITE_CONTENT = {
       moduleMenu: '子內容入口',
       notFoundTitle: '內容尚未建立',
       notFoundBody: '這個條目目前沒有可顯示的資料。',
-      moduleLabel: '一級模塊',
+      moduleLabel: '研究所入口',
       tags: '標籤',
     },
     hero: {
@@ -21,7 +21,7 @@ const SITE_CONTENT = {
       titleSans: 'for the Age of AI',
       sub:
         'NexAeon 是一座 AI 時代的數位研究所，連接研究、教學、知識管理與實踐項目，將 AI 從工具轉化為理解世界、設計教育與建構未來的思維系統。',
-      cta1: '查看一級模塊',
+      cta1: '進入研究所地圖',
       cta2: '展開研究地圖',
       scrollCue: '向下滑動，進入模塊地圖',
       meta: ['第 11 號實驗室', '建立於 2026', '大田 / 又鬆大'],
@@ -30,7 +30,7 @@ const SITE_CONTENT = {
     },
     home: {
       eyebrow: 'NexAeon Modules',
-      title: '一級模塊地圖',
+      title: '研究所入口地圖',
       intro:
         '六個核心入口構成 NexAeon 的品牌架構，連接研究身份、學術方向、教學實踐、知識系統、原型項目與現場實驗。',
       activeHint: '選擇一個模塊後，可從這裡進入對應子頁。',
@@ -637,7 +637,7 @@ const SITE_CONTENT = {
       moduleMenu: 'Subcontent Entries',
       notFoundTitle: 'Content Not Ready',
       notFoundBody: 'This entry is not available yet.',
-      moduleLabel: 'Primary Module',
+      moduleLabel: 'Institute Gateway',
       tags: 'Tags',
     },
     hero: {
@@ -647,7 +647,7 @@ const SITE_CONTENT = {
       titleSans: 'for the Age of AI',
       sub:
         'NexAeon is a digital institute for the age of AI, connecting research, teaching, knowledge management, and practical projects to transform AI from a tool into a thinking system for understanding the world, designing education, and building the future.',
-      cta1: 'View Modules',
+      cta1: 'Enter the Institute Map',
       cta2: 'Open Research Map',
       scrollCue: 'Scroll into the module map',
       meta: ['Lab No. 11', 'Est. 2026', 'Daejeon / Woosong Univ.'],
@@ -656,7 +656,7 @@ const SITE_CONTENT = {
     },
     home: {
       eyebrow: 'NexAeon Modules',
-      title: 'Primary Module Map',
+      title: 'Institute Gateway Map',
       intro:
         'Six primary gateways define the NexAeon brand architecture, connecting research identity, academic direction, teaching practice, knowledge systems, prototype work, and field experimentation.',
       activeHint: 'Choose a module here, then enter one of its subpages.',
@@ -1177,7 +1177,7 @@ const SITE_CONTENT = {
       moduleMenu: '하위 콘텐츠 입구',
       notFoundTitle: '콘텐츠 준비 중',
       notFoundBody: '이 항목은 아직 표시할 콘텐츠가 없습니다.',
-      moduleLabel: '1차 모듈',
+      moduleLabel: '연구소 입구',
       tags: '태그',
     },
     hero: {
@@ -1187,7 +1187,7 @@ const SITE_CONTENT = {
       titleSans: 'for the Age of AI',
       sub:
         'NexAeon은 AI 시대의 디지털 연구소입니다. 연구, 교육, 지식관리, 실천 프로젝트를 연결하여 AI를 단순한 도구가 아니라 세계를 이해하고 교육을 설계하며 미래를 구축하는 사고 시스템으로 전환합니다.',
-      cta1: '모듈 보기',
+      cta1: '연구소 지도 보기',
       cta2: '연구 지도 열기',
       scrollCue: '아래로 내려 모듈 지도로 이동',
       meta: ['Lab No. 11', '2026 설립', '대전 / 우송대'],
@@ -1196,7 +1196,7 @@ const SITE_CONTENT = {
     },
     home: {
       eyebrow: 'NexAeon Modules',
-      title: '1차 모듈 지도',
+      title: '연구소 입구 지도',
       intro:
         '여섯 개의 핵심 입구는 NexAeon의 브랜드 구조를 이루며 연구 정체성, 학술 방향, 교육 실천, 지식 시스템, 프로토타입, 현장 실험을 연결합니다.',
       activeHint: '모듈을 선택한 뒤 해당 하위 페이지로 들어갈 수 있습니다.',
