@@ -1,7 +1,7 @@
 export const FALLBACK_LITERATURE_DATA = [
   {
     id: 'tam-ai-tutor-acceptance',
-    title: 'Technology Acceptance Model / TAM',
+    title: 'TAM and AI Education Acceptance',
     authors: ['Davis', 'Venkatesh', 'AI Education Research Stream'],
     year: '1989-2026',
     theoryModels: ['TAM', 'Perceived Usefulness', 'Perceived Ease of Use'],
@@ -18,7 +18,7 @@ export const FALLBACK_LITERATURE_DATA = [
   },
   {
     id: 'vark-learning-preferences',
-    title: 'VARK Learning Preferences',
+    title: 'VARK Learning Preference',
     authors: ['Fleming', 'AI Tutoring Design Research Stream'],
     year: '1992-2026',
     theoryModels: ['VARK', 'Learning Preference Model'],
@@ -35,7 +35,7 @@ export const FALLBACK_LITERATURE_DATA = [
   },
   {
     id: 'srl-ai-tutor-autonomy',
-    title: 'Self-Regulated Learning / SRL',
+    title: 'AI Tutor and Self-Regulated Learning',
     authors: ['Zimmerman', 'Pintrich', 'AI Tutor Autonomy Research Stream'],
     year: '2000-2026',
     theoryModels: ['SRL', 'Learner Autonomy'],
@@ -69,7 +69,7 @@ export const FALLBACK_LITERATURE_DATA = [
   },
   {
     id: 'learning-engagement-satisfaction',
-    title: 'Learning Engagement and Satisfaction',
+    title: 'Learning Engagement and Continuance Intention',
     authors: ['Educational Engagement Research Stream', 'Learning Satisfaction Research Stream'],
     year: '2004-2026',
     theoryModels: ['Learning Engagement', 'Learning Satisfaction', 'Continuance Intention'],
