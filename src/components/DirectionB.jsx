@@ -168,7 +168,7 @@ function Nav({
           <div className="container">
             <div className="module-nav-dropdown-panel liquid-glass-card">
               <div className="module-nav-dropdown-copy">
-                <div className="label">{content.common.moduleMenu}</div>
+                {content.common.moduleMenu ? <div className="label">{content.common.moduleMenu}</div> : null}
                 <strong>{activeModule.title}</strong>
                 <p>{activeModule.summary}</p>
               </div>
@@ -290,7 +290,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
         <div id="module-entries" className="container module-entry-panel-wrap">
           <article className="module-entry-panel liquid-glass-card">
             <div className="module-entry-panel-copy">
-              <div className="label">— {content.common.moduleMenu}</div>
+              {content.common.moduleMenu ? <div className="label">— {content.common.moduleMenu}</div> : null}
               <h3>{activeModule.title}</h3>
               <p>{activeModule.position}</p>
             </div>

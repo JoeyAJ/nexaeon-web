@@ -8,7 +8,7 @@ const SITE_CONTENT = {
       openModule: '展開子內容',
       openPage: '進入頁面',
       entries: '個入口',
-      moduleMenu: '子內容入口',
+      moduleMenu: '',
       notFoundTitle: '內容尚未建立',
       notFoundBody: '這個條目目前沒有可顯示的資料。',
       moduleLabel: '研究所入口',
@@ -32,7 +32,7 @@ const SITE_CONTENT = {
       eyebrow: 'NexAeon Modules',
       title: '研究所入口地圖',
       intro:
-        '六個核心入口構成 NexAeon 的品牌架構，連接研究身份、學術方向、教學實踐、知識系統、原型項目與現場實驗。',
+        '六個核心入口構成 NexAeon 的架構，連接研究身份、學術方向、教學實踐、知識系統、原型項目與現場實驗。',
       activeHint: '選擇一個模塊後，可從這裡進入對應子頁。',
     },
     footer: {
@@ -48,7 +48,7 @@ const SITE_CONTENT = {
         title: '身份導航',
         summary: '定義 NexAeon、Joey 與 Nexōn 的核心關係，呈現個人研究品牌、學術身份與未來定位。',
         cta: '進入身份導航',
-        position: '這裡說明 NexAeon 為何存在，以及它如何作為 Joey 的 AI 時代個人研究所與第二大腦運作。',
+        position: '本頁整理 NexAeon 的核心定位、Joey 的研究身份與知識系統，作為理解整體網站架構的起點。',
         items: [
           {
             id: 'collaboration-options',
@@ -809,7 +809,7 @@ const SITE_CONTENT = {
       openModule: 'Open Entries',
       openPage: 'Open Page',
       entries: 'entries',
-      moduleMenu: 'Subcontent Entries',
+      moduleMenu: '',
       notFoundTitle: 'Content Not Ready',
       notFoundBody: 'This entry is not available yet.',
       moduleLabel: 'Institute Gateway',
@@ -833,7 +833,7 @@ const SITE_CONTENT = {
       eyebrow: 'NexAeon Modules',
       title: 'Institute Gateway Map',
       intro:
-        'Six primary gateways define the NexAeon brand architecture, connecting research identity, academic direction, teaching practice, knowledge systems, prototype work, and field experimentation.',
+        'Six core gateways structure NexAeon, connecting research identity, academic direction, teaching practice, knowledge systems, prototype projects, and field experiments.',
       activeHint: 'Choose a module here, then enter one of its subpages.',
     },
     footer: {
@@ -849,7 +849,7 @@ const SITE_CONTENT = {
         title: 'Identity Navigation',
         summary: 'Defines the relationship between NexAeon, Joey, and Nexōn, presenting Joey’s research identity, academic positioning, and future direction.',
         cta: 'Enter Identity Navigation',
-        position: 'This module explains why NexAeon exists and how it works as Joey’s personal AI-era institute and second brain.',
+        position: 'This page outlines NexAeon’s core identity, Joey’s research role, and the knowledge system that frames the overall website structure.',
         items: [
           {
             id: 'collaboration-options',
@@ -1524,7 +1524,7 @@ const SITE_CONTENT = {
       openModule: '하위 콘텐츠 열기',
       openPage: '페이지 열기',
       entries: '개 입구',
-      moduleMenu: '하위 콘텐츠 입구',
+      moduleMenu: '',
       notFoundTitle: '콘텐츠 준비 중',
       notFoundBody: '이 항목은 아직 표시할 콘텐츠가 없습니다.',
       moduleLabel: '연구소 입구',
@@ -1548,7 +1548,7 @@ const SITE_CONTENT = {
       eyebrow: 'NexAeon Modules',
       title: '연구소 입구 지도',
       intro:
-        '여섯 개의 핵심 입구는 NexAeon의 브랜드 구조를 이루며 연구 정체성, 학술 방향, 교육 실천, 지식 시스템, 프로토타입, 현장 실험을 연결합니다.',
+        '여섯 개의 핵심 입구는 NexAeon의 구조를 이루며, 연구 정체성, 학술 방향, 교육 실천, 지식 시스템, 프로토타입 프로젝트, 현장 실험을 연결한다.',
       activeHint: '모듈을 선택한 뒤 해당 하위 페이지로 들어갈 수 있습니다.',
     },
     footer: {
@@ -1564,7 +1564,7 @@ const SITE_CONTENT = {
         title: '정체성 내비게이션',
         summary: 'NexAeon, Joey, Nexōn의 핵심 관계를 정의하고 개인 연구 브랜드, 학술적 정체성, 미래 방향성을 보여준다.',
         cta: '정체성 내비게이션으로 이동',
-        position: 'NexAeon이 왜 존재하며 Joey의 AI 시대 개인 연구소이자 두 번째 뇌로 어떻게 작동하는지 설명합니다.',
+        position: '이 페이지는 NexAeon의 핵심 정체성, Joey의 연구자 역할, 지식 시스템을 정리하여 전체 웹사이트 구조를 이해하는 출발점으로 제시한다.',
         items: [
           {
             id: 'collaboration-options',
