@@ -32,7 +32,7 @@ const SITE_CONTENT = {
       eyebrow: 'NexAeon Modules',
       title: '研究所入口地圖',
       intro:
-        '六個核心入口構成 NexAeon 的架構，連接研究身份、學術方向、教學實踐、知識系統、原型項目與現場實驗。',
+        '以神經之眼凝視知識，透過無限連結將研究、教學與實踐編織為一體——NexAeon 是一座在 AI 時代與人共同成長的活性數位研究所。',
       activeHint: '選擇一個模塊後，可從這裡進入對應子頁。',
     },
     footer: {
@@ -833,7 +833,7 @@ const SITE_CONTENT = {
       eyebrow: 'NexAeon Modules',
       title: 'Institute Gateway Map',
       intro:
-        'Six core gateways structure NexAeon, connecting research identity, academic direction, teaching practice, knowledge systems, prototype projects, and field experiments.',
+        'Perceiving knowledge through the neural eye — where research, teaching, and practice converge through infinite connection — NexAeon becomes a living digital institute, continuously evolving in the age of AI.',
       activeHint: 'Choose a module here, then enter one of its subpages.',
     },
     footer: {
@@ -1548,7 +1548,7 @@ const SITE_CONTENT = {
       eyebrow: 'NexAeon Modules',
       title: '연구소 입구 지도',
       intro:
-        '여섯 개의 핵심 입구는 NexAeon의 구조를 이루며, 연구 정체성, 학술 방향, 교육 실천, 지식 시스템, 프로토타입 프로젝트, 현장 실험을 연결한다.',
+        '신경의 눈으로 지식을 바라보고, 무한한 연결로 연구·교육·실천을 하나로 엮어 — NexAeon은 AI 시대를 함께 성장해가는 살아있는 디지털 연구소입니다.',
       activeHint: '모듈을 선택한 뒤 해당 하위 페이지로 들어갈 수 있습니다.',
     },
     footer: {
