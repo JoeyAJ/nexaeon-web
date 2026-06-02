@@ -6,6 +6,14 @@ import {
   getLiteratureSummary,
   LITERATURE_UI,
 } from '../data/literatureData.js';
+import {
+  createFallbackKnowledgeResponse,
+  getKnowledgeStatusText,
+  getKnowledgeSummary,
+  getKnowledgeTitle,
+  KNOWLEDGE_FILTERS,
+  KNOWLEDGE_RESOURCE_UI,
+} from '../data/knowledgeResourceData.js';
 import { getLocalizedModuleField, getModuleData, getModuleEndpoint, getModuleStatus } from '../data/moduleData.js';
 import NeuralBackground from './NeuralBackground.jsx';
 import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
@@ -168,6 +176,33 @@ function useResearchLiterature() {
   return literatureState;
 }
 
+function useKnowledgeResources() {
+  const [knowledgeState, setKnowledgeState] = useState(() => createFallbackKnowledgeResponse('client_initial_fallback'));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadKnowledgeResources() {
+      try {
+        const response = await fetch('/api/knowledge/resources');
+        if (!response.ok) throw new Error(`Knowledge API failed with status ${response.status}`);
+        const payload = await response.json();
+        if (isMounted) setKnowledgeState(payload);
+      } catch {
+        if (isMounted) setKnowledgeState(createFallbackKnowledgeResponse('client_fetch_failed'));
+      }
+    }
+
+    loadKnowledgeResources();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return knowledgeState;
+}
+
 function LiteratureStatusCard({ source, lang }) {
   const status = getLiteratureStatusText(source, lang);
 
@@ -239,6 +274,97 @@ function LiteratureDatabase({ item, common, lang }) {
       </section>
 
       <LiteratureStatusCard source={literatureState.source} lang={lang} />
+    </article>
+  );
+}
+
+function KnowledgeStatusCard({ source, lang }) {
+  const status = getKnowledgeStatusText(source, lang);
+
+  return (
+    <section className="module-data-source-card literature-status-card knowledge-status-card">
+      <div>
+        <div className="label">{status.source}</div>
+        <p>{status.connection}</p>
+      </div>
+      <span className="module-data-endpoint">/api/knowledge/resources</span>
+    </section>
+  );
+}
+
+function KnowledgeResourceDatabase({ item, common, lang }) {
+  const knowledgeState = useKnowledgeResources();
+  const ui = KNOWLEDGE_RESOURCE_UI[lang] || KNOWLEDGE_RESOURCE_UI.zh;
+  const [activeFilter, setActiveFilter] = useState('all');
+  const resources = knowledgeState.items || [];
+  const filteredResources = activeFilter === 'all'
+    ? resources
+    : resources.filter((resource) => resource.type === activeFilter);
+
+  return (
+    <article className="content-detail-card module-detail-card knowledge-resource-database-card">
+      <div className="detail-badge-row">
+        <Badge>{common.moduleLabel}: {item.category}</Badge>
+        <Badge>{item.status}</Badge>
+      </div>
+
+      <div className="detail-module-label">{item.moduleLabel}</div>
+      <h1>{ui.title}</h1>
+      <p className="detail-subtitle">{ui.subtitle}</p>
+
+      <div className="knowledge-filter-row" role="group" aria-label={ui.title}>
+        {KNOWLEDGE_FILTERS.map((filter) => (
+          <button
+            key={filter}
+            className="knowledge-filter-chip"
+            data-active={activeFilter === filter ? 'true' : 'false'}
+            onClick={() => setActiveFilter(filter)}
+            type="button"
+          >
+            {ui.filters[filter]}
+          </button>
+        ))}
+      </div>
+
+      <section className="knowledge-resource-grid" aria-label={ui.title}>
+        {filteredResources.map((resource) => (
+          <article key={resource.id} className="knowledge-resource-card">
+            <div className="module-data-card-top">
+              <span className="content-tag">{resource.type}</span>
+              <span className="module-data-status">{resource.status}</span>
+            </div>
+            <h2>{getKnowledgeTitle(resource, lang)}</h2>
+
+            <div className="knowledge-resource-field">
+              <span>{ui.type}</span>
+              <p>{resource.type}</p>
+            </div>
+            <div className="knowledge-resource-field">
+              <span>{ui.category}</span>
+              <p>{resource.category}</p>
+            </div>
+            <div className="knowledge-resource-field">
+              <span>{ui.tags}</span>
+              <p>{normalizeList(resource.tags)}</p>
+            </div>
+            <div className="knowledge-resource-field">
+              <span>{ui.relatedModule}</span>
+              <p>{resource.relatedModule}</p>
+            </div>
+            <div className="knowledge-resource-field knowledge-resource-summary">
+              <span>{ui.summary}</span>
+              <p>{getKnowledgeSummary(resource, lang)}</p>
+            </div>
+            <div className="knowledge-resource-footer">
+              <span>{ui.status}: {resource.status}</span>
+              <span>{ui.sourceType}: {resource.sourceType}</span>
+              <span>{ui.updatedAt}: {resource.updatedAt}</span>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <KnowledgeStatusCard source={knowledgeState.source} lang={lang} />
     </article>
   );
 }
@@ -349,6 +475,12 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             parentPath={parentPath}
             navigate={navigate}
             navigateBack={navigateBack}
+            lang={lang}
+          />
+        ) : item.template === 'knowledge-resources' ? (
+          <KnowledgeResourceDatabase
+            item={item}
+            common={common}
             lang={lang}
           />
         ) : item.template === 'module-data-skeleton' ? (
