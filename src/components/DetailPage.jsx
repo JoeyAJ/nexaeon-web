@@ -1,4 +1,5 @@
 import { getDetailItem, getLocalizedSite } from '../lib/contentSource.js';
+import { getLocalizedModuleField, getModuleData, getModuleEndpoint, getModuleStatus } from '../data/moduleData.js';
 import NeuralBackground from './NeuralBackground.jsx';
 import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
 import { toDetailPath } from '../utils/router.js';
@@ -63,7 +64,72 @@ function renderBody(body) {
   return <p>{body}</p>;
 }
 
-function TheoryModelLibrary({ item, common, parentPath, navigate, navigateBack }) {
+function getLocalizedDataStatus(status, lang) {
+  const suffix = lang === 'ko' ? 'Ko' : lang === 'en' ? 'En' : 'Zh';
+  return {
+    source: status[`source${suffix}`],
+    connection: status[`connection${suffix}`],
+  };
+}
+
+function ModuleDataCards({ moduleKey, lang }) {
+  const moduleItems = getModuleData(moduleKey);
+
+  return (
+    <section className="module-data-grid" aria-label={moduleKey}>
+      {moduleItems.map((dataItem) => (
+        <article key={dataItem.id} className="module-data-card">
+          <div className="module-data-card-top">
+            <span className="content-tag">{dataItem.category}</span>
+            <span className="module-data-status">{dataItem.status}</span>
+          </div>
+          <h2>{getLocalizedModuleField(dataItem, 'title', lang)}</h2>
+          <p>{getLocalizedModuleField(dataItem, 'description', lang)}</p>
+          <div className="module-data-meta">
+            <span>{dataItem.sourceType}</span>
+            <span>{dataItem.updatedAt}</span>
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function ModuleDataStatus({ moduleKey, lang }) {
+  const status = getLocalizedDataStatus(getModuleStatus(moduleKey), lang);
+  const endpoint = getModuleEndpoint(moduleKey);
+
+  return (
+    <section className="module-data-source-card">
+      <div>
+        <div className="label">{status.source}</div>
+        <p>{status.connection}</p>
+      </div>
+      <span className="module-data-endpoint">{endpoint}</span>
+    </section>
+  );
+}
+
+function ModuleDataSkeleton({ item, common, lang }) {
+  const moduleKey = item.moduleKey;
+
+  return (
+    <article className="content-detail-card module-detail-card data-skeleton-card">
+      <div className="detail-badge-row">
+        <Badge>{common.moduleLabel}: {item.category}</Badge>
+        <Badge>{item.status}</Badge>
+      </div>
+
+      <div className="detail-module-label">{item.moduleLabel}</div>
+      <h1>{item.title}</h1>
+      <p className="detail-subtitle">{item.subtitle}</p>
+      <ModuleDataCards moduleKey={moduleKey} lang={lang} />
+      <ModuleDataStatus moduleKey={moduleKey} lang={lang} />
+    </article>
+  );
+}
+
+function TheoryModelLibrary({ item, common, parentPath, navigate, navigateBack, lang }) {
   const goToResearch = () => {
     suppressIntroReplay();
     navigateBack(parentPath);
@@ -88,20 +154,14 @@ function TheoryModelLibrary({ item, common, parentPath, navigate, navigateBack }
         <p>{item.summary}</p>
       </section>
 
-      <section className="theory-model-grid" aria-label={item.title}>
-        {item.models.map((model, index) => (
-          <article key={model.title} className="theory-model-card">
-            <span className="theory-model-index">{String(index + 1).padStart(2, '0')}</span>
-            <h2>{model.title}</h2>
-            <p>{model.body}</p>
-          </article>
-        ))}
-      </section>
+      <ModuleDataCards moduleKey={item.moduleKey} lang={lang} />
 
       <section className="theory-relationship-card">
         <div className="label">{item.relationship.title}</div>
         <p>{item.relationship.body}</p>
       </section>
+
+      <ModuleDataStatus moduleKey={item.moduleKey} lang={lang} />
 
       <div className="theory-library-actions">
         <button className="btn btn-ghost" onClick={goToResearch} type="button">
@@ -175,6 +235,13 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             parentPath={parentPath}
             navigate={navigate}
             navigateBack={navigateBack}
+            lang={lang}
+          />
+        ) : item.template === 'module-data-skeleton' ? (
+          <ModuleDataSkeleton
+            item={item}
+            common={common}
+            lang={lang}
           />
         ) : (
           <article className="content-detail-card module-detail-card">

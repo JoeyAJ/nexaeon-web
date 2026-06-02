@@ -51,6 +51,18 @@ const SITE_CONTENT = {
         position: '這裡說明 NexAeon 為何存在，以及它如何作為 Joey 的 AI 時代個人研究所與第二大腦運作。',
         items: [
           {
+            id: 'collaboration-options',
+            template: 'module-data-skeleton',
+            moduleKey: 'collaboration',
+            dataEndpoint: '/api/collaboration/options',
+            title: 'Collaboration｜合作資料骨架',
+            subtitle: '保留學術合作、教育 AI 顧問、Workshop / Lecture Proposal、企業合作與聯絡入口的資料接口。',
+            status: '資料骨架',
+            summary: '合作模組先以 fallback data 呈現，未來可替換為外部表單、CRM 或 Airtable 資料源。',
+            tags: ['Collaboration', 'API', 'Fallback Data'],
+            sections: [],
+          },
+          {
             id: 'manifesto',
             title: 'NexAeon Manifesto｜理念宣言',
             subtitle: '把 AI 從工具轉化為一套理解世界的研究方法。',
@@ -203,6 +215,8 @@ const SITE_CONTENT = {
           {
             id: 'theory-model-library',
             template: 'theory-model-library',
+            moduleKey: 'research',
+            dataEndpoint: '/api/research/models',
             title: '理論模型庫',
             subtitle: '整理 Joey 的 AI 教育研究所依據的核心理論，作為博士論文、課程設計與教育產品開發的知識基礎。',
             status: '理論引擎',
@@ -324,6 +338,18 @@ const SITE_CONTENT = {
         position: '這裡不是賣課頁，而是把課程理念、教學方法與教材系統作為研究成果展示。',
         items: [
           {
+            id: 'teaching-courses',
+            template: 'module-data-skeleton',
+            moduleKey: 'teaching',
+            dataEndpoint: '/api/teaching/courses',
+            title: 'Teaching｜教學資料骨架',
+            subtitle: '保留課程設計、教學大綱、課堂任務、Workshop 與 Prompt Engineering 教材的資料接口。',
+            status: '資料骨架',
+            summary: '教學模組先以 fallback data 呈現，未來可替換為 Notion、Airtable 或課程管理資料源。',
+            tags: ['Teaching', 'Courses', 'API'],
+            sections: [],
+          },
+          {
             id: 'prompt-engineering-course',
             title: 'Prompt Engineering Course｜Prompt 工程課程',
             subtitle: '把提示詞能力變成可教、可練、可評估的學術能力。',
@@ -430,6 +456,18 @@ const SITE_CONTENT = {
         position: '目前先以靜態內容框架呈現，之後可接 Notion、Airtable、n8n、RAG 或資料庫。',
         items: [
           {
+            id: 'knowledge-resources',
+            template: 'module-data-skeleton',
+            moduleKey: 'knowledge',
+            dataEndpoint: '/api/knowledge/resources',
+            title: 'Knowledge Lab｜知識資料骨架',
+            subtitle: '保留 Notion 知識庫、文獻筆記、概念索引、研究關鍵詞與學習筆記的資料接口。',
+            status: '資料骨架',
+            summary: 'Knowledge Lab 先以 fallback data 呈現，未來可替換為 Notion、RAG 或語意搜尋資料源。',
+            tags: ['Knowledge Lab', 'Resources', 'API'],
+            sections: [],
+          },
+          {
             id: 'literature-library',
             title: 'Literature Library｜研究文獻庫',
             subtitle: '保存 AI 教育、學習分析與 AI 管理相關文獻。',
@@ -535,6 +573,18 @@ const SITE_CONTENT = {
         cta: '展開實踐項目',
         position: '每個項目以問題、解法、技術、狀態與下一步呈現，避免變成銷售頁。',
         items: [
+          {
+            id: 'module-demos',
+            template: 'module-data-skeleton',
+            moduleKey: 'modules',
+            dataEndpoint: '/api/modules/demos',
+            title: 'NexAeon Modules｜模組實驗室資料骨架',
+            subtitle: '保留 AI Tutor Prototype、Campus Pet Learning System、GreenTrace MVP、Admissions PDF System 與其他 Demo 的資料接口。',
+            status: '資料骨架',
+            summary: '模組實驗室先以 fallback data 呈現，未來可替換為 Demo registry、GitHub 或產品資料源。',
+            tags: ['Demos', 'MVP', 'API'],
+            sections: [],
+          },
           {
             id: 'nexaeon-ai-tutoring-mvp',
             title: 'NexAeon AI Tutoring MVP｜AI 輔導系統 MVP',
@@ -646,6 +696,18 @@ const SITE_CONTENT = {
         cta: '展開現場實驗',
         position: 'Field Lab 不是聯絡我們或合作導流，而是記錄 AI 在大學現場與學生支援中的實踐語境。',
         items: [
+          {
+            id: 'action-projects',
+            template: 'module-data-skeleton',
+            moduleKey: 'action',
+            dataEndpoint: '/api/action/projects',
+            title: 'Action Center｜行動中心資料骨架',
+            subtitle: '保留專案進度、MVP 任務、GitHub / Vercel 狀態、研究工作流與自動化流程的資料接口。',
+            status: '資料骨架',
+            summary: 'Action Center 先以 fallback data 呈現，未來可替換為 GitHub、Vercel、n8n 或專案管理資料源。',
+            tags: ['Action Center', 'Projects', 'API'],
+            sections: [],
+          },
           {
             id: 'university-practice',
             title: 'University Practice｜大學現場實踐',
@@ -777,6 +839,18 @@ const SITE_CONTENT = {
         position: 'This module explains why NexAeon exists and how it works as Joey’s personal AI-era institute and second brain.',
         items: [
           {
+            id: 'collaboration-options',
+            template: 'module-data-skeleton',
+            moduleKey: 'collaboration',
+            dataEndpoint: '/api/collaboration/options',
+            title: 'Collaboration Data Skeleton',
+            subtitle: 'Data interface for academic collaboration, education AI consulting, workshop proposals, enterprise work, and contact entry.',
+            status: 'Data Skeleton',
+            summary: 'The collaboration module uses fallback data first and can later connect to forms, CRM, or Airtable sources.',
+            tags: ['Collaboration', 'API', 'Fallback Data'],
+            sections: [],
+          },
+          {
             id: 'manifesto',
             title: 'NexAeon Manifesto',
             subtitle: 'Turning AI from a tool into a research method for understanding the world.',
@@ -867,6 +941,8 @@ const SITE_CONTENT = {
           {
             id: 'theory-model-library',
             template: 'theory-model-library',
+            moduleKey: 'research',
+            dataEndpoint: '/api/research/models',
             title: 'Theory Model Library',
             subtitle: 'A structured library of theoretical models supporting Joey’s AI education research, doctoral thesis, course design, and educational product development.',
             status: 'Theory Engine',
@@ -984,6 +1060,18 @@ const SITE_CONTENT = {
         position: 'This is not a course-sales page. It presents teaching design, course research, and reusable learning materials.',
         items: [
           {
+            id: 'teaching-courses',
+            template: 'module-data-skeleton',
+            moduleKey: 'teaching',
+            dataEndpoint: '/api/teaching/courses',
+            title: 'Teaching Data Skeleton',
+            subtitle: 'Data interface for course design, syllabi, classroom tasks, workshops, and Prompt Engineering materials.',
+            status: 'Data Skeleton',
+            summary: 'The teaching module uses fallback data first and can later connect to Notion, Airtable, or course-management sources.',
+            tags: ['Teaching', 'Courses', 'API'],
+            sections: [],
+          },
+          {
             id: 'prompt-engineering-course',
             title: 'Prompt Engineering Course',
             subtitle: 'Making prompt ability teachable, trainable, and assessable.',
@@ -1085,6 +1173,18 @@ const SITE_CONTENT = {
         position: 'The lab starts as a static framework and can later connect to Notion, Airtable, n8n, RAG, or a database.',
         items: [
           {
+            id: 'knowledge-resources',
+            template: 'module-data-skeleton',
+            moduleKey: 'knowledge',
+            dataEndpoint: '/api/knowledge/resources',
+            title: 'Knowledge Lab Data Skeleton',
+            subtitle: 'Data interface for Notion knowledge, literature notes, concept indexes, research keywords, and learning notes.',
+            status: 'Data Skeleton',
+            summary: 'Knowledge Lab uses fallback data first and can later connect to Notion, RAG, or semantic-search sources.',
+            tags: ['Knowledge Lab', 'Resources', 'API'],
+            sections: [],
+          },
+          {
             id: 'literature-library',
             title: 'Literature Library',
             subtitle: 'A literature base for AI education, learning analytics, and AI management.',
@@ -1185,6 +1285,18 @@ const SITE_CONTENT = {
         cta: 'Open Practice Projects',
         position: 'Each project is shown through problem, solution, technology, status, and next step rather than sales copy.',
         items: [
+          {
+            id: 'module-demos',
+            template: 'module-data-skeleton',
+            moduleKey: 'modules',
+            dataEndpoint: '/api/modules/demos',
+            title: 'NexAeon Modules Data Skeleton',
+            subtitle: 'Data interface for AI Tutor Prototype, Campus Pet Learning System, GreenTrace MVP, Admissions PDF System, and other demos.',
+            status: 'Data Skeleton',
+            summary: 'The module lab uses fallback data first and can later connect to a demo registry, GitHub, or product data source.',
+            tags: ['Demos', 'MVP', 'API'],
+            sections: [],
+          },
           {
             id: 'nexaeon-ai-tutoring-mvp',
             title: 'NexAeon AI Tutoring MVP',
@@ -1291,6 +1403,18 @@ const SITE_CONTENT = {
         cta: 'Open Field Lab',
         position: 'Field Lab is not a contact funnel. It records the practice context where AI meets universities and student support.',
         items: [
+          {
+            id: 'action-projects',
+            template: 'module-data-skeleton',
+            moduleKey: 'action',
+            dataEndpoint: '/api/action/projects',
+            title: 'Action Center Data Skeleton',
+            subtitle: 'Data interface for project progress, MVP tasks, GitHub / Vercel status, research workflows, and automation flows.',
+            status: 'Data Skeleton',
+            summary: 'Action Center uses fallback data first and can later connect to GitHub, Vercel, n8n, or project-management sources.',
+            tags: ['Action Center', 'Projects', 'API'],
+            sections: [],
+          },
           {
             id: 'university-practice',
             title: 'University Practice',
@@ -1417,6 +1541,18 @@ const SITE_CONTENT = {
         position: 'NexAeon이 왜 존재하며 Joey의 AI 시대 개인 연구소이자 두 번째 뇌로 어떻게 작동하는지 설명합니다.',
         items: [
           {
+            id: 'collaboration-options',
+            template: 'module-data-skeleton',
+            moduleKey: 'collaboration',
+            dataEndpoint: '/api/collaboration/options',
+            title: 'Collaboration｜협력 데이터 구조',
+            subtitle: '학술 협력, 교육 AI 컨설팅, Workshop / Lecture Proposal, 기업 협력, 연락 입구를 위한 데이터 인터페이스입니다.',
+            status: '데이터 구조',
+            summary: '협력 모듈은 먼저 fallback data로 표시하고 이후 외부 양식, CRM, Airtable 자료원으로 교체할 수 있습니다.',
+            tags: ['Collaboration', 'API', 'Fallback Data'],
+            sections: [],
+          },
+          {
             id: 'manifesto',
             title: 'NexAeon Manifesto｜선언문',
             subtitle: 'AI를 도구에서 세계를 이해하는 연구 방법으로 전환합니다.',
@@ -1507,6 +1643,8 @@ const SITE_CONTENT = {
           {
             id: 'theory-model-library',
             template: 'theory-model-library',
+            moduleKey: 'research',
+            dataEndpoint: '/api/research/models',
             title: '이론 모델 라이브러리',
             subtitle: 'Joey의 AI 교육 연구를 뒷받침하는 핵심 이론을 정리하여 박사논문, 수업 설계, 교육 제품 개발의 지식 기반으로 활용한다.',
             status: '이론 엔진',
@@ -1624,6 +1762,18 @@ const SITE_CONTENT = {
         position: '판매용 강의 페이지가 아니라 교육 설계와 코스 연구를 보여주는 공간입니다.',
         items: [
           {
+            id: 'teaching-courses',
+            template: 'module-data-skeleton',
+            moduleKey: 'teaching',
+            dataEndpoint: '/api/teaching/courses',
+            title: 'Teaching｜교육 데이터 구조',
+            subtitle: '코스 설계, 강의계획서, 수업 과제, Workshop, Prompt Engineering 교재를 위한 데이터 인터페이스입니다.',
+            status: '데이터 구조',
+            summary: '교육 모듈은 먼저 fallback data로 표시하고 이후 Notion, Airtable, 코스 관리 자료원으로 교체할 수 있습니다.',
+            tags: ['Teaching', 'Courses', 'API'],
+            sections: [],
+          },
+          {
             id: 'prompt-engineering-course',
             title: 'Prompt Engineering Course｜Prompt 엔지니어링 코스',
             subtitle: 'Prompt 역량을 가르치고 연습하고 평가할 수 있는 학술 능력으로 만듭니다.',
@@ -1725,6 +1875,18 @@ const SITE_CONTENT = {
         position: '현재는 정적 콘텐츠 프레임워크이며 이후 Notion, Airtable, n8n, RAG, 데이터베이스에 연결할 수 있습니다.',
         items: [
           {
+            id: 'knowledge-resources',
+            template: 'module-data-skeleton',
+            moduleKey: 'knowledge',
+            dataEndpoint: '/api/knowledge/resources',
+            title: 'Knowledge Lab｜지식 데이터 구조',
+            subtitle: 'Notion 지식베이스, 문헌 노트, 개념 인덱스, 연구 키워드, 학습 노트를 위한 데이터 인터페이스입니다.',
+            status: '데이터 구조',
+            summary: 'Knowledge Lab은 먼저 fallback data로 표시하고 이후 Notion, RAG, 의미 검색 자료원으로 교체할 수 있습니다.',
+            tags: ['Knowledge Lab', 'Resources', 'API'],
+            sections: [],
+          },
+          {
             id: 'literature-library',
             title: 'Literature Library｜연구 문헌 라이브러리',
             subtitle: 'AI 교육, 학습분석, AI 경영 문헌을 보존합니다.',
@@ -1825,6 +1987,18 @@ const SITE_CONTENT = {
         cta: '실천 프로젝트 펼치기',
         position: '각 프로젝트는 판매 문구가 아니라 문제, 해법, 기술, 상태, 다음 단계로 제시됩니다.',
         items: [
+          {
+            id: 'module-demos',
+            template: 'module-data-skeleton',
+            moduleKey: 'modules',
+            dataEndpoint: '/api/modules/demos',
+            title: 'NexAeon Modules｜모듈 실험실 데이터 구조',
+            subtitle: 'AI Tutor Prototype, Campus Pet Learning System, GreenTrace MVP, Admissions PDF System 및 기타 Demo를 위한 데이터 인터페이스입니다.',
+            status: '데이터 구조',
+            summary: '모듈 실험실은 먼저 fallback data로 표시하고 이후 Demo registry, GitHub, 제품 자료원으로 교체할 수 있습니다.',
+            tags: ['Demos', 'MVP', 'API'],
+            sections: [],
+          },
           {
             id: 'nexaeon-ai-tutoring-mvp',
             title: 'NexAeon AI Tutoring MVP｜AI 튜터링 시스템 MVP',
@@ -1931,6 +2105,18 @@ const SITE_CONTENT = {
         cta: '현장 실험 펼치기',
         position: 'Field Lab은 연락처나 협업 유도 페이지가 아니라 AI가 대학 현장과 학생 지원을 만나는 실천 맥락입니다.',
         items: [
+          {
+            id: 'action-projects',
+            template: 'module-data-skeleton',
+            moduleKey: 'action',
+            dataEndpoint: '/api/action/projects',
+            title: 'Action Center｜행동 센터 데이터 구조',
+            subtitle: '프로젝트 진행, MVP 작업, GitHub / Vercel 상태, 연구 워크플로, 자동화 흐름을 위한 데이터 인터페이스입니다.',
+            status: '데이터 구조',
+            summary: 'Action Center는 먼저 fallback data로 표시하고 이후 GitHub, Vercel, n8n, 프로젝트 관리 자료원으로 교체할 수 있습니다.',
+            tags: ['Action Center', 'Projects', 'API'],
+            sections: [],
+          },
           {
             id: 'university-practice',
             title: 'University Practice｜대학 현장 실천',
