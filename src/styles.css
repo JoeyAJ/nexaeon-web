@@ -2998,6 +2998,106 @@ body {
   margin-top: 28px;
 }
 
+.theory-library-card {
+  max-width: 1080px;
+}
+
+.theory-library-intro {
+  margin-top: 26px;
+  border-top: 1px solid var(--line-1);
+  border-bottom: 1px solid var(--line-1);
+  padding: 22px 0;
+}
+
+.theory-library-intro p {
+  max-width: 860px;
+  margin: 0;
+  color: var(--fg-2);
+  font-size: 18px;
+  line-height: 1.82;
+}
+
+.theory-model-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 26px;
+}
+
+.theory-model-card {
+  position: relative;
+  min-height: 230px;
+  overflow: hidden;
+  border: 1px solid var(--line-1);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bg-2) 62%, transparent);
+  padding: 20px;
+}
+
+.theory-model-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 36% at 8% 0%, color-mix(in srgb, var(--accent-violet) 18%, transparent), transparent 72%),
+    linear-gradient(132deg, color-mix(in srgb, var(--accent-blue) 9%, transparent), transparent 64%);
+  opacity: 0.72;
+}
+
+.theory-model-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.theory-model-index {
+  color: var(--accent-fg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.theory-model-card h2 {
+  margin: 18px 0 0;
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+.theory-model-card p {
+  margin: 14px 0 0;
+  color: var(--fg-2);
+  line-height: 1.72;
+}
+
+.theory-relationship-card {
+  margin-top: 16px;
+  border: 1px solid var(--line-2);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bg-2) 70%, transparent);
+  padding: 24px;
+}
+
+.theory-relationship-card .label {
+  color: var(--accent-fg);
+}
+
+.theory-relationship-card p {
+  margin: 14px 0 0;
+  color: var(--fg-2);
+  font-size: 18px;
+  line-height: 1.78;
+}
+
+.theory-library-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
 .back-to-top-button {
   position: fixed;
   right: 22px;
@@ -3058,6 +3158,10 @@ body {
     grid-template-columns: 1fr;
     gap: 10px;
   }
+
+  .theory-model-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 600px) {
@@ -3113,6 +3217,25 @@ body {
 
   .detail-subtitle {
     font-size: 17px;
+  }
+
+  .theory-library-intro p,
+  .theory-relationship-card p {
+    font-size: 16px;
+  }
+
+  .theory-model-card {
+    min-height: auto;
+    padding: 18px;
+  }
+
+  .theory-model-card h2 {
+    font-size: 23px;
+  }
+
+  .theory-library-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .subpage-topbar-inner {

@@ -201,6 +201,46 @@ const SITE_CONTENT = {
             ],
           },
           {
+            id: 'theory-model-library',
+            template: 'theory-model-library',
+            title: '理論模型庫',
+            subtitle: '整理 Joey 的 AI 教育研究所依據的核心理論，作為博士論文、課程設計與教育產品開發的知識基礎。',
+            status: '理論引擎',
+            summary:
+              '這個模型庫不是單純的文獻整理，而是 NexAeon 研究系統的理論引擎。每一個模型都對應一組研究問題、變數設計、問卷題項與未來的教育應用場景。',
+            tags: ['TAM', 'VARK', 'SRL', 'Learning Engagement', 'Continuance Intention'],
+            models: [
+              {
+                title: 'TAM｜Technology Acceptance Model',
+                body: '用於分析學生對 AI Tutor 的感知有用性、感知易用性、使用態度與使用意圖。它是研究 AI 教育技術接受度的重要基礎。',
+              },
+              {
+                title: 'VARK｜Learning Preference Model',
+                body: '用於理解學生在視覺、聽覺、閱讀書寫與操作體驗上的學習偏好差異，幫助設計更個人化的 AI 學習路徑。',
+              },
+              {
+                title: 'SRL｜Self-Regulated Learning',
+                body: '用於分析學生如何設定學習目標、選擇策略、監控進度、調整行為並進行反思。它能支撐 AI Tutor 是否真正提升學生自主學習能力的研究。',
+              },
+              {
+                title: 'Learning Engagement｜學習參與度',
+                body: '用於觀察學生在 AI 學習環境中的行為參與、情感參與與認知參與。它能連接 AI 系統設計與學生真實學習表現。',
+              },
+              {
+                title: 'Continuance Intention｜持續使用意圖',
+                body: '用於分析學生在初次使用 AI Tutor 後，是否願意持續使用。這可以連接滿意度、學習成效與長期教育產品設計。',
+              },
+            ],
+            relationship: {
+              title: '從理論到研究模型',
+              body: 'TAM 解釋學生為什麼接受 AI Tutor，VARK 解釋學生如何不同，SRL 解釋學生如何自主學習，Engagement 觀察學生是否真正投入，Continuance Intention 則衡量 AI Tutor 是否具有長期使用價值。這五個模型共同構成 NexAeon 的 AI 教育研究基礎。',
+            },
+            actions: {
+              back: '返回 Research',
+              methods: '查看研究方法與問卷設計',
+            },
+          },
+          {
             id: 'personalized-ai-tutoring',
             title: 'Personalized AI Tutoring｜個別化 AI 輔導系統',
             subtitle: '讓 AI 依學習者程度、目標與節奏提供可行動的輔導。',
@@ -825,6 +865,46 @@ const SITE_CONTENT = {
             ],
           },
           {
+            id: 'theory-model-library',
+            template: 'theory-model-library',
+            title: 'Theory Model Library',
+            subtitle: 'A structured library of theoretical models supporting Joey’s AI education research, doctoral thesis, course design, and educational product development.',
+            status: 'Theory Engine',
+            summary:
+              'This model library is not merely a literature collection. It functions as the theoretical engine of the NexAeon research system, connecting research questions, variable design, survey items, and future educational applications.',
+            tags: ['TAM', 'VARK', 'SRL', 'Learning Engagement', 'Continuance Intention'],
+            models: [
+              {
+                title: 'TAM | Technology Acceptance Model',
+                body: 'Used to analyze learners’ perceived usefulness, perceived ease of use, attitude, and behavioral intention toward AI tutors. It is a core foundation for studying AI educational technology acceptance.',
+              },
+              {
+                title: 'VARK | Learning Preference Model',
+                body: 'Used to understand learners’ preferences across visual, aural, read/write, and kinesthetic modes, supporting the design of personalized AI learning paths.',
+              },
+              {
+                title: 'SRL | Self-Regulated Learning',
+                body: 'Used to analyze how learners set goals, choose strategies, monitor progress, adjust behavior, and reflect on learning. It supports research on whether AI tutors truly enhance learner autonomy.',
+              },
+              {
+                title: 'Learning Engagement',
+                body: 'Used to examine behavioral, emotional, and cognitive engagement in AI-supported learning environments. It connects AI system design with real learning performance.',
+              },
+              {
+                title: 'Continuance Intention',
+                body: 'Used to analyze whether learners intend to continue using AI tutors after initial adoption. It connects satisfaction, learning outcomes, and long-term educational product design.',
+              },
+            ],
+            relationship: {
+              title: 'From Theory to Research Model',
+              body: 'TAM explains why learners accept AI tutors, VARK explains how learners differ, SRL explains how learners regulate their learning, Engagement observes whether learners are truly involved, and Continuance Intention evaluates whether AI tutors have long-term usage value. Together, these five models form the foundation of NexAeon’s AI education research.',
+            },
+            actions: {
+              back: 'Back to Research',
+              methods: 'View Methods & Instruments',
+            },
+          },
+          {
             id: 'personalized-ai-tutoring',
             title: 'Personalized AI Tutoring',
             subtitle: 'AI support adapted to learner level, goals, and pace.',
@@ -1423,6 +1503,46 @@ const SITE_CONTENT = {
               { label: 'Expected Output｜예상 산출물', body: 'AI 교육 연구 지도, 수업 적용 유형, 평가 지표, 위험 점검표를 구축하여 이후 논문, 수업, 프로토타입 시스템 설계를 지원합니다.' },
               { label: 'Connection to NexAeon｜NexAeon과의 관계', body: '이 페이지는 NexAeon 연구 체계의 교육 맥락을 정의합니다. Teaching, Knowledge Lab, MVP 페이지가 단순 기능 소개가 아니라 검증 가능한 교육 연구 질문으로 돌아가도록 합니다.' },
             ],
+          },
+          {
+            id: 'theory-model-library',
+            template: 'theory-model-library',
+            title: '이론 모델 라이브러리',
+            subtitle: 'Joey의 AI 교육 연구를 뒷받침하는 핵심 이론을 정리하여 박사논문, 수업 설계, 교육 제품 개발의 지식 기반으로 활용한다.',
+            status: '이론 엔진',
+            summary:
+              '이 모델 라이브러리는 단순한 문헌 정리가 아니라 NexAeon 연구 시스템의 이론적 엔진이다. 각 모델은 연구문제, 변수 설계, 설문 문항, 향후 교육 적용 시나리오와 연결된다.',
+            tags: ['TAM', 'VARK', 'SRL', 'Learning Engagement', 'Continuance Intention'],
+            models: [
+              {
+                title: 'TAM｜Technology Acceptance Model',
+                body: 'AI 튜터에 대한 학생들의 지각된 유용성, 지각된 사용 용이성, 사용 태도, 사용 의도를 분석하는 데 활용된다. AI 교육 기술 수용 연구의 핵심 기반이다.',
+              },
+              {
+                title: 'VARK｜Learning Preference Model',
+                body: '시각, 청각, 읽기/쓰기, 체험 중심 학습 선호의 차이를 이해하고, 보다 개인화된 AI 학습 경로를 설계하는 데 활용된다.',
+              },
+              {
+                title: 'SRL｜Self-Regulated Learning',
+                body: '학생들이 학습 목표를 설정하고, 전략을 선택하며, 진행 상황을 점검하고, 행동을 조정하며 성찰하는 과정을 분석하는 데 활용된다. AI 튜터가 자기주도 학습 능력을 실제로 향상시키는지를 연구하는 데 중요하다.',
+              },
+              {
+                title: 'Learning Engagement｜학습 참여도',
+                body: 'AI 학습 환경에서 학생들의 행동적 참여, 정서적 참여, 인지적 참여를 관찰하는 데 활용된다. AI 시스템 설계와 실제 학습 성과를 연결한다.',
+              },
+              {
+                title: 'Continuance Intention｜지속 사용 의도',
+                body: '학생들이 AI 튜터를 처음 사용한 이후 지속적으로 사용할 의도가 있는지를 분석하는 데 활용된다. 만족도, 학습 성과, 장기적 교육 제품 설계와 연결된다.',
+              },
+            ],
+            relationship: {
+              title: '이론에서 연구모형으로',
+              body: 'TAM은 학생들이 왜 AI 튜터를 수용하는지 설명하고, VARK는 학습자의 차이를 설명한다. SRL은 학생들이 어떻게 자기주도적으로 학습하는지를 분석하며, Engagement는 실제 학습 참여를 관찰한다. Continuance Intention은 AI 튜터가 장기적으로 사용할 가치가 있는지를 측정한다. 이 다섯 가지 모델은 NexAeon AI 교육 연구의 기반을 구성한다.',
+            },
+            actions: {
+              back: 'Research로 돌아가기',
+              methods: '연구 방법 및 설문 설계 보기',
+            },
           },
           {
             id: 'personalized-ai-tutoring',
