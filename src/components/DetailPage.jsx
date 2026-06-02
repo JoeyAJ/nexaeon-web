@@ -1,4 +1,11 @@
+import { useEffect, useState } from 'react';
 import { getDetailItem, getLocalizedSite } from '../lib/contentSource.js';
+import {
+  createFallbackLiteratureResponse,
+  getLiteratureStatusText,
+  getLiteratureSummary,
+  LITERATURE_UI,
+} from '../data/literatureData.js';
 import { getLocalizedModuleField, getModuleData, getModuleEndpoint, getModuleStatus } from '../data/moduleData.js';
 import NeuralBackground from './NeuralBackground.jsx';
 import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
@@ -129,6 +136,113 @@ function ModuleDataSkeleton({ item, common, lang }) {
   );
 }
 
+function normalizeList(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).join(', ');
+  return value || '';
+}
+
+function useResearchLiterature() {
+  const [literatureState, setLiteratureState] = useState(() => createFallbackLiteratureResponse('client_initial_fallback'));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLiterature() {
+      try {
+        const response = await fetch('/api/research/literature');
+        if (!response.ok) throw new Error(`Literature API failed with status ${response.status}`);
+        const payload = await response.json();
+        if (isMounted) setLiteratureState(payload);
+      } catch {
+        if (isMounted) setLiteratureState(createFallbackLiteratureResponse('client_fetch_failed'));
+      }
+    }
+
+    loadLiterature();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return literatureState;
+}
+
+function LiteratureStatusCard({ source, lang }) {
+  const status = getLiteratureStatusText(source, lang);
+
+  return (
+    <section className="module-data-source-card literature-status-card">
+      <div>
+        <div className="label">{status.source}</div>
+        <p>{status.connection}</p>
+      </div>
+      <span className="module-data-endpoint">/api/research/literature</span>
+    </section>
+  );
+}
+
+function LiteratureDatabase({ item, common, lang }) {
+  const literatureState = useResearchLiterature();
+  const ui = LITERATURE_UI[lang] || LITERATURE_UI.zh;
+
+  return (
+    <article className="content-detail-card module-detail-card literature-database-card">
+      <div className="detail-badge-row">
+        <Badge>{common.moduleLabel}: {item.category}</Badge>
+        <Badge>{item.status}</Badge>
+      </div>
+
+      <div className="detail-module-label">{item.moduleLabel}</div>
+      <h1>{ui.title}</h1>
+      <p className="detail-subtitle">{item.subtitle}</p>
+
+      <section className="literature-grid" aria-label={ui.title}>
+        {literatureState.data.map((literature) => (
+          <article key={literature.id} className="literature-card">
+            <div className="module-data-card-top">
+              <span className="content-tag">{literature.sourceType}</span>
+              <span className="module-data-status">{literature.status}</span>
+            </div>
+            <h2>{literature.title}</h2>
+
+            <div className="literature-field">
+              <span>{ui.authorsYear}</span>
+              <p>{normalizeList(literature.authors)} · {literature.year}</p>
+            </div>
+            <div className="literature-field">
+              <span>{ui.theoryModels}</span>
+              <p>{normalizeList(literature.theoryModels)}</p>
+            </div>
+            <div className="literature-field">
+              <span>{ui.researchMethod}</span>
+              <p>{literature.researchMethod}</p>
+            </div>
+            <div className="literature-field">
+              <span>{ui.variables}</span>
+              <p>{normalizeList(literature.variables)}</p>
+            </div>
+            <div className="literature-field literature-summary">
+              <span>{ui.summary}</span>
+              <p>{getLiteratureSummary(literature, lang)}</p>
+            </div>
+            <div className="literature-field">
+              <span>{ui.usage}</span>
+              <p>{literature.usage}</p>
+            </div>
+            <div className="literature-card-footer">
+              <span>{ui.sourceType}: {literature.sourceType}</span>
+              <span>{ui.updatedAt}: {literature.updatedAt}</span>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <LiteratureStatusCard source={literatureState.source} lang={lang} />
+    </article>
+  );
+}
+
 function TheoryModelLibrary({ item, common, parentPath, navigate, navigateBack, lang }) {
   const goToResearch = () => {
     suppressIntroReplay();
@@ -239,6 +353,12 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
           />
         ) : item.template === 'module-data-skeleton' ? (
           <ModuleDataSkeleton
+            item={item}
+            common={common}
+            lang={lang}
+          />
+        ) : item.template === 'literature-database' ? (
+          <LiteratureDatabase
             item={item}
             common={common}
             lang={lang}

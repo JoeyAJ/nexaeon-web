@@ -3031,8 +3031,15 @@ body {
   margin-top: 26px;
 }
 
+.literature-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 26px;
+}
+
 .theory-model-card,
-.module-data-card {
+.module-data-card,
+.literature-card {
   position: relative;
   min-height: 230px;
   overflow: hidden;
@@ -3043,7 +3050,8 @@ body {
 }
 
 .theory-model-card::before,
-.module-data-card::before {
+.module-data-card::before,
+.literature-card::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -3055,7 +3063,8 @@ body {
 }
 
 .theory-model-card > *,
-.module-data-card > * {
+.module-data-card > *,
+.literature-card > * {
   position: relative;
   z-index: 1;
 }
@@ -3076,7 +3085,8 @@ body {
 }
 
 .theory-model-card h2,
-.module-data-card h2 {
+.module-data-card h2,
+.literature-card h2 {
   margin: 18px 0 0;
   font-family: var(--font-serif);
   font-size: 26px;
@@ -3086,10 +3096,54 @@ body {
 }
 
 .theory-model-card p,
-.module-data-card p {
+.module-data-card p,
+.literature-card p {
   margin: 14px 0 0;
   color: var(--fg-2);
   line-height: 1.72;
+}
+
+.literature-card {
+  min-height: auto;
+}
+
+.literature-card h2 {
+  max-width: 880px;
+}
+
+.literature-field {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.22fr) 1fr;
+  gap: 16px;
+  margin-top: 16px;
+  border-top: 1px solid var(--line-1);
+  padding-top: 14px;
+}
+
+.literature-field span {
+  color: var(--accent-fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.literature-field p {
+  margin: 0;
+}
+
+.literature-summary p {
+  color: color-mix(in srgb, var(--fg-1) 84%, var(--fg-2));
+}
+
+.literature-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 18px;
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0;
 }
 
 .module-data-meta {
@@ -3232,6 +3286,11 @@ body {
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .literature-field {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
 }
 
 @media (max-width: 600px) {
@@ -3295,13 +3354,15 @@ body {
   }
 
   .theory-model-card,
-  .module-data-card {
+  .module-data-card,
+  .literature-card {
     min-height: auto;
     padding: 18px;
   }
 
   .theory-model-card h2,
-  .module-data-card h2 {
+  .module-data-card h2,
+  .literature-card h2 {
     font-size: 23px;
   }
 
