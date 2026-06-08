@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useMemo, useState } from 'react';
 import {
   getLocalizedModuleField,
@@ -13,6 +14,12 @@ import {
 function normalizeList(value) {
   if (Array.isArray(value)) return value.filter(Boolean).join(', ');
   return value || '';
+}
+
+function normalizeSearchText(value) {
+  if (Array.isArray(value)) return value.join(' ').toLowerCase();
+  if (value && typeof value === 'object') return Object.values(value).join(' ').toLowerCase();
+  return String(value || '').toLowerCase();
 }
 
 function createFallbackModuleResponse(moduleKey, reason = 'client_initial_fallback') {
@@ -198,6 +205,180 @@ function getLocalizedReadinessField(source, field, lang) {
 
 function formatApiRoute(route) {
   return Array.isArray(route) ? route.join(', ') : route;
+}
+
+const TEACHING_DATABASE_UI = {
+  zh: {
+    dataSource: '資料來源',
+    count: '教學素材數量',
+    updatedAt: '最後更新時間',
+    filteredCount: '目前篩選結果',
+    searchPlaceholder: '搜尋課程、教材、主題、Prompt 或學習目標',
+    typeFilter: '教材類型',
+    statusFilter: '使用狀態',
+    languageFilter: '語言',
+    expand: '展開詳情',
+    collapse: '收合詳情',
+    loadMore: '載入更多',
+    empty: '沒有符合條件的教學素材。',
+    showing: '目前顯示',
+    of: ' / ',
+    courseTypeTopic: '類型 / 主題',
+    targetAudience: '目標對象',
+    learningGoals: '學習目標',
+    materials: '教學素材',
+    promptExamples: 'Prompt 範例',
+    assessment: '評量設計',
+    usage: '使用目的',
+    language: '語言',
+    source: {
+      notion: '資料來源：Notion 教學素材庫',
+      fallback: '資料來源：Fallback Teaching Data',
+    },
+    connection: {
+      notion: '連接狀態：已連接真實教學素材資料源',
+      fallback: '連接狀態：尚未連接 Notion，正在使用本地備用教學資料',
+    },
+  },
+  en: {
+    dataSource: 'Data Source',
+    count: 'Teaching Material Count',
+    updatedAt: 'Last Updated',
+    filteredCount: 'Filtered Results',
+    searchPlaceholder: 'Search courses, materials, topics, prompts, or learning goals',
+    typeFilter: 'Material Type',
+    statusFilter: 'Status',
+    languageFilter: 'Language',
+    expand: 'Expand details',
+    collapse: 'Collapse details',
+    loadMore: 'Load more',
+    empty: 'No teaching materials match the current filters.',
+    showing: 'Showing',
+    of: ' of ',
+    courseTypeTopic: 'Type / Topic',
+    targetAudience: 'Target Audience',
+    learningGoals: 'Learning Goals',
+    materials: 'Teaching Materials',
+    promptExamples: 'Prompt Examples',
+    assessment: 'Assessment',
+    usage: 'Usage',
+    language: 'Language',
+    source: {
+      notion: 'Data Source: Notion Teaching Materials Database',
+      fallback: 'Data Source: Fallback Teaching Data',
+    },
+    connection: {
+      notion: 'Connection Status: Live teaching material source connected',
+      fallback: 'Connection Status: Notion not connected, using local backup teaching data',
+    },
+  },
+  ko: {
+    dataSource: '데이터 출처',
+    count: '수업 자료 수',
+    updatedAt: '마지막 업데이트',
+    filteredCount: '현재 필터 결과',
+    searchPlaceholder: '수업, 자료, 주제, 프롬프트 또는 학습 목표 검색',
+    typeFilter: '자료 유형',
+    statusFilter: '사용 상태',
+    languageFilter: '언어',
+    expand: '자세히 보기',
+    collapse: '접기',
+    loadMore: '더 보기',
+    empty: '현재 필터와 일치하는 수업 자료가 없다.',
+    showing: '표시 중',
+    of: ' / ',
+    courseTypeTopic: '유형 / 주제',
+    targetAudience: '대상',
+    learningGoals: '학습 목표',
+    materials: '수업 자료',
+    promptExamples: '프롬프트 예시',
+    assessment: '평가 설계',
+    usage: '사용 목적',
+    language: '언어',
+    source: {
+      notion: '데이터 출처: Notion 수업 자료 데이터베이스',
+      fallback: '데이터 출처: Fallback Teaching Data',
+    },
+    connection: {
+      notion: '연결 상태: 실제 수업 자료 데이터 소스 연결 완료',
+      fallback: '연결 상태: Notion 미연결, 로컬 예비 수업 자료 사용 중',
+    },
+  },
+};
+
+const TEACHING_TYPE_FILTERS = [
+  { value: 'all', label: { zh: '全部', en: 'All', ko: '전체' }, matches: [] },
+  { value: 'prompt-engineering', label: { zh: 'Prompt Engineering', en: 'Prompt Engineering', ko: 'Prompt Engineering' }, matches: ['Prompt Engineering', 'prompt', '提示詞', '프롬프트'] },
+  { value: 'ai-literacy', label: { zh: 'AI Literacy', en: 'AI Literacy', ko: 'AI Literacy' }, matches: ['AI Literacy', 'AI 素養', 'AI 리터러시'] },
+  { value: 'research-methods', label: { zh: 'Research Methods', en: 'Research Methods', ko: 'Research Methods' }, matches: ['Research Methods', 'Research Method', '研究方法', '연구 방법'] },
+  { value: 'workshop', label: { zh: 'Workshop', en: 'Workshop', ko: 'Workshop' }, matches: ['Workshop', '工作坊', '워크숍'] },
+  { value: 'lecture', label: { zh: 'Lecture', en: 'Lecture', ko: 'Lecture' }, matches: ['Lecture', '講座', '課程', '강의'] },
+  { value: 'assignment', label: { zh: 'Assignment', en: 'Assignment', ko: 'Assignment' }, matches: ['Assignment', '作業', '과제'] },
+  { value: 'rubric', label: { zh: 'Rubric', en: 'Rubric', ko: 'Rubric' }, matches: ['Rubric', '評量', '루브릭'] },
+];
+
+const TEACHING_STATUS_FILTERS = [
+  { value: 'all', label: { zh: '全部狀態', en: 'All Status', ko: '전체 상태' }, matches: [] },
+  { value: 'ready', label: { zh: '可立即授課', en: 'Ready to Teach', ko: '바로 수업 가능' }, matches: ['可立即授課', 'ready', 'ready to teach', '바로'] },
+  { value: 'draft', label: { zh: '草稿', en: 'Draft', ko: '초안' }, matches: ['草稿', 'draft', '초안'] },
+  { value: 'in-progress', label: { zh: '製作中', en: 'In Progress', ko: '제작 중' }, matches: ['製作中', 'in progress', '進行中', '제작', '진행'] },
+  { value: 'organized', label: { zh: '已整理', en: 'Organized', ko: '정리 완료' }, matches: ['已整理', 'organized', '整理', '정리'] },
+  { value: 'needs-more', label: { zh: '待補充', en: 'Needs More', ko: '보완 필요' }, matches: ['待補充', 'needs more', '補充', '보완'] },
+];
+
+const TEACHING_LANGUAGE_FILTERS = [
+  { value: 'all', label: { zh: '全部語言', en: 'All Languages', ko: '전체 언어' }, matches: [] },
+  { value: 'zh', label: { zh: '中文', en: 'Chinese', ko: '중국어' }, matches: ['中文', 'Chinese', 'zh', '繁中'] },
+  { value: 'ko', label: { zh: '韓文', en: 'Korean', ko: '한국어' }, matches: ['韓文', 'Korean', 'ko', '한국어'] },
+  { value: 'en', label: { zh: '英文', en: 'English', ko: '영어' }, matches: ['英文', 'English', 'en'] },
+  { value: 'zh-ko', label: { zh: '中韓雙語', en: 'Chinese-Korean', ko: '중한 이중언어' }, matches: ['中韓', 'Chinese-Korean', 'zh-ko', '중한'] },
+  { value: 'tri', label: { zh: '中英韓三語', en: 'Chinese-English-Korean', ko: '중영한 삼중언어' }, matches: ['中英韓', 'Chinese-English-Korean', 'trilingual', '三語', '삼중'] },
+];
+
+function getTeachingField(item, field, lang) {
+  if (item[field]) return item[field];
+  if (field === 'title') return getLocalizedModuleField(item, 'title', lang);
+  if (field === 'summary') return item.summary || getLocalizedModuleField(item, 'description', lang);
+  if (field === 'courseType') return item.courseType || item.type || '';
+  if (field === 'topic') return item.topic || item.category || '';
+  if (field === 'targetAudience') return item.targetAudience || item.audience || '';
+  if (field === 'module') return item.module || item.relatedModule || '';
+  if (field === 'materials') return item.materials || getLocalizedModuleField(item, 'description', lang);
+  return '';
+}
+
+function getTeachingSearchBody(item, lang) {
+  return [
+    getTeachingField(item, 'title', lang),
+    getTeachingField(item, 'courseType', lang),
+    getTeachingField(item, 'topic', lang),
+    getTeachingField(item, 'targetAudience', lang),
+    getTeachingField(item, 'module', lang),
+    item.learningGoals,
+    getTeachingField(item, 'materials', lang),
+    item.promptExamples,
+    item.assessment,
+    item.tags,
+    getTeachingField(item, 'summary', lang),
+    item.usage,
+    item.status,
+  ].map(normalizeSearchText).join(' ');
+}
+
+function doesTeachingMatchFilter(item, filter, lang, fields) {
+  if (filter.value === 'all') return true;
+  const haystack = fields.map((field) => normalizeSearchText(getTeachingField(item, field, lang) || item[field])).join(' ');
+  return filter.matches.some((match) => haystack.includes(match.toLowerCase()));
+}
+
+function getLatestModuleUpdate(moduleState) {
+  if (moduleState.updatedAt) return moduleState.updatedAt;
+  const dates = (moduleState.items || [])
+    .map((item) => item.updatedAt)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+  return dates[0] || '';
 }
 
 function useBackendReadinessData() {
@@ -414,11 +595,258 @@ export function ModuleDataStatus({ moduleKey, lang }) {
   );
 }
 
-export function ModuleDataPanel({ moduleKey, endpoint, lang }) {
+function TeachingSourceCard({ source, lang }) {
+  const ui = TEACHING_DATABASE_UI[lang] || TEACHING_DATABASE_UI.zh;
+  const sourceKey = source === 'notion' ? 'notion' : 'fallback';
+
+  return (
+    <section className="module-data-source-card teaching-status-card">
+      <div>
+        <div className="label">{ui.source[sourceKey]}</div>
+        <p>{ui.connection[sourceKey]}</p>
+      </div>
+      <span className="module-data-endpoint">{getModuleEndpoint('teaching')}</span>
+    </section>
+  );
+}
+
+function TeachingFilterGroup({ label, filters, activeValue, onSelect, lang }) {
+  return (
+    <div className="teaching-filter-section">
+      <span>{label}</span>
+      <div className="teaching-filter-row">
+        {filters.map((filter) => (
+          <button
+            key={filter.value}
+            className="teaching-filter-chip"
+            data-active={activeValue === filter.value ? 'true' : 'false'}
+            type="button"
+            onClick={() => onSelect(filter.value)}
+          >
+            {filter.label[lang] || filter.label.zh}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TeachingDataPanel({ moduleKey, endpoint, lang }) {
+  const moduleState = useModuleData(moduleKey, endpoint);
+  const ui = TEACHING_DATABASE_UI[lang] || TEACHING_DATABASE_UI.zh;
+  const labels = MODULE_DATA_LABELS[lang] || MODULE_DATA_LABELS.zh;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [languageFilter, setLanguageFilter] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const items = useMemo(() => moduleState.items || [], [moduleState.items]);
+
+  const filteredItems = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const activeType = TEACHING_TYPE_FILTERS.find((filter) => filter.value === typeFilter) || TEACHING_TYPE_FILTERS[0];
+    const activeStatus = TEACHING_STATUS_FILTERS.find((filter) => filter.value === statusFilter) || TEACHING_STATUS_FILTERS[0];
+    const activeLanguage = TEACHING_LANGUAGE_FILTERS.find((filter) => filter.value === languageFilter) || TEACHING_LANGUAGE_FILTERS[0];
+
+    return items.filter((teachingItem) => {
+      const matchesSearch = !normalizedQuery || getTeachingSearchBody(teachingItem, lang).includes(normalizedQuery);
+      return matchesSearch
+        && doesTeachingMatchFilter(teachingItem, activeType, lang, ['courseType', 'topic', 'tags', 'summary'])
+        && doesTeachingMatchFilter(teachingItem, activeStatus, lang, ['status'])
+        && doesTeachingMatchFilter(teachingItem, activeLanguage, lang, ['language']);
+    });
+  }, [items, lang, languageFilter, searchQuery, statusFilter, typeFilter]);
+
+  const visibleItems = filteredItems.slice(0, visibleCount);
+  const latestUpdatedAt = getLatestModuleUpdate(moduleState);
+
+  function resetVisibleCount() {
+    setVisibleCount(10);
+  }
+
+  function updateSearchQuery(value) {
+    setSearchQuery(value);
+    resetVisibleCount();
+  }
+
+  function updateTypeFilter(value) {
+    setTypeFilter(value);
+    resetVisibleCount();
+  }
+
+  function updateStatusFilter(value) {
+    setStatusFilter(value);
+    resetVisibleCount();
+  }
+
+  function updateLanguageFilter(value) {
+    setLanguageFilter(value);
+    resetVisibleCount();
+  }
+
+  function toggleExpanded(id) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <>
+      <div className="teaching-state-row">
+        <span>{ui.dataSource}: {moduleState.source}</span>
+        <span>{ui.count}: {moduleState.count ?? items.length}</span>
+        <span>{ui.updatedAt}: {latestUpdatedAt}</span>
+        <span>{ui.filteredCount}: {filteredItems.length}</span>
+      </div>
+
+      <TeachingSourceCard source={moduleState.source} lang={lang} />
+
+      <section className="teaching-toolbar" aria-label={ui.searchPlaceholder}>
+        <input
+          className="teaching-search-input"
+          type="search"
+          value={searchQuery}
+          onChange={(event) => updateSearchQuery(event.target.value)}
+          placeholder={ui.searchPlaceholder}
+          aria-label={ui.searchPlaceholder}
+        />
+      </section>
+
+      <section className="teaching-filter-panel" aria-label={ui.typeFilter}>
+        <TeachingFilterGroup
+          label={ui.typeFilter}
+          filters={TEACHING_TYPE_FILTERS}
+          activeValue={typeFilter}
+          onSelect={updateTypeFilter}
+          lang={lang}
+        />
+        <TeachingFilterGroup
+          label={ui.statusFilter}
+          filters={TEACHING_STATUS_FILTERS}
+          activeValue={statusFilter}
+          onSelect={updateStatusFilter}
+          lang={lang}
+        />
+        <TeachingFilterGroup
+          label={ui.languageFilter}
+          filters={TEACHING_LANGUAGE_FILTERS}
+          activeValue={languageFilter}
+          onSelect={updateLanguageFilter}
+          lang={lang}
+        />
+      </section>
+
+      <section className="teaching-compact-list" aria-label={moduleKey}>
+        {visibleItems.map((teachingItem) => {
+          const title = getTeachingField(teachingItem, 'title', lang) || 'Untitled Teaching Material';
+          const summary = getTeachingField(teachingItem, 'summary', lang);
+          const isExpanded = expandedIds.has(teachingItem.id);
+
+          return (
+            <article key={teachingItem.id} className="teaching-compact-card">
+              <div className="teaching-compact-main">
+                <div>
+                  <div className="module-data-card-top teaching-compact-top">
+                    <span className="content-tag">{getTeachingField(teachingItem, 'courseType', lang)}</span>
+                    <span className="module-data-status">{teachingItem.status}</span>
+                  </div>
+                  <h2>{title}</h2>
+                  <p className="teaching-meta-line">
+                    {getTeachingField(teachingItem, 'courseType', lang)} / {getTeachingField(teachingItem, 'topic', lang)}
+                  </p>
+                </div>
+
+                <button
+                  className="teaching-expand-button"
+                  type="button"
+                  onClick={() => toggleExpanded(teachingItem.id)}
+                  aria-expanded={isExpanded}
+                >
+                  {isExpanded ? ui.collapse : ui.expand}
+                </button>
+              </div>
+
+              <div className="teaching-compact-meta">
+                <span>{ui.targetAudience}: {getTeachingField(teachingItem, 'targetAudience', lang)}</span>
+                <span>{labels.status}: {teachingItem.status}</span>
+              </div>
+
+              <div className="teaching-tag-row">
+                {(teachingItem.tags || []).length
+                  ? teachingItem.tags.map((tag) => <span key={tag}>{tag}</span>)
+                  : <span>{getTeachingField(teachingItem, 'module', lang)}</span>}
+              </div>
+
+              <p className="teaching-card-summary">{summary}</p>
+
+              {isExpanded && (
+                <div className="teaching-detail-panel">
+                  <div className="module-v1-field">
+                    <span>{ui.learningGoals}</span>
+                    <p>{teachingItem.learningGoals}</p>
+                  </div>
+                  <div className="module-v1-field">
+                    <span>{ui.materials}</span>
+                    <p>{getTeachingField(teachingItem, 'materials', lang)}</p>
+                  </div>
+                  <div className="module-v1-field">
+                    <span>{ui.promptExamples}</span>
+                    <p>{teachingItem.promptExamples}</p>
+                  </div>
+                  <div className="module-v1-field">
+                    <span>{ui.assessment}</span>
+                    <p>{teachingItem.assessment}</p>
+                  </div>
+                  <div className="module-v1-field">
+                    <span>{ui.usage}</span>
+                    <p>{teachingItem.usage}</p>
+                  </div>
+                  <div className="module-v1-field">
+                    <span>{ui.language}</span>
+                    <p>{teachingItem.language}</p>
+                  </div>
+                  <div className="module-v1-footer">
+                    <span>{labels.sourceType}: {teachingItem.sourceType}</span>
+                    <span>{labels.updatedAt}: {teachingItem.updatedAt}</span>
+                  </div>
+                </div>
+              )}
+            </article>
+          );
+        })}
+
+        {!filteredItems.length ? (
+          <article className="teaching-empty-state">
+            <p>{ui.empty}</p>
+          </article>
+        ) : null}
+      </section>
+
+      {filteredItems.length > visibleCount ? (
+        <div className="teaching-load-more-row">
+          <span>{ui.showing} {visibleItems.length}{ui.of}{filteredItems.length}</span>
+          <button
+            className="teaching-load-more"
+            type="button"
+            onClick={() => setVisibleCount((count) => count + 10)}
+          >
+            {ui.loadMore}
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function StandardModuleDataPanel({ moduleKey, endpoint, lang }) {
   const moduleState = useModuleData(moduleKey, endpoint);
   const [activeFilter, setActiveFilter] = useState('all');
   const labels = MODULE_DATA_LABELS[lang] || MODULE_DATA_LABELS.zh;
-  const items = moduleState.items || [];
+  const items = useMemo(() => moduleState.items || [], [moduleState.items]);
   const filteredItems = useMemo(() => (
     activeFilter === 'all' ? items : items.filter((item) => item.type === activeFilter || item.category === activeFilter)
   ), [activeFilter, items]);
@@ -447,6 +875,14 @@ export function ModuleDataPanel({ moduleKey, endpoint, lang }) {
       <ModuleDataStatus moduleKey={moduleKey} lang={lang} />
     </>
   );
+}
+
+export function ModuleDataPanel({ moduleKey, endpoint, lang }) {
+  if (moduleKey === 'teaching') {
+    return <TeachingDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
+  }
+
+  return <StandardModuleDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
 }
 
 export default function ModuleDataLayer({ item, common, lang }) {
