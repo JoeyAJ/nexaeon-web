@@ -145,6 +145,10 @@ export const LITERATURE_UI = {
 };
 
 export function getLiteratureSummary(item, lang = 'zh') {
+  if (typeof item.summary === 'string') return item.summary;
+  if (item.summary && typeof item.summary === 'object') {
+    return item.summary[lang] || item.summary.zh || item.summary.en || item.summary.ko || '';
+  }
   if (lang === 'ko') return item.summaryKo;
   if (lang === 'en') return item.summaryEn;
   return item.summaryZh;
@@ -161,11 +165,20 @@ export function getLiteratureStatusText(source = 'fallback', lang = 'zh') {
 }
 
 export function createFallbackLiteratureResponse(reason = 'notion_not_connected') {
+  const data = FALLBACK_LITERATURE_DATA.map((item) => ({
+    ...item,
+    summary: {
+      zh: item.summaryZh,
+      ko: item.summaryKo,
+      en: item.summaryEn,
+    },
+  }));
+
   return {
     source: 'fallback',
     reason,
-    count: FALLBACK_LITERATURE_DATA.length,
-    data: FALLBACK_LITERATURE_DATA,
+    count: data.length,
+    data,
     updatedAt: new Date().toISOString(),
   };
 }
