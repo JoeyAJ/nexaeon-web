@@ -211,26 +211,33 @@ const TEACHING_DATABASE_UI = {
   zh: {
     dataSource: '資料來源',
     count: '教學素材數量',
-    updatedAt: '最後更新時間',
+    updatedAt: '最後更新',
     filteredCount: '目前篩選結果',
-    searchPlaceholder: '搜尋課程、教材、主題、Prompt 或學習目標',
-    typeFilter: '教材類型',
-    statusFilter: '使用狀態',
-    languageFilter: '語言',
+    searchPlaceholder: '搜尋標題、分類、形式、對象、標籤或備註',
+    emptyValue: '未填寫',
     expand: '展開詳情',
     collapse: '收合詳情',
     loadMore: '載入更多',
     empty: '沒有符合條件的教學素材。',
     showing: '目前顯示',
     of: ' / ',
-    courseTypeTopic: '類型 / 主題',
-    targetAudience: '目標對象',
-    learningGoals: '學習目標',
-    materials: '教學素材',
-    promptExamples: 'Prompt 範例',
-    assessment: '評量設計',
-    usage: '使用目的',
+    teachingCategory: '教學分類',
+    format: '形式',
+    subTopic: '子主題',
+    targetAudience: '對象',
+    durationMinutes: '可講時間',
+    difficulty: '難度',
+    status: '狀態',
     language: '語言',
+    tags: '標籤',
+    note: '備註',
+    fileUrl: '檔案連結',
+    usageCount: '使用次數',
+    referenceCount: '參考文獻',
+    inspirationCount: '源靈感',
+    derivedContentCount: '衍生內容',
+    createdAt: '建立日期',
+    openFile: '開啟檔案',
     source: {
       notion: '資料來源：Notion 教學素材庫',
       fallback: '資料來源：Fallback Teaching Data',
@@ -243,26 +250,33 @@ const TEACHING_DATABASE_UI = {
   en: {
     dataSource: 'Data Source',
     count: 'Teaching Material Count',
-    updatedAt: 'Last Updated',
+    updatedAt: 'Updated At',
     filteredCount: 'Filtered Results',
-    searchPlaceholder: 'Search courses, materials, topics, prompts, or learning goals',
-    typeFilter: 'Material Type',
-    statusFilter: 'Status',
-    languageFilter: 'Language',
+    searchPlaceholder: 'Search title, category, format, audience, tags, or notes',
+    emptyValue: 'Not filled',
     expand: 'Expand details',
     collapse: 'Collapse details',
     loadMore: 'Load more',
     empty: 'No teaching materials match the current filters.',
     showing: 'Showing',
     of: ' of ',
-    courseTypeTopic: 'Type / Topic',
-    targetAudience: 'Target Audience',
-    learningGoals: 'Learning Goals',
-    materials: 'Teaching Materials',
-    promptExamples: 'Prompt Examples',
-    assessment: 'Assessment',
-    usage: 'Usage',
+    teachingCategory: 'Teaching Category',
+    format: 'Format',
+    subTopic: 'Subtopic',
+    targetAudience: 'Audience',
+    durationMinutes: 'Duration',
+    difficulty: 'Difficulty',
+    status: 'Status',
     language: 'Language',
+    tags: 'Tags',
+    note: 'Notes',
+    fileUrl: 'File Link',
+    usageCount: 'Usage Count',
+    referenceCount: 'References',
+    inspirationCount: 'Source Inspirations',
+    derivedContentCount: 'Derived Content',
+    createdAt: 'Created At',
+    openFile: 'Open file',
     source: {
       notion: 'Data Source: Notion Teaching Materials Database',
       fallback: 'Data Source: Fallback Teaching Data',
@@ -275,26 +289,33 @@ const TEACHING_DATABASE_UI = {
   ko: {
     dataSource: '데이터 출처',
     count: '수업 자료 수',
-    updatedAt: '마지막 업데이트',
+    updatedAt: '최종 수정일',
     filteredCount: '현재 필터 결과',
-    searchPlaceholder: '수업, 자료, 주제, 프롬프트 또는 학습 목표 검색',
-    typeFilter: '자료 유형',
-    statusFilter: '사용 상태',
-    languageFilter: '언어',
+    searchPlaceholder: '제목, 분류, 형식, 대상, 태그 또는 메모 검색',
+    emptyValue: '미입력',
     expand: '자세히 보기',
     collapse: '접기',
     loadMore: '더 보기',
     empty: '현재 필터와 일치하는 수업 자료가 없다.',
     showing: '표시 중',
     of: ' / ',
-    courseTypeTopic: '유형 / 주제',
+    teachingCategory: '수업 분류',
+    format: '형식',
+    subTopic: '하위 주제',
     targetAudience: '대상',
-    learningGoals: '학습 목표',
-    materials: '수업 자료',
-    promptExamples: '프롬프트 예시',
-    assessment: '평가 설계',
-    usage: '사용 목적',
+    durationMinutes: '강의 가능 시간',
+    difficulty: '난이도',
+    status: '상태',
     language: '언어',
+    tags: '태그',
+    note: '메모',
+    fileUrl: '파일 링크',
+    usageCount: '사용 횟수',
+    referenceCount: '참고 문헌',
+    inspirationCount: '원천 영감',
+    derivedContentCount: '파생 콘텐츠',
+    createdAt: '생성일',
+    openFile: '파일 열기',
     source: {
       notion: '데이터 출처: Notion 수업 자료 데이터베이스',
       fallback: '데이터 출처: Fallback Teaching Data',
@@ -306,42 +327,67 @@ const TEACHING_DATABASE_UI = {
   },
 };
 
-const TEACHING_TYPE_FILTERS = [
+const TEACHING_CATEGORY_FILTERS = [
   { value: 'all', label: { zh: '全部', en: 'All', ko: '전체' }, matches: [] },
-  { value: 'prompt-engineering', label: { zh: 'Prompt Engineering', en: 'Prompt Engineering', ko: 'Prompt Engineering' }, matches: ['Prompt Engineering', 'prompt', '提示詞', '프롬프트'] },
-  { value: 'ai-literacy', label: { zh: 'AI Literacy', en: 'AI Literacy', ko: 'AI Literacy' }, matches: ['AI Literacy', 'AI 素養', 'AI 리터러시'] },
-  { value: 'research-methods', label: { zh: 'Research Methods', en: 'Research Methods', ko: 'Research Methods' }, matches: ['Research Methods', 'Research Method', '研究方法', '연구 방법'] },
-  { value: 'workshop', label: { zh: 'Workshop', en: 'Workshop', ko: 'Workshop' }, matches: ['Workshop', '工作坊', '워크숍'] },
-  { value: 'lecture', label: { zh: 'Lecture', en: 'Lecture', ko: 'Lecture' }, matches: ['Lecture', '講座', '課程', '강의'] },
-  { value: 'assignment', label: { zh: 'Assignment', en: 'Assignment', ko: 'Assignment' }, matches: ['Assignment', '作業', '과제'] },
-  { value: 'rubric', label: { zh: 'Rubric', en: 'Rubric', ko: 'Rubric' }, matches: ['Rubric', '評量', '루브릭'] },
+  { value: 'ai', label: { zh: 'AI', en: 'AI', ko: 'AI' }, matches: ['AI'] },
+  { value: 'business', label: { zh: '商業', en: 'Business', ko: '비즈니스' }, matches: ['商業', 'Business', '비즈니스'] },
+  { value: 'psychology', label: { zh: '心理', en: 'Psychology', ko: '심리' }, matches: ['心理', 'Psychology', '심리'] },
+  { value: 'education', label: { zh: '教育', en: 'Education', ko: '교육' }, matches: ['教育', 'Education', '교육'] },
+  { value: 'cross-domain', label: { zh: '跨域', en: 'Cross-disciplinary', ko: '융합' }, matches: ['跨域', 'Cross-disciplinary', 'Cross Domain', '융합'] },
+];
+
+const TEACHING_FORMAT_FILTERS = [
+  { value: 'all', label: { zh: '全部形式', en: 'All Formats', ko: '전체 형식' }, matches: [] },
+  { value: 'ppt', label: { zh: 'PPT', en: 'PPT', ko: 'PPT' }, matches: ['PPT'] },
+  { value: 'handout', label: { zh: '課堂講義', en: 'Class Handout', ko: '수업 유인물' }, matches: ['課堂講義', 'Class Handout', '강의자료', '수업 유인물'] },
+  { value: 'case', label: { zh: '案例', en: 'Case', ko: '사례' }, matches: ['案例', 'Case', '사례'] },
+  { value: 'video', label: { zh: '影片', en: 'Video', ko: '영상' }, matches: ['影片', 'Video', '영상'] },
+  { value: 'survey', label: { zh: '問卷', en: 'Survey', ko: '설문' }, matches: ['問卷', 'Survey', '설문'] },
+  { value: 'workshop', label: { zh: 'Workshop', en: 'Workshop', ko: '워크숍' }, matches: ['Workshop', '工作坊', '워크숍'] },
+];
+
+const TEACHING_AUDIENCE_FILTERS = [
+  { value: 'all', label: { zh: '全部對象', en: 'All Audiences', ko: '전체 대상' }, matches: [] },
+  { value: 'undergraduate', label: { zh: '大學生', en: 'Undergraduates', ko: '대학생' }, matches: ['大學生', 'Undergraduates', 'Undergraduate', '대학생'] },
+  { value: 'graduate', label: { zh: '研究生', en: 'Graduate Students', ko: '대학원생' }, matches: ['研究生', 'Graduate Students', 'Graduate Student', '대학원생'] },
+  { value: 'chinese-students', label: { zh: '中國學生', en: 'Chinese Students', ko: '중국 학생' }, matches: ['中國學生', 'Chinese Students', '중국 학생'] },
+  { value: 'korean-students', label: { zh: '韓國學生', en: 'Korean Students', ko: '한국 학생' }, matches: ['韓國學生', 'Korean Students', '한국 학생'] },
+  { value: 'professionals', label: { zh: '在職人員', en: 'Professionals', ko: '재직자' }, matches: ['在職人員', 'Professionals', 'Working Professionals', '재직자'] },
 ];
 
 const TEACHING_STATUS_FILTERS = [
   { value: 'all', label: { zh: '全部狀態', en: 'All Status', ko: '전체 상태' }, matches: [] },
-  { value: 'ready', label: { zh: '可立即授課', en: 'Ready to Teach', ko: '바로 수업 가능' }, matches: ['可立即授課', 'ready', 'ready to teach', '바로'] },
-  { value: 'draft', label: { zh: '草稿', en: 'Draft', ko: '초안' }, matches: ['草稿', 'draft', '초안'] },
-  { value: 'in-progress', label: { zh: '製作中', en: 'In Progress', ko: '제작 중' }, matches: ['製作中', 'in progress', '進行中', '제작', '진행'] },
-  { value: 'organized', label: { zh: '已整理', en: 'Organized', ko: '정리 완료' }, matches: ['已整理', 'organized', '整理', '정리'] },
-  { value: 'needs-more', label: { zh: '待補充', en: 'Needs More', ko: '보완 필요' }, matches: ['待補充', 'needs more', '補充', '보완'] },
+  { value: 'not-started', label: { zh: '未開始', en: 'Not Started', ko: '시작 전' }, matches: ['未開始', 'Not Started', '시작 전'] },
+  { value: 'in-progress', label: { zh: '進行中', en: 'In Progress', ko: '진행 중' }, matches: ['進行中', 'In Progress', '진행 중'] },
+  { value: 'complete', label: { zh: '完成', en: 'Complete', ko: '완료' }, matches: ['完成', 'Complete', 'Done', '완료'] },
 ];
 
 const TEACHING_LANGUAGE_FILTERS = [
   { value: 'all', label: { zh: '全部語言', en: 'All Languages', ko: '전체 언어' }, matches: [] },
-  { value: 'zh', label: { zh: '中文', en: 'Chinese', ko: '중국어' }, matches: ['中文', 'Chinese', 'zh', '繁中'] },
+  { value: 'zh', label: { zh: '中文', en: 'Chinese', ko: '중국어' }, matches: ['中文', 'Chinese', 'zh', '繁中', '중국어'] },
   { value: 'ko', label: { zh: '韓文', en: 'Korean', ko: '한국어' }, matches: ['韓文', 'Korean', 'ko', '한국어'] },
-  { value: 'en', label: { zh: '英文', en: 'English', ko: '영어' }, matches: ['英文', 'English', 'en'] },
-  { value: 'zh-ko', label: { zh: '中韓雙語', en: 'Chinese-Korean', ko: '중한 이중언어' }, matches: ['中韓', 'Chinese-Korean', 'zh-ko', '중한'] },
-  { value: 'tri', label: { zh: '中英韓三語', en: 'Chinese-English-Korean', ko: '중영한 삼중언어' }, matches: ['中英韓', 'Chinese-English-Korean', 'trilingual', '三語', '삼중'] },
+  { value: 'en', label: { zh: '英文', en: 'English', ko: '영어' }, matches: ['英文', 'English', 'en', '영어'] },
+];
+
+const TEACHING_DIFFICULTY_FILTERS = [
+  { value: 'all', label: { zh: '全部難度', en: 'All Difficulty', ko: '전체 난이도' }, matches: [] },
+  { value: 'beginner', label: { zh: '初級', en: 'Beginner', ko: '초급' }, matches: ['初級', 'Beginner', 'Basic', '초급'] },
+  { value: 'intermediate', label: { zh: '中級', en: 'Intermediate', ko: '중급' }, matches: ['中級', 'Intermediate', '중급'] },
+  { value: 'advanced', label: { zh: '高級', en: 'Advanced', ko: '고급' }, matches: ['高級', 'Advanced', '고급'] },
 ];
 
 function getTeachingField(item, field, lang) {
-  if (item[field]) return item[field];
+  if (Array.isArray(item[field])) return item[field];
+  if (item[field] !== undefined && item[field] !== null && item[field] !== '') return item[field];
   if (field === 'title') return getLocalizedModuleField(item, 'title', lang);
+  if (field === 'teachingCategory') return item.teachingCategory || item.courseType || item.category || item.type || '';
+  if (field === 'format') return item.format || (item.type ? [item.type] : []);
+  if (field === 'subTopic') return item.subTopic || item.topic || item.relatedModule || '';
+  if (field === 'targetAudience') return item.targetAudience || (item.audience ? [item.audience] : []);
+  if (field === 'note') return item.note || item.summary || getLocalizedModuleField(item, 'description', lang);
   if (field === 'summary') return item.summary || getLocalizedModuleField(item, 'description', lang);
   if (field === 'courseType') return item.courseType || item.type || '';
   if (field === 'topic') return item.topic || item.category || '';
-  if (field === 'targetAudience') return item.targetAudience || item.audience || '';
   if (field === 'module') return item.module || item.relatedModule || '';
   if (field === 'materials') return item.materials || getLocalizedModuleField(item, 'description', lang);
   return '';
@@ -350,25 +396,76 @@ function getTeachingField(item, field, lang) {
 function getTeachingSearchBody(item, lang) {
   return [
     getTeachingField(item, 'title', lang),
-    getTeachingField(item, 'courseType', lang),
-    getTeachingField(item, 'topic', lang),
+    getTeachingField(item, 'teachingCategory', lang),
+    getTeachingField(item, 'format', lang),
+    getTeachingField(item, 'subTopic', lang),
     getTeachingField(item, 'targetAudience', lang),
-    getTeachingField(item, 'module', lang),
-    item.learningGoals,
-    getTeachingField(item, 'materials', lang),
-    item.promptExamples,
-    item.assessment,
+    getTeachingField(item, 'difficulty', lang),
+    getTeachingField(item, 'status', lang),
+    getTeachingField(item, 'language', lang),
     item.tags,
-    getTeachingField(item, 'summary', lang),
-    item.usage,
-    item.status,
+    getTeachingField(item, 'note', lang),
+    item.fileUrl,
   ].map(normalizeSearchText).join(' ');
 }
 
-function doesTeachingMatchFilter(item, filter, lang, fields) {
+function normalizeTeachingComparable(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function toTeachingArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return value ? [value] : [];
+}
+
+function hasTeachingValue(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).length > 0;
+  if (value === 0) return true;
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function formatTeachingValue(value, emptyValue) {
+  if (!hasTeachingValue(value)) return emptyValue;
+  if (Array.isArray(value)) return value.filter(Boolean).join(', ');
+  return String(value);
+}
+
+function doesTeachingMatchFilter(item, filter, field, mode = 'equals') {
   if (filter.value === 'all') return true;
-  const haystack = fields.map((field) => normalizeSearchText(getTeachingField(item, field, lang) || item[field])).join(' ');
-  return filter.matches.some((match) => haystack.includes(match.toLowerCase()));
+  const needles = filter.matches.map(normalizeTeachingComparable);
+  const rawValue = getTeachingField(item, field, 'zh');
+
+  if (mode === 'includes') {
+    const values = toTeachingArray(rawValue).map(normalizeTeachingComparable);
+    return needles.some((match) => values.includes(match));
+  }
+
+  const value = normalizeTeachingComparable(rawValue);
+  return needles.some((match) => value === match);
+}
+
+function TeachingFieldValue({ label, value, emptyValue }) {
+  return (
+    <div className="teaching-display-field">
+      <span>{label}</span>
+      <p>{formatTeachingValue(value, emptyValue)}</p>
+    </div>
+  );
+}
+
+function TeachingFileField({ label, value, emptyValue, openLabel }) {
+  return (
+    <div className="teaching-display-field">
+      <span>{label}</span>
+      <p>
+        {hasTeachingValue(value) ? (
+          <a className="teaching-inline-link" href={value} target="_blank" rel="noreferrer">
+            {openLabel}
+          </a>
+        ) : emptyValue}
+      </p>
+    </div>
+  );
 }
 
 function getLatestModuleUpdate(moduleState) {
@@ -634,29 +731,37 @@ function TeachingFilterGroup({ label, filters, activeValue, onSelect, lang }) {
 function TeachingDataPanel({ moduleKey, endpoint, lang }) {
   const moduleState = useModuleData(moduleKey, endpoint);
   const ui = TEACHING_DATABASE_UI[lang] || TEACHING_DATABASE_UI.zh;
-  const labels = MODULE_DATA_LABELS[lang] || MODULE_DATA_LABELS.zh;
   const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [formatFilter, setFormatFilter] = useState('all');
+  const [audienceFilter, setAudienceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [languageFilter, setLanguageFilter] = useState('all');
+  const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [visibleCount, setVisibleCount] = useState(10);
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const items = useMemo(() => moduleState.items || [], [moduleState.items]);
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    const activeType = TEACHING_TYPE_FILTERS.find((filter) => filter.value === typeFilter) || TEACHING_TYPE_FILTERS[0];
+    const activeCategory = TEACHING_CATEGORY_FILTERS.find((filter) => filter.value === categoryFilter) || TEACHING_CATEGORY_FILTERS[0];
+    const activeFormat = TEACHING_FORMAT_FILTERS.find((filter) => filter.value === formatFilter) || TEACHING_FORMAT_FILTERS[0];
+    const activeAudience = TEACHING_AUDIENCE_FILTERS.find((filter) => filter.value === audienceFilter) || TEACHING_AUDIENCE_FILTERS[0];
     const activeStatus = TEACHING_STATUS_FILTERS.find((filter) => filter.value === statusFilter) || TEACHING_STATUS_FILTERS[0];
     const activeLanguage = TEACHING_LANGUAGE_FILTERS.find((filter) => filter.value === languageFilter) || TEACHING_LANGUAGE_FILTERS[0];
+    const activeDifficulty = TEACHING_DIFFICULTY_FILTERS.find((filter) => filter.value === difficultyFilter) || TEACHING_DIFFICULTY_FILTERS[0];
 
     return items.filter((teachingItem) => {
       const matchesSearch = !normalizedQuery || getTeachingSearchBody(teachingItem, lang).includes(normalizedQuery);
       return matchesSearch
-        && doesTeachingMatchFilter(teachingItem, activeType, lang, ['courseType', 'topic', 'tags', 'summary'])
-        && doesTeachingMatchFilter(teachingItem, activeStatus, lang, ['status'])
-        && doesTeachingMatchFilter(teachingItem, activeLanguage, lang, ['language']);
+        && doesTeachingMatchFilter(teachingItem, activeCategory, 'teachingCategory')
+        && doesTeachingMatchFilter(teachingItem, activeFormat, 'format', 'includes')
+        && doesTeachingMatchFilter(teachingItem, activeAudience, 'targetAudience', 'includes')
+        && doesTeachingMatchFilter(teachingItem, activeStatus, 'status')
+        && doesTeachingMatchFilter(teachingItem, activeLanguage, 'language', 'includes')
+        && doesTeachingMatchFilter(teachingItem, activeDifficulty, 'difficulty');
     });
-  }, [items, lang, languageFilter, searchQuery, statusFilter, typeFilter]);
+  }, [audienceFilter, categoryFilter, difficultyFilter, formatFilter, items, lang, languageFilter, searchQuery, statusFilter]);
 
   const visibleItems = filteredItems.slice(0, visibleCount);
   const latestUpdatedAt = getLatestModuleUpdate(moduleState);
@@ -670,8 +775,18 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
     resetVisibleCount();
   }
 
-  function updateTypeFilter(value) {
-    setTypeFilter(value);
+  function updateCategoryFilter(value) {
+    setCategoryFilter(value);
+    resetVisibleCount();
+  }
+
+  function updateFormatFilter(value) {
+    setFormatFilter(value);
+    resetVisibleCount();
+  }
+
+  function updateAudienceFilter(value) {
+    setAudienceFilter(value);
     resetVisibleCount();
   }
 
@@ -682,6 +797,11 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
 
   function updateLanguageFilter(value) {
     setLanguageFilter(value);
+    resetVisibleCount();
+  }
+
+  function updateDifficultyFilter(value) {
+    setDifficultyFilter(value);
     resetVisibleCount();
   }
 
@@ -716,26 +836,47 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
         />
       </section>
 
-      <section className="teaching-filter-panel" aria-label={ui.typeFilter}>
+      <section className="teaching-filter-panel" aria-label={ui.teachingCategory}>
         <TeachingFilterGroup
-          label={ui.typeFilter}
-          filters={TEACHING_TYPE_FILTERS}
-          activeValue={typeFilter}
-          onSelect={updateTypeFilter}
+          label={ui.teachingCategory}
+          filters={TEACHING_CATEGORY_FILTERS}
+          activeValue={categoryFilter}
+          onSelect={updateCategoryFilter}
           lang={lang}
         />
         <TeachingFilterGroup
-          label={ui.statusFilter}
+          label={ui.format}
+          filters={TEACHING_FORMAT_FILTERS}
+          activeValue={formatFilter}
+          onSelect={updateFormatFilter}
+          lang={lang}
+        />
+        <TeachingFilterGroup
+          label={ui.targetAudience}
+          filters={TEACHING_AUDIENCE_FILTERS}
+          activeValue={audienceFilter}
+          onSelect={updateAudienceFilter}
+          lang={lang}
+        />
+        <TeachingFilterGroup
+          label={ui.status}
           filters={TEACHING_STATUS_FILTERS}
           activeValue={statusFilter}
           onSelect={updateStatusFilter}
           lang={lang}
         />
         <TeachingFilterGroup
-          label={ui.languageFilter}
+          label={ui.language}
           filters={TEACHING_LANGUAGE_FILTERS}
           activeValue={languageFilter}
           onSelect={updateLanguageFilter}
+          lang={lang}
+        />
+        <TeachingFilterGroup
+          label={ui.difficulty}
+          filters={TEACHING_DIFFICULTY_FILTERS}
+          activeValue={difficultyFilter}
+          onSelect={updateDifficultyFilter}
           lang={lang}
         />
       </section>
@@ -743,7 +884,15 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
       <section className="teaching-compact-list" aria-label={moduleKey}>
         {visibleItems.map((teachingItem) => {
           const title = getTeachingField(teachingItem, 'title', lang) || 'Untitled Teaching Material';
-          const summary = getTeachingField(teachingItem, 'summary', lang);
+          const category = getTeachingField(teachingItem, 'teachingCategory', lang);
+          const format = getTeachingField(teachingItem, 'format', lang);
+          const subTopic = getTeachingField(teachingItem, 'subTopic', lang);
+          const targetAudience = getTeachingField(teachingItem, 'targetAudience', lang);
+          const status = getTeachingField(teachingItem, 'status', lang);
+          const difficulty = getTeachingField(teachingItem, 'difficulty', lang);
+          const language = getTeachingField(teachingItem, 'language', lang);
+          const tags = toTeachingArray(getTeachingField(teachingItem, 'tags', lang));
+          const note = getTeachingField(teachingItem, 'note', lang);
           const isExpanded = expandedIds.has(teachingItem.id);
 
           return (
@@ -751,13 +900,11 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
               <div className="teaching-compact-main">
                 <div>
                   <div className="module-data-card-top teaching-compact-top">
-                    <span className="content-tag">{getTeachingField(teachingItem, 'courseType', lang)}</span>
-                    <span className="module-data-status">{teachingItem.status}</span>
+                    {hasTeachingValue(category) ? <span className="content-tag">{formatTeachingValue(category, ui.emptyValue)}</span> : null}
+                    {hasTeachingValue(status) ? <span className="module-data-status">{formatTeachingValue(status, ui.emptyValue)}</span> : null}
                   </div>
                   <h2>{title}</h2>
-                  <p className="teaching-meta-line">
-                    {getTeachingField(teachingItem, 'courseType', lang)} / {getTeachingField(teachingItem, 'topic', lang)}
-                  </p>
+                  <p className="teaching-meta-line">{formatTeachingValue(subTopic, ui.emptyValue)}</p>
                 </div>
 
                 <button
@@ -770,48 +917,42 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
                 </button>
               </div>
 
-              <div className="teaching-compact-meta">
-                <span>{ui.targetAudience}: {getTeachingField(teachingItem, 'targetAudience', lang)}</span>
-                <span>{labels.status}: {teachingItem.status}</span>
+              <div className="teaching-field-grid">
+                <TeachingFieldValue label={ui.teachingCategory} value={category} emptyValue={ui.emptyValue} />
+                <TeachingFieldValue label={ui.format} value={format} emptyValue={ui.emptyValue} />
+                <TeachingFieldValue label={ui.subTopic} value={subTopic} emptyValue={ui.emptyValue} />
+                <TeachingFieldValue label={ui.targetAudience} value={targetAudience} emptyValue={ui.emptyValue} />
+                <TeachingFieldValue label={ui.status} value={status} emptyValue={ui.emptyValue} />
+                <TeachingFieldValue label={ui.difficulty} value={difficulty} emptyValue={ui.emptyValue} />
+                <TeachingFieldValue label={ui.language} value={language} emptyValue={ui.emptyValue} />
               </div>
 
-              <div className="teaching-tag-row">
-                {(teachingItem.tags || []).length
-                  ? teachingItem.tags.map((tag) => <span key={tag}>{tag}</span>)
-                  : <span>{getTeachingField(teachingItem, 'module', lang)}</span>}
+              <div className="teaching-tag-section">
+                <span>{ui.tags}</span>
+                <div className="teaching-tag-row">
+                  {tags.length
+                    ? tags.map((tag) => <span key={tag}>{tag}</span>)
+                    : <span>{ui.emptyValue}</span>}
+                </div>
               </div>
 
-              <p className="teaching-card-summary">{summary}</p>
+              <p className="teaching-card-summary">{formatTeachingValue(note, ui.emptyValue)}</p>
 
               {isExpanded && (
                 <div className="teaching-detail-panel">
-                  <div className="module-v1-field">
-                    <span>{ui.learningGoals}</span>
-                    <p>{teachingItem.learningGoals}</p>
+                  <div className="teaching-detail-grid">
+                    <TeachingFieldValue label={ui.durationMinutes} value={teachingItem.durationMinutes} emptyValue={ui.emptyValue} />
+                    <TeachingFieldValue label={ui.usageCount} value={teachingItem.usageCount} emptyValue={ui.emptyValue} />
+                    <TeachingFileField label={ui.fileUrl} value={teachingItem.fileUrl} emptyValue={ui.emptyValue} openLabel={ui.openFile} />
+                    <TeachingFieldValue label={ui.referenceCount} value={teachingItem.referenceCount} emptyValue={ui.emptyValue} />
+                    <TeachingFieldValue label={ui.inspirationCount} value={teachingItem.inspirationCount} emptyValue={ui.emptyValue} />
+                    <TeachingFieldValue label={ui.derivedContentCount} value={teachingItem.derivedContentCount} emptyValue={ui.emptyValue} />
+                    <TeachingFieldValue label={ui.createdAt} value={teachingItem.createdAt} emptyValue={ui.emptyValue} />
+                    <TeachingFieldValue label={ui.updatedAt} value={teachingItem.updatedAt} emptyValue={ui.emptyValue} />
                   </div>
-                  <div className="module-v1-field">
-                    <span>{ui.materials}</span>
-                    <p>{getTeachingField(teachingItem, 'materials', lang)}</p>
-                  </div>
-                  <div className="module-v1-field">
-                    <span>{ui.promptExamples}</span>
-                    <p>{teachingItem.promptExamples}</p>
-                  </div>
-                  <div className="module-v1-field">
-                    <span>{ui.assessment}</span>
-                    <p>{teachingItem.assessment}</p>
-                  </div>
-                  <div className="module-v1-field">
-                    <span>{ui.usage}</span>
-                    <p>{teachingItem.usage}</p>
-                  </div>
-                  <div className="module-v1-field">
-                    <span>{ui.language}</span>
-                    <p>{teachingItem.language}</p>
-                  </div>
-                  <div className="module-v1-footer">
-                    <span>{labels.sourceType}: {teachingItem.sourceType}</span>
-                    <span>{labels.updatedAt}: {teachingItem.updatedAt}</span>
+                  <div className="teaching-full-note">
+                    <span>{ui.note}</span>
+                    <p>{formatTeachingValue(note, ui.emptyValue)}</p>
                   </div>
                 </div>
               )}

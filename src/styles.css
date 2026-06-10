@@ -3715,11 +3715,31 @@ body {
   box-shadow: 0 10px 22px color-mix(in srgb, var(--accent-blue) 16%, transparent);
 }
 
-.teaching-compact-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
+.teaching-field-grid,
+.teaching-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin-top: 12px;
+}
+
+.teaching-detail-grid {
+  margin-top: 16px;
+}
+
+.teaching-display-field,
+.teaching-full-note {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--line-1) 84%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-2) 42%, transparent);
+  padding: 10px;
+}
+
+.teaching-display-field span,
+.teaching-full-note span,
+.teaching-tag-section > span {
+  display: block;
   color: var(--accent-fg);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -3727,11 +3747,26 @@ body {
   letter-spacing: 0;
 }
 
+.teaching-display-field p,
+.teaching-full-note p {
+  margin: 5px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--fg-1);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.teaching-tag-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 .teaching-tag-row {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-  margin-top: 14px;
+  min-width: 0;
 }
 
 .teaching-tag-row span {
@@ -3759,6 +3794,18 @@ body {
 .teaching-detail-panel {
   margin-top: 16px;
   border-top: 1px solid var(--line-1);
+}
+
+.teaching-full-note {
+  margin-top: 10px;
+}
+
+.teaching-inline-link {
+  color: var(--accent-fg);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent-cyan) 55%, transparent);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
 }
 
 .teaching-load-more-row {
@@ -3929,7 +3976,9 @@ body {
 
   .literature-toolbar,
   .literature-compact-main,
-  .teaching-compact-main {
+  .teaching-compact-main,
+  .teaching-field-grid,
+  .teaching-detail-grid {
     grid-template-columns: 1fr;
   }
 
