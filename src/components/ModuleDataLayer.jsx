@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   getLocalizedModuleField,
   getLocalizedModuleStatus,
@@ -20,6 +20,10 @@ function normalizeSearchText(value) {
   if (Array.isArray(value)) return value.join(' ').toLowerCase();
   if (value && typeof value === 'object') return Object.values(value).join(' ').toLowerCase();
   return String(value || '').toLowerCase();
+}
+
+function scrollResultsIntoView(ref) {
+  ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function createFallbackModuleResponse(moduleKey, reason = 'client_initial_fallback') {
@@ -740,6 +744,7 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [visibleCount, setVisibleCount] = useState(10);
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const resultsRef = useRef(null);
   const items = useMemo(() => moduleState.items || [], [moduleState.items]);
 
   const filteredItems = useMemo(() => {
@@ -814,6 +819,12 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
     });
   }
 
+  function handleSearchKeyDown(event) {
+    if (event.key === 'Enter' && searchQuery.trim()) {
+      scrollResultsIntoView(resultsRef);
+    }
+  }
+
   return (
     <>
       <div className="teaching-state-row">
@@ -831,6 +842,7 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
           type="search"
           value={searchQuery}
           onChange={(event) => updateSearchQuery(event.target.value)}
+          onKeyDown={handleSearchKeyDown}
           placeholder={ui.searchPlaceholder}
           aria-label={ui.searchPlaceholder}
         />
@@ -881,7 +893,7 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
         />
       </section>
 
-      <section className="teaching-compact-list" aria-label={moduleKey}>
+      <section ref={resultsRef} className="teaching-compact-list" aria-label={moduleKey}>
         {visibleItems.map((teachingItem) => {
           const title = getTeachingField(teachingItem, 'title', lang) || 'Untitled Teaching Material';
           const category = getTeachingField(teachingItem, 'teachingCategory', lang);

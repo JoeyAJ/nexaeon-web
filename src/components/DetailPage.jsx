@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getDetailItem, getLocalizedSite } from '../lib/contentSource.js';
 import {
   createFallbackLiteratureResponse,
@@ -11,7 +11,6 @@ import {
   getKnowledgeStatusText,
   getKnowledgeSummary,
   getKnowledgeTitle,
-  KNOWLEDGE_FILTERS,
   KNOWLEDGE_RESOURCE_UI,
 } from '../data/knowledgeResourceData.js';
 import ModuleDataLayer, { ModuleDataPanel } from './ModuleDataLayer.jsx';
@@ -92,6 +91,10 @@ function normalizeSearchText(value) {
   if (Array.isArray(value)) return value.join(' ').toLowerCase();
   if (value && typeof value === 'object') return Object.values(value).join(' ').toLowerCase();
   return String(value || '').toLowerCase();
+}
+
+function scrollResultsIntoView(ref) {
+  ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function getLiteratureSearchBody(literature, lang) {
@@ -249,6 +252,222 @@ const LITERATURE_STATUS_FILTERS = [
   { value: 'organized', label: { zh: '已整理', en: 'Organized', ko: '정리 완료' }, matches: ['已整理', 'organized', '整理', '정리'] },
 ];
 
+const KNOWLEDGE_DATABASE_UI = {
+  zh: {
+    dataSource: '資料來源',
+    count: '知識資源總數',
+    updatedAt: '最後更新時間',
+    filteredCount: '目前篩選結果',
+    sourceOverview: '資料來源統計',
+    sourceDatabase: '資料來源',
+    contentType: '內容類型',
+    relatedModule: '關聯模塊',
+    status: '狀態',
+    language: '語言',
+    tags: '標籤',
+    summary: '摘要',
+    primaryMeta: '主要資訊',
+    secondaryMeta: '補充資訊',
+    link: '連結',
+    fileLink: '檔案連結',
+    createdAt: '建立日期',
+    expand: '展開詳情',
+    collapse: '收合詳情',
+    loadMore: '載入更多',
+    empty: '沒有符合條件的知識資源。',
+    searchPlaceholder: '搜尋文獻、教材、靈感、品牌內容、標籤或摘要',
+    showing: '目前顯示',
+    of: ' / ',
+    openLink: '開啟連結',
+    openFile: '開啟檔案',
+    emptyValue: '未填寫',
+  },
+  en: {
+    dataSource: 'Data Source',
+    count: 'Knowledge Resources',
+    updatedAt: 'Last Updated',
+    filteredCount: 'Current Results',
+    sourceOverview: 'Source Overview',
+    sourceDatabase: 'Data Source',
+    contentType: 'Content Type',
+    relatedModule: 'Related Module',
+    status: 'Status',
+    language: 'Language',
+    tags: 'Tags',
+    summary: 'Summary',
+    primaryMeta: 'Primary Info',
+    secondaryMeta: 'Secondary Info',
+    link: 'Link',
+    fileLink: 'File Link',
+    createdAt: 'Created At',
+    expand: 'Expand details',
+    collapse: 'Collapse details',
+    loadMore: 'Load more',
+    empty: 'No knowledge resources match the current filters.',
+    searchPlaceholder: 'Search literature, teaching materials, ideas, brand content, tags, or summaries',
+    showing: 'Showing',
+    of: ' of ',
+    openLink: 'Open link',
+    openFile: 'Open file',
+    emptyValue: 'Not filled',
+  },
+  ko: {
+    dataSource: '데이터 출처',
+    count: '지식 리소스',
+    updatedAt: '최종 업데이트',
+    filteredCount: '현재 결과',
+    sourceOverview: '출처 개요',
+    sourceDatabase: '데이터 출처',
+    contentType: '콘텐츠 유형',
+    relatedModule: '관련 모듈',
+    status: '상태',
+    language: '언어',
+    tags: '태그',
+    summary: '요약',
+    primaryMeta: '주요 정보',
+    secondaryMeta: '보조 정보',
+    link: '링크',
+    fileLink: '파일 링크',
+    createdAt: '생성일',
+    expand: '자세히 보기',
+    collapse: '접기',
+    loadMore: '더 보기',
+    empty: '현재 필터와 일치하는 지식 리소스가 없다.',
+    searchPlaceholder: '문헌, 수업 자료, 아이디어, 브랜드 콘텐츠, 태그 또는 요약 검색',
+    showing: '표시 중',
+    of: ' / ',
+    openLink: '링크 열기',
+    openFile: '파일 열기',
+    emptyValue: '미입력',
+  },
+};
+
+const KNOWLEDGE_SOURCE_FILTERS = [
+  { value: 'all', label: { zh: '全部', en: 'All', ko: '전체' }, matches: [] },
+  { value: 'research', label: { zh: 'Research', en: 'Research', ko: 'Research' }, matches: ['research'] },
+  { value: 'teaching', label: { zh: 'Teaching', en: 'Teaching', ko: 'Teaching' }, matches: ['teaching'] },
+  { value: 'inspiration', label: { zh: 'Inspiration', en: 'Inspiration', ko: 'Inspiration' }, matches: ['inspiration'] },
+  { value: 'brand', label: { zh: 'Brand', en: 'Brand', ko: 'Brand' }, matches: ['brand'] },
+];
+
+const KNOWLEDGE_TYPE_FILTERS = [
+  { value: 'all', label: { zh: '全部類型', en: 'All Types', ko: '전체 유형' }, matches: [] },
+  { value: 'literature', label: { zh: 'Literature', en: 'Literature', ko: 'Literature' }, matches: ['Literature'] },
+  { value: 'teaching-material', label: { zh: 'Teaching Material', en: 'Teaching Material', ko: 'Teaching Material' }, matches: ['Teaching Material'] },
+  { value: 'inspiration', label: { zh: 'Inspiration', en: 'Inspiration', ko: 'Inspiration' }, matches: ['Inspiration'] },
+  { value: 'brand-content', label: { zh: 'Brand Content', en: 'Brand Content', ko: 'Brand Content' }, matches: ['Brand Content'] },
+];
+
+const KNOWLEDGE_MODULE_FILTERS = [
+  { value: 'all', label: { zh: '全部模塊', en: 'All Modules', ko: '전체 모듈' }, matches: [] },
+  { value: 'research', label: { zh: 'Research', en: 'Research', ko: 'Research' }, matches: ['Research'] },
+  { value: 'learning-coaching', label: { zh: 'Learning Coaching', en: 'Learning Coaching', ko: 'Learning Coaching' }, matches: ['Learning Coaching'] },
+  { value: 'knowledge-lab', label: { zh: 'Knowledge Lab', en: 'Knowledge Lab', ko: 'Knowledge Lab' }, matches: ['Knowledge Lab'] },
+  { value: 'brand-publishing', label: { zh: 'Brand / Publishing', en: 'Brand / Publishing', ko: 'Brand / Publishing' }, matches: ['Brand / Publishing'] },
+];
+
+const KNOWLEDGE_STATUS_FILTERS = [
+  { value: 'all', label: { zh: '全部狀態', en: 'All Status', ko: '전체 상태' }, matches: [] },
+  { value: 'not-started', label: { zh: '未開始', en: 'Not Started', ko: '시작 전' }, matches: ['未開始', 'Not Started', '시작 전'] },
+  { value: 'in-progress', label: { zh: '進行中', en: 'In Progress', ko: '진행 중' }, matches: ['進行中', 'In Progress', '진행 중'] },
+  { value: 'complete', label: { zh: '完成', en: 'Complete', ko: '완료' }, matches: ['完成', 'Complete', 'Done', '완료'] },
+  { value: 'organized', label: { zh: '已整理', en: 'Organized', ko: '정리 완료' }, matches: ['已整理', 'Organized', '정리 완료'] },
+  { value: 'cite-ready', label: { zh: '可引用', en: 'Citation Ready', ko: '인용 가능' }, matches: ['可引用', 'Citation Ready', '인용 가능'] },
+  { value: 'to-read', label: { zh: '待閱讀', en: 'To Read', ko: '읽기 예정' }, matches: ['待閱讀', 'To Read', '읽기 예정'] },
+  { value: 'draft', label: { zh: '草稿', en: 'Draft', ko: '초안' }, matches: ['草稿', 'Draft', '초안'] },
+];
+
+const KNOWLEDGE_LANGUAGE_FILTERS = [
+  { value: 'all', label: { zh: '全部語言', en: 'All Languages', ko: '전체 언어' }, matches: [] },
+  { value: 'zh', label: { zh: '中文', en: 'Chinese', ko: '중국어' }, matches: ['中文', 'Chinese', 'zh', '繁中', '중국어'] },
+  { value: 'ko', label: { zh: '韓文', en: 'Korean', ko: '한국어' }, matches: ['韓文', 'Korean', 'ko', '한국어'] },
+  { value: 'en', label: { zh: '英文', en: 'English', ko: '영어' }, matches: ['英文', 'English', 'en', '영어'] },
+];
+
+function getKnowledgeSearchBody(resource, lang) {
+  return [
+    getKnowledgeTitle(resource, lang),
+    resource.category,
+    resource.type,
+    resource.status,
+    resource.language,
+    resource.tags,
+    getKnowledgeSummary(resource, lang),
+    resource.relatedModule,
+    resource.primaryMeta,
+    resource.secondaryMeta,
+  ].map(normalizeSearchText).join(' ');
+}
+
+function doesKnowledgeMatchFilter(resource, filter, field) {
+  if (filter.value === 'all') return true;
+  const value = String(resource[field] || '').trim().toLowerCase();
+  return filter.matches.some((match) => value === match.toLowerCase());
+}
+
+function doesKnowledgeLanguageMatch(resource, filter) {
+  if (filter.value === 'all') return true;
+  const value = normalizeSearchText(resource.language);
+  return filter.matches.some((match) => value.includes(match.toLowerCase()));
+}
+
+function hasDisplayValue(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).length > 0;
+  if (value === 0) return true;
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function formatDisplayValue(value, emptyValue) {
+  if (!hasDisplayValue(value)) return emptyValue;
+  if (Array.isArray(value)) return value.filter(Boolean).join(', ');
+  return String(value);
+}
+
+function KnowledgeFilterGroup({ label, filters, activeValue, onSelect, lang }) {
+  return (
+    <div className="knowledge-filter-section">
+      <span>{label}</span>
+      <div className="knowledge-filter-row">
+        {filters.map((filter) => (
+          <button
+            key={filter.value}
+            className="knowledge-filter-chip"
+            data-active={activeValue === filter.value ? 'true' : 'false'}
+            onClick={() => onSelect(filter.value)}
+            type="button"
+          >
+            {filter.label[lang] || filter.label.zh}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function KnowledgeDetailField({ label, value, emptyValue }) {
+  return (
+    <div className="knowledge-detail-field">
+      <span>{label}</span>
+      <p>{formatDisplayValue(value, emptyValue)}</p>
+    </div>
+  );
+}
+
+function KnowledgeLinkField({ label, value, emptyValue, linkLabel }) {
+  return (
+    <div className="knowledge-detail-field">
+      <span>{label}</span>
+      <p>
+        {hasDisplayValue(value) ? (
+          <a className="knowledge-inline-link" href={value} target="_blank" rel="noreferrer">
+            {linkLabel}
+          </a>
+        ) : emptyValue}
+      </p>
+    </div>
+  );
+}
+
 function useResearchLiterature() {
   const [literatureState, setLiteratureState] = useState(() => createFallbackLiteratureResponse('client_initial_fallback'));
 
@@ -328,6 +547,7 @@ function LiteratureDatabase({ item, common, lang }) {
   const [sortMode, setSortMode] = useState('newest');
   const [visibleCount, setVisibleCount] = useState(10);
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const resultsRef = useRef(null);
 
   const topicOption = LITERATURE_TOPIC_FILTERS.find((filter) => filter.value === topicFilter) || LITERATURE_TOPIC_FILTERS[0];
   const methodOption = LITERATURE_METHOD_FILTERS.find((filter) => filter.value === methodFilter) || LITERATURE_METHOD_FILTERS[0];
@@ -389,6 +609,12 @@ function LiteratureDatabase({ item, common, lang }) {
     setVisibleCount(10);
   }
 
+  function handleSearchKeyDown(event) {
+    if (event.key === 'Enter' && searchQuery.trim()) {
+      scrollResultsIntoView(resultsRef);
+    }
+  }
+
   return (
     <article className="content-detail-card module-detail-card literature-database-card">
       <div className="detail-badge-row">
@@ -415,6 +641,7 @@ function LiteratureDatabase({ item, common, lang }) {
           type="search"
           value={searchQuery}
           onChange={(event) => updateSearchQuery(event.target.value)}
+          onKeyDown={handleSearchKeyDown}
           placeholder={databaseUi.searchPlaceholder}
           aria-label={databaseUi.searchPlaceholder}
         />
@@ -483,7 +710,7 @@ function LiteratureDatabase({ item, common, lang }) {
         </div>
       </section>
 
-      <section className="literature-compact-list" aria-label={ui.title}>
+      <section ref={resultsRef} className="literature-compact-list" aria-label={ui.title}>
         {visibleLiterature.map((literature) => {
           const isExpanded = expandedIds.has(literature.id);
           const summary = getLiteratureSummary(literature, lang);
@@ -591,11 +818,89 @@ function KnowledgeStatusCard({ source, lang }) {
 function KnowledgeResourceDatabase({ item, common, lang }) {
   const knowledgeState = useKnowledgeResources();
   const ui = KNOWLEDGE_RESOURCE_UI[lang] || KNOWLEDGE_RESOURCE_UI.zh;
-  const [activeFilter, setActiveFilter] = useState('all');
-  const resources = knowledgeState.items || [];
-  const filteredResources = activeFilter === 'all'
-    ? resources
-    : resources.filter((resource) => resource.type === activeFilter);
+  const databaseUi = KNOWLEDGE_DATABASE_UI[lang] || KNOWLEDGE_DATABASE_UI.zh;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [languageFilter, setLanguageFilter] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(12);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const resultsRef = useRef(null);
+  const resources = useMemo(() => knowledgeState.items || knowledgeState.data || [], [knowledgeState.data, knowledgeState.items]);
+  const sourceStats = knowledgeState.meta?.sources || {};
+  const latestUpdatedAt = knowledgeState.updatedAt || '';
+
+  const filteredResources = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const activeSource = KNOWLEDGE_SOURCE_FILTERS.find((filter) => filter.value === sourceFilter) || KNOWLEDGE_SOURCE_FILTERS[0];
+    const activeType = KNOWLEDGE_TYPE_FILTERS.find((filter) => filter.value === typeFilter) || KNOWLEDGE_TYPE_FILTERS[0];
+    const activeModule = KNOWLEDGE_MODULE_FILTERS.find((filter) => filter.value === moduleFilter) || KNOWLEDGE_MODULE_FILTERS[0];
+    const activeStatus = KNOWLEDGE_STATUS_FILTERS.find((filter) => filter.value === statusFilter) || KNOWLEDGE_STATUS_FILTERS[0];
+    const activeLanguage = KNOWLEDGE_LANGUAGE_FILTERS.find((filter) => filter.value === languageFilter) || KNOWLEDGE_LANGUAGE_FILTERS[0];
+
+    return resources.filter((resource) => {
+      const matchesSearch = !normalizedQuery || getKnowledgeSearchBody(resource, lang).includes(normalizedQuery);
+      return matchesSearch
+        && doesKnowledgeMatchFilter(resource, activeSource, 'sourceDatabase')
+        && doesKnowledgeMatchFilter(resource, activeType, 'sourceType')
+        && doesKnowledgeMatchFilter(resource, activeModule, 'relatedModule')
+        && doesKnowledgeMatchFilter(resource, activeStatus, 'status')
+        && doesKnowledgeLanguageMatch(resource, activeLanguage);
+    });
+  }, [languageFilter, lang, moduleFilter, resources, searchQuery, sourceFilter, statusFilter, typeFilter]);
+
+  const visibleResources = filteredResources.slice(0, visibleCount);
+
+  function resetVisibleCount() {
+    setVisibleCount(12);
+  }
+
+  function updateSearchQuery(value) {
+    setSearchQuery(value);
+    resetVisibleCount();
+  }
+
+  function updateSourceFilter(value) {
+    setSourceFilter(value);
+    resetVisibleCount();
+  }
+
+  function updateTypeFilter(value) {
+    setTypeFilter(value);
+    resetVisibleCount();
+  }
+
+  function updateModuleFilter(value) {
+    setModuleFilter(value);
+    resetVisibleCount();
+  }
+
+  function updateStatusFilter(value) {
+    setStatusFilter(value);
+    resetVisibleCount();
+  }
+
+  function updateLanguageFilter(value) {
+    setLanguageFilter(value);
+    resetVisibleCount();
+  }
+
+  function toggleExpanded(id) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleSearchKeyDown(event) {
+    if (event.key === 'Enter' && searchQuery.trim()) {
+      scrollResultsIntoView(resultsRef);
+    }
+  }
 
   return (
     <article className="content-detail-card module-detail-card knowledge-resource-database-card">
@@ -608,59 +913,130 @@ function KnowledgeResourceDatabase({ item, common, lang }) {
       <h1>{ui.title}</h1>
       <p className="detail-subtitle">{ui.subtitle}</p>
 
-      <div className="knowledge-filter-row" role="group" aria-label={ui.title}>
-        {KNOWLEDGE_FILTERS.map((filter) => (
-          <button
-            key={filter}
-            className="knowledge-filter-chip"
-            data-active={activeFilter === filter ? 'true' : 'false'}
-            onClick={() => setActiveFilter(filter)}
-            type="button"
-          >
-            {ui.filters[filter]}
-          </button>
-        ))}
+      <div className="knowledge-state-row" aria-label={ui.title}>
+        <span>{databaseUi.dataSource}: {knowledgeState.source}</span>
+        <span>{databaseUi.count}: {knowledgeState.count ?? resources.length}</span>
+        <span>{databaseUi.updatedAt}: {latestUpdatedAt}</span>
+        <span>{databaseUi.filteredCount}: {filteredResources.length}</span>
       </div>
 
-      <section className="knowledge-resource-grid" aria-label={ui.title}>
-        {filteredResources.map((resource) => (
-          <article key={resource.id} className="knowledge-resource-card">
-            <div className="module-data-card-top">
-              <span className="content-tag">{resource.type}</span>
-              <span className="module-data-status">{resource.status}</span>
-            </div>
-            <h2>{getKnowledgeTitle(resource, lang)}</h2>
+      <KnowledgeStatusCard source={knowledgeState.source} lang={lang} />
 
-            <div className="knowledge-resource-field">
-              <span>{ui.type}</span>
-              <p>{resource.type}</p>
-            </div>
-            <div className="knowledge-resource-field">
-              <span>{ui.category}</span>
-              <p>{resource.category}</p>
-            </div>
-            <div className="knowledge-resource-field">
-              <span>{ui.tags}</span>
-              <p>{normalizeList(resource.tags)}</p>
-            </div>
-            <div className="knowledge-resource-field">
-              <span>{ui.relatedModule}</span>
-              <p>{resource.relatedModule}</p>
-            </div>
-            <div className="knowledge-resource-field knowledge-resource-summary">
-              <span>{ui.summary}</span>
-              <p>{getKnowledgeSummary(resource, lang)}</p>
-            </div>
-            <div className="knowledge-resource-footer">
-              <span>{ui.status}: {resource.status}</span>
-              <span>{ui.sourceType}: {resource.sourceType}</span>
-              <span>{ui.updatedAt}: {resource.updatedAt}</span>
-            </div>
-          </article>
-        ))}
+      <section className="knowledge-source-overview" aria-label={databaseUi.sourceOverview}>
+        <span>{databaseUi.sourceOverview}</span>
+        <div className="knowledge-source-stat-grid">
+          {[
+            ['research', 'Research'],
+            ['teaching', 'Teaching'],
+            ['inspiration', 'Inspiration'],
+            ['brand', 'Brand'],
+          ].map(([key, label]) => (
+            <article key={key} className="knowledge-source-stat-card">
+              <span>{label}</span>
+              <strong>{sourceStats[key]?.count ?? 0}</strong>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <KnowledgeStatusCard source={knowledgeState.source} lang={lang} />
+      <section className="knowledge-toolbar" aria-label={databaseUi.searchPlaceholder}>
+        <input
+          className="knowledge-search-input"
+          type="search"
+          value={searchQuery}
+          onChange={(event) => updateSearchQuery(event.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder={databaseUi.searchPlaceholder}
+          aria-label={databaseUi.searchPlaceholder}
+        />
+      </section>
+
+      <section className="knowledge-filter-panel" aria-label={databaseUi.sourceDatabase}>
+        <KnowledgeFilterGroup label={databaseUi.sourceDatabase} filters={KNOWLEDGE_SOURCE_FILTERS} activeValue={sourceFilter} onSelect={updateSourceFilter} lang={lang} />
+        <KnowledgeFilterGroup label={databaseUi.contentType} filters={KNOWLEDGE_TYPE_FILTERS} activeValue={typeFilter} onSelect={updateTypeFilter} lang={lang} />
+        <KnowledgeFilterGroup label={databaseUi.relatedModule} filters={KNOWLEDGE_MODULE_FILTERS} activeValue={moduleFilter} onSelect={updateModuleFilter} lang={lang} />
+        <KnowledgeFilterGroup label={databaseUi.status} filters={KNOWLEDGE_STATUS_FILTERS} activeValue={statusFilter} onSelect={updateStatusFilter} lang={lang} />
+        <KnowledgeFilterGroup label={databaseUi.language} filters={KNOWLEDGE_LANGUAGE_FILTERS} activeValue={languageFilter} onSelect={updateLanguageFilter} lang={lang} />
+      </section>
+
+      <section ref={resultsRef} className="knowledge-compact-list" aria-label={ui.title}>
+        {visibleResources.map((resource) => {
+          const isExpanded = expandedIds.has(resource.id);
+          const summary = getKnowledgeSummary(resource, lang);
+
+          return (
+            <article key={resource.id} className="knowledge-compact-card">
+              <div className="knowledge-compact-main">
+                <div>
+                  <div className="module-data-card-top knowledge-compact-top">
+                    <span className="content-tag">{formatDisplayValue(resource.sourceType, databaseUi.emptyValue)}</span>
+                    {hasDisplayValue(resource.status) ? <span className="module-data-status">{resource.status}</span> : null}
+                  </div>
+                  <h2>{getKnowledgeTitle(resource, lang)}</h2>
+                  <p className="knowledge-meta-line">{formatDisplayValue(resource.relatedModule, databaseUi.emptyValue)}</p>
+                </div>
+
+                <button
+                  className="knowledge-expand-button"
+                  type="button"
+                  onClick={() => toggleExpanded(resource.id)}
+                  aria-expanded={isExpanded}
+                >
+                  {isExpanded ? databaseUi.collapse : databaseUi.expand}
+                </button>
+              </div>
+
+              <div className="knowledge-compact-meta">
+                <span>{ui.category}: {formatDisplayValue(resource.category, databaseUi.emptyValue)}</span>
+                <span>{ui.type}: {formatDisplayValue(resource.type, databaseUi.emptyValue)}</span>
+                <span>{databaseUi.status}: {formatDisplayValue(resource.status, databaseUi.emptyValue)}</span>
+              </div>
+
+              <div className="knowledge-tag-row">
+                {Array.isArray(resource.tags) && resource.tags.length
+                  ? resource.tags.map((tag) => <span key={tag}>{tag}</span>)
+                  : <span>{databaseUi.emptyValue}</span>}
+              </div>
+
+              <p className="knowledge-card-summary">{formatDisplayValue(summary, databaseUi.emptyValue)}</p>
+
+              {isExpanded && (
+                <div className="knowledge-detail-panel">
+                  <div className="knowledge-detail-grid">
+                    <KnowledgeDetailField label={databaseUi.primaryMeta} value={resource.primaryMeta} emptyValue={databaseUi.emptyValue} />
+                    <KnowledgeDetailField label={databaseUi.secondaryMeta} value={resource.secondaryMeta} emptyValue={databaseUi.emptyValue} />
+                    <KnowledgeDetailField label={databaseUi.language} value={resource.language} emptyValue={databaseUi.emptyValue} />
+                    <KnowledgeLinkField label={databaseUi.link} value={resource.url} emptyValue={databaseUi.emptyValue} linkLabel={databaseUi.openLink} />
+                    <KnowledgeLinkField label={databaseUi.fileLink} value={resource.fileUrl} emptyValue={databaseUi.emptyValue} linkLabel={databaseUi.openFile} />
+                    <KnowledgeDetailField label={databaseUi.createdAt} value={resource.createdAt} emptyValue={databaseUi.emptyValue} />
+                    <KnowledgeDetailField label={databaseUi.updatedAt} value={resource.updatedAt} emptyValue={databaseUi.emptyValue} />
+                    <KnowledgeDetailField label={databaseUi.sourceDatabase} value={resource.sourceDatabase} emptyValue={databaseUi.emptyValue} />
+                  </div>
+                  <div className="knowledge-full-summary">
+                    <span>{databaseUi.summary}</span>
+                    <p>{formatDisplayValue(summary, databaseUi.emptyValue)}</p>
+                  </div>
+                </div>
+              )}
+            </article>
+          );
+        })}
+
+        {!filteredResources.length ? (
+          <article className="knowledge-empty-state">
+            <p>{databaseUi.empty}</p>
+          </article>
+        ) : null}
+      </section>
+
+      {filteredResources.length > visibleCount ? (
+        <div className="knowledge-load-more-row">
+          <span>{databaseUi.showing} {visibleResources.length}{databaseUi.of}{filteredResources.length}</span>
+          <button className="knowledge-load-more" type="button" onClick={() => setVisibleCount((count) => count + 12)}>
+            {databaseUi.loadMore}
+          </button>
+        </div>
+      ) : null}
     </article>
   );
 }

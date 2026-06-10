@@ -188,12 +188,14 @@ export const KNOWLEDGE_RESOURCE_STATUS_TEXT = {
 export const KNOWLEDGE_FILTERS = ['all', 'literature_note', 'concept', 'prompt_template', 'course_material', 'mvp_note'];
 
 export function getKnowledgeSummary(item, lang = 'zh') {
+  if (item.summary) return item.summary;
   if (lang === 'ko') return item.summaryKo;
   if (lang === 'en') return item.summaryEn;
   return item.summaryZh;
 }
 
 export function getKnowledgeTitle(item, lang = 'zh') {
+  if (item.title) return item.title;
   if (lang === 'ko') return item.titleKo;
   if (lang === 'en') return item.titleEn;
   return item.titleZh;
@@ -209,12 +211,53 @@ export function getKnowledgeStatusText(source = 'fallback', lang = 'zh') {
   };
 }
 
-export function createFallbackKnowledgeResponse(reason = 'notion_not_connected') {
+function normalizeFallbackKnowledgeResource(item) {
+  const title = item.titleZh || item.titleEn || item.titleKo || 'Untitled Knowledge Resource';
+  const summary = item.summaryZh || item.summaryEn || item.summaryKo || '';
+
+  return {
+    ...item,
+    sourceDatabase: 'fallback',
+    sourceType: item.sourceType || 'fallback-knowledge',
+    title,
+    category: item.category || '',
+    type: item.type || '',
+    status: item.status || 'fallback-ready',
+    language: '',
+    tags: item.tags || [],
+    summary,
+    relatedModule: item.relatedModule || '',
+    primaryMeta: item.relatedModule || '',
+    secondaryMeta: item.category || '',
+    url: item.sourceUrl || '/api/knowledge/resources',
+    fileUrl: '',
+    createdAt: '',
+    updatedAt: item.updatedAt || '',
+  };
+}
+
+function createFallbackKnowledgeMeta(meta) {
+  return meta || {
+    sources: {
+      research: { status: 'missing_env', count: 0 },
+      teaching: { status: 'missing_env', count: 0 },
+      inspiration: { status: 'missing_env', count: 0 },
+      brand: { status: 'missing_env', count: 0 },
+    },
+    warnings: [],
+  };
+}
+
+export function createFallbackKnowledgeResponse(reason = 'notion_not_connected', meta) {
+  const items = FALLBACK_KNOWLEDGE_RESOURCES.map(normalizeFallbackKnowledgeResource);
+
   return {
     source: 'fallback',
     reason,
-    items: FALLBACK_KNOWLEDGE_RESOURCES,
-    count: FALLBACK_KNOWLEDGE_RESOURCES.length,
+    count: items.length,
     updatedAt: new Date().toISOString(),
+    meta: createFallbackKnowledgeMeta(meta),
+    items,
+    data: items,
   };
 }
