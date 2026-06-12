@@ -783,8 +783,8 @@ const SITE_CONTENT = {
           },
           {
             id: 'future-collaboration-context',
-            title: 'Future Collaboration Context｜未來合作情境',
-            subtitle: '以研究與現場問題為核心，而不是以銷售漏斗為核心。',
+            title: 'Future Collaboration Context',
+            subtitle: '以匿名且可公開的合作情境，呈現 NexAeon 在研究、學習教練、AI 教育、產品測試與制度創新中的未來連結。',
             status: '情境定義中',
             summary:
               '此頁描述未來可能與教授、學校、學生團隊或組織共同研究與實踐的情境，但不把 Field Lab 寫成導流頁。',
@@ -1500,7 +1500,7 @@ const SITE_CONTENT = {
           {
             id: 'future-collaboration-context',
             title: 'Future Collaboration Context',
-            subtitle: 'Future collaboration as shared research context, not a sales funnel.',
+            subtitle: 'Presents anonymized public collaboration contexts across research, learning coaching, AI education, product pilots, and institutional innovation.',
             status: 'Context Definition',
             summary: 'This page describes possible future research and practice contexts with professors, schools, student teams, or organizations without turning Field Lab into a lead-generation page.',
             tags: ['Context', 'Collaboration', 'Field Lab'],
@@ -2214,8 +2214,8 @@ const SITE_CONTENT = {
           },
           {
             id: 'future-collaboration-context',
-            title: 'Future Collaboration Context｜미래 협력 맥락',
-            subtitle: '판매 퍼널이 아니라 공유 연구 맥락으로서의 미래 협력입니다.',
+            title: 'Future Collaboration Context',
+            subtitle: '연구, 학습 코칭, AI 교육, 제품 실증 및 제도 혁신을 위한 익명화된 공개 협력 맥락을 보여준다.',
             status: '맥락 정의 중',
             summary: '교수, 학교, 학생 팀, 조직과의 미래 연구와 실천 가능성을 설명하되 Field Lab을 유도형 페이지로 만들지 않습니다.',
             tags: ['Context', 'Collaboration', 'Field Lab'],

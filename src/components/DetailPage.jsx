@@ -716,6 +716,559 @@ function ActionProjectDashboard({ item, common, lang }) {
   );
 }
 
+const COLLABORATION_CONTEXT_UI = {
+  zh: {
+    dataSource: '資料來源',
+    publicContexts: '公開合作情境',
+    lastUpdated: '最後更新時間',
+    currentResults: '目前篩選結果',
+    connected: 'AIRTABLE COLLABORATION CONTEXTS CONNECTED',
+    fallback: 'FALLBACK ACTIVE',
+    allPublicContexts: '全部公開情境',
+    open: 'Open',
+    exploring: 'Exploring',
+    inDevelopment: 'In Development',
+    active: 'Active',
+    completed: 'Completed',
+    typeOverview: '合作類型數量',
+    searchPlaceholder: '搜尋合作情境、合作類型、機構類型或公開摘要',
+    sort: '排序',
+    recommended: '推薦順序',
+    recentlyUpdated: '最近更新',
+    nameAz: '名稱 A-Z',
+    stageSort: '合作階段',
+    collaborationType: '合作類型',
+    organizationType: '機構類型',
+    collaborationStage: '合作階段',
+    publicSummary: '公開摘要',
+    featured: 'Featured',
+    expand: '展開詳情',
+    collapse: '收合詳情',
+    viewReference: '查看參考頁面',
+    loadMore: '載入更多',
+    empty: '目前沒有公開的合作情境。',
+    showing: '目前顯示',
+    of: ' / ',
+  },
+  en: {
+    dataSource: 'Data Source',
+    publicContexts: 'Public Collaboration Contexts',
+    lastUpdated: 'Last Updated',
+    currentResults: 'Current Results',
+    connected: 'AIRTABLE COLLABORATION CONTEXTS CONNECTED',
+    fallback: 'FALLBACK ACTIVE',
+    allPublicContexts: 'All Public Contexts',
+    open: 'Open',
+    exploring: 'Exploring',
+    inDevelopment: 'In Development',
+    active: 'Active',
+    completed: 'Completed',
+    typeOverview: 'Collaboration Type Count',
+    searchPlaceholder: 'Search collaboration contexts, types, organization categories, or public summaries',
+    sort: 'Sort',
+    recommended: 'Recommended',
+    recentlyUpdated: 'Recently Updated',
+    nameAz: 'Name A-Z',
+    stageSort: 'Collaboration Stage',
+    collaborationType: 'Collaboration Type',
+    organizationType: 'Organization Type',
+    collaborationStage: 'Collaboration Stage',
+    publicSummary: 'Public Summary',
+    featured: 'Featured',
+    expand: 'Expand details',
+    collapse: 'Collapse details',
+    viewReference: 'View Reference',
+    loadMore: 'Load more',
+    empty: 'No public collaboration contexts are available yet.',
+    showing: 'Showing',
+    of: ' of ',
+  },
+  ko: {
+    dataSource: '데이터 출처',
+    publicContexts: '공개 협력 맥락',
+    lastUpdated: '최종 업데이트',
+    currentResults: '현재 결과',
+    connected: 'AIRTABLE COLLABORATION CONTEXTS CONNECTED',
+    fallback: 'FALLBACK ACTIVE',
+    allPublicContexts: '전체 공개 맥락',
+    open: 'Open',
+    exploring: 'Exploring',
+    inDevelopment: 'In Development',
+    active: 'Active',
+    completed: 'Completed',
+    typeOverview: '협력 유형 수',
+    searchPlaceholder: '협력 맥락, 협력 유형, 기관 유형 또는 공개 요약 검색',
+    sort: '정렬',
+    recommended: '추천 순서',
+    recentlyUpdated: '최근 업데이트',
+    nameAz: '이름 A-Z',
+    stageSort: '협력 단계',
+    collaborationType: '협력 유형',
+    organizationType: '기관 유형',
+    collaborationStage: '협력 단계',
+    publicSummary: '공개 요약',
+    featured: 'Featured',
+    expand: '자세히 보기',
+    collapse: '접기',
+    viewReference: '참고 페이지 보기',
+    loadMore: '더 보기',
+    empty: '현재 공개된 협력 맥락이 없다.',
+    showing: '표시 중',
+    of: ' / ',
+  },
+};
+
+const COLLABORATION_TYPE_FILTERS = [
+  { value: 'all', label: { zh: '全部類型', en: 'All Types', ko: '전체 유형' } },
+  { value: 'Research', label: { zh: 'Research', en: 'Research', ko: 'Research' } },
+  { value: 'Lecture', label: { zh: 'Lecture', en: 'Lecture', ko: 'Lecture' } },
+  { value: 'Workshop', label: { zh: 'Workshop', en: 'Workshop', ko: 'Workshop' } },
+  { value: 'AI Education Consulting', label: { zh: 'AI Education Consulting', en: 'AI Education Consulting', ko: 'AI Education Consulting' } },
+  { value: 'Product Pilot', label: { zh: 'Product Pilot', en: 'Product Pilot', ko: 'Product Pilot' } },
+  { value: 'Data / Automation', label: { zh: 'Data / Automation', en: 'Data / Automation', ko: 'Data / Automation' } },
+  { value: 'Sponsorship', label: { zh: 'Sponsorship', en: 'Sponsorship', ko: 'Sponsorship' } },
+  { value: 'Other', label: { zh: 'Other', en: 'Other', ko: 'Other' } },
+];
+
+const COLLABORATION_ORG_FILTERS = [
+  { value: 'all', label: { zh: '全部機構', en: 'All Organizations', ko: '전체 기관' } },
+  { value: 'University', label: { zh: 'University', en: 'University', ko: 'University' } },
+  { value: 'Professor', label: { zh: 'Professor', en: 'Professor', ko: 'Professor' } },
+  { value: 'Student Team', label: { zh: 'Student Team', en: 'Student Team', ko: 'Student Team' } },
+  { value: 'Company', label: { zh: 'Company', en: 'Company', ko: 'Company' } },
+  { value: 'NGO', label: { zh: 'NGO', en: 'NGO', ko: 'NGO' } },
+  { value: 'Government', label: { zh: 'Government', en: 'Government', ko: 'Government' } },
+  { value: 'Other', label: { zh: 'Other', en: 'Other', ko: 'Other' } },
+];
+
+const COLLABORATION_STAGE_FILTERS = [
+  { value: 'all', label: { zh: '全部階段', en: 'All Stages', ko: '전체 단계' } },
+  { value: 'Open', label: { zh: 'Open', en: 'Open', ko: 'Open' } },
+  { value: 'Exploring', label: { zh: 'Exploring', en: 'Exploring', ko: 'Exploring' } },
+  { value: 'In Development', label: { zh: 'In Development', en: 'In Development', ko: 'In Development' } },
+  { value: 'Active', label: { zh: 'Active', en: 'Active', ko: 'Active' } },
+  { value: 'Completed', label: { zh: 'Completed', en: 'Completed', ko: 'Completed' } },
+];
+
+function createEmptyCollaborationSummary(items = []) {
+  return {
+    total: items.length,
+    open: items.filter((item) => item.publicStage === 'Open').length,
+    exploring: items.filter((item) => item.publicStage === 'Exploring').length,
+    inDevelopment: items.filter((item) => item.publicStage === 'In Development').length,
+    active: items.filter((item) => item.publicStage === 'Active').length,
+    completed: items.filter((item) => item.publicStage === 'Completed').length,
+  };
+}
+
+function getLocalizedCollaborationFallbackTitle(item, lang) {
+  if (lang === 'zh') return item.titleZh || item.titleEn || item.titleKo || 'Untitled Collaboration Context';
+  if (lang === 'ko') return item.titleKo || item.titleEn || item.titleZh || 'Untitled Collaboration Context';
+  return item.titleEn || item.titleZh || item.titleKo || 'Untitled Collaboration Context';
+}
+
+function getLocalizedCollaborationFallbackDescription(item, lang) {
+  if (lang === 'zh') return item.descriptionZh || item.descriptionEn || item.descriptionKo || '';
+  if (lang === 'ko') return item.descriptionKo || item.descriptionEn || item.descriptionZh || '';
+  return item.descriptionEn || item.descriptionZh || item.descriptionKo || '';
+}
+
+function normalizeCollaborationFallbackContext(item, lang) {
+  const organizationTypeMap = {
+    academic: 'University',
+    workshop: 'University',
+    consulting: 'Company',
+    enterprise: 'Company',
+    education_partnership: 'Other',
+  };
+  const typeMap = {
+    academic: ['Research'],
+    workshop: ['Workshop', 'Lecture'],
+    consulting: ['AI Education Consulting'],
+    enterprise: ['Data / Automation'],
+    education_partnership: ['Product Pilot'],
+  };
+
+  return {
+    id: item.id,
+    title: getLocalizedCollaborationFallbackTitle(item, lang),
+    summary: getLocalizedCollaborationFallbackDescription(item, lang),
+    organizationType: organizationTypeMap[item.type] || organizationTypeMap[item.category] || 'Other',
+    collaborationTypes: typeMap[item.type] || typeMap[item.category] || ['Other'],
+    publicStage: item.featured ? 'Exploring' : 'Open',
+    featured: Boolean(item.featured),
+    displayOrder: Number.isFinite(Number(item.order)) ? Number(item.order) : 0,
+    websiteUrl: '',
+    updatedAt: item.updatedAt || '',
+  };
+}
+
+function createClientCollaborationFallbackResponse(reason, lang) {
+  const items = getModuleData('collaboration').map((item) => normalizeCollaborationFallbackContext(item, lang));
+  return {
+    source: 'fallback',
+    reason,
+    count: items.length,
+    updatedAt: getCollaborationLatestUpdatedAt({ updatedAt: '' }, items),
+    summary: createEmptyCollaborationSummary(items),
+    items,
+    data: items,
+  };
+}
+
+function useCollaborationContexts(lang) {
+  const [contextState, setContextState] = useState(() => createClientCollaborationFallbackResponse('client_initial_fallback', lang));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadContexts() {
+      try {
+        const response = await fetch('/api/collaboration/options');
+        if (!response.ok) throw new Error(`Collaboration API failed with status ${response.status}`);
+        const payload = await response.json();
+        if (isMounted) setContextState(payload);
+      } catch {
+        if (isMounted) setContextState(createClientCollaborationFallbackResponse('client_fetch_failed', lang));
+      }
+    }
+
+    loadContexts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [lang]);
+
+  return contextState;
+}
+
+function hasCollaborationValue(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  if (value === undefined || value === null) return false;
+  return String(value).trim().length > 0;
+}
+
+function formatCollaborationList(value) {
+  if (!Array.isArray(value)) return hasCollaborationValue(value) ? String(value) : '';
+  return value.filter(Boolean).join(', ');
+}
+
+function getCollaborationSearchBody(context) {
+  return [
+    context.title,
+    context.summary,
+    context.organizationType,
+    formatCollaborationList(context.collaborationTypes),
+    context.publicStage,
+  ].map((value) => String(value || '').toLowerCase()).join(' ');
+}
+
+function getCollaborationUpdatedTime(context) {
+  const time = new Date(context.updatedAt || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getCollaborationLatestUpdatedAt(contextState, items) {
+  if (contextState.updatedAt) return contextState.updatedAt;
+  const latest = items
+    .map((context) => context.updatedAt)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+
+  return latest || '';
+}
+
+function getCollaborationStageRank(stage) {
+  const ranks = { Open: 0, Exploring: 1, 'In Development': 2, Active: 3, Completed: 4 };
+  return ranks[stage] ?? 9;
+}
+
+function formatCollaborationDate(value) {
+  if (!hasCollaborationValue(value)) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function doesCollaborationTypeMatch(context, activeValue) {
+  if (activeValue === 'all') return true;
+  return Array.isArray(context.collaborationTypes) && context.collaborationTypes.includes(activeValue);
+}
+
+function doesCollaborationFieldMatch(value, activeValue) {
+  return activeValue === 'all' || String(value || '') === activeValue;
+}
+
+function CollaborationFilterGroup({ label, filters, activeValue, onSelect, lang }) {
+  return (
+    <div className="collaboration-filter-section">
+      <span>{label}</span>
+      <div className="collaboration-filter-row">
+        {filters.map((filter) => (
+          <button
+            key={filter.value}
+            className="collaboration-filter-chip"
+            data-active={activeValue === filter.value ? 'true' : 'false'}
+            type="button"
+            onClick={() => onSelect(filter.value)}
+          >
+            {filter.label[lang] || filter.label.zh}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CollaborationDetailField({ label, value, isLink = false, linkLabel = '' }) {
+  if (!hasCollaborationValue(value)) return null;
+
+  return (
+    <div className="collaboration-detail-field">
+      <span>{label}</span>
+      {isLink ? (
+        <a href={value} target="_blank" rel="noopener noreferrer">{linkLabel || value}</a>
+      ) : (
+        <p>{Array.isArray(value) ? formatCollaborationList(value) : value}</p>
+      )}
+    </div>
+  );
+}
+
+function FutureCollaborationContextDashboard({ item, common, lang }) {
+  const contextState = useCollaborationContexts(lang);
+  const ui = COLLABORATION_CONTEXT_UI[lang] || COLLABORATION_CONTEXT_UI.zh;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [orgFilter, setOrgFilter] = useState('all');
+  const [stageFilter, setStageFilter] = useState('all');
+  const [sortMode, setSortMode] = useState('recommended');
+  const [visibleCount, setVisibleCount] = useState(8);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const resultsRef = useRef(null);
+  const contexts = useMemo(() => contextState.data || contextState.items || [], [contextState.data, contextState.items]);
+
+  const filteredContexts = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const filtered = contexts.filter((context) => {
+      const matchesSearch = !normalizedQuery || getCollaborationSearchBody(context).includes(normalizedQuery);
+      return matchesSearch
+        && doesCollaborationTypeMatch(context, typeFilter)
+        && doesCollaborationFieldMatch(context.organizationType, orgFilter)
+        && doesCollaborationFieldMatch(context.publicStage, stageFilter);
+    });
+
+    return filtered.slice().sort((a, b) => {
+      if (sortMode === 'recent') return getCollaborationUpdatedTime(b) - getCollaborationUpdatedTime(a);
+      if (sortMode === 'name') return String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' });
+      if (sortMode === 'stage') {
+        const stageDifference = getCollaborationStageRank(a.publicStage) - getCollaborationStageRank(b.publicStage);
+        if (stageDifference) return stageDifference;
+      }
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      if (a.displayOrder !== b.displayOrder) return a.displayOrder - b.displayOrder;
+      const updatedDifference = getCollaborationUpdatedTime(b) - getCollaborationUpdatedTime(a);
+      if (updatedDifference) return updatedDifference;
+      return String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' });
+    });
+  }, [contexts, orgFilter, searchQuery, sortMode, stageFilter, typeFilter]);
+
+  const visibleContexts = filteredContexts.slice(0, visibleCount);
+  const latestUpdatedAt = getCollaborationLatestUpdatedAt(contextState, contexts);
+  const typeCounts = COLLABORATION_TYPE_FILTERS
+    .filter((filter) => filter.value !== 'all')
+    .map((filter) => ({
+      label: filter.value,
+      count: filteredContexts.filter((context) => Array.isArray(context.collaborationTypes) && context.collaborationTypes.includes(filter.value)).length,
+    }));
+  const summaryItems = [
+    { label: ui.allPublicContexts, value: filteredContexts.length },
+    { label: ui.open, value: filteredContexts.filter((context) => context.publicStage === 'Open').length },
+    { label: ui.exploring, value: filteredContexts.filter((context) => context.publicStage === 'Exploring').length },
+    { label: ui.inDevelopment, value: filteredContexts.filter((context) => context.publicStage === 'In Development').length },
+    { label: ui.active, value: filteredContexts.filter((context) => context.publicStage === 'Active').length },
+    { label: ui.completed, value: filteredContexts.filter((context) => context.publicStage === 'Completed').length },
+  ];
+
+  function resetVisibleCount() {
+    setVisibleCount(8);
+  }
+
+  function updateSearchQuery(value) {
+    setSearchQuery(value);
+    resetVisibleCount();
+  }
+
+  function updateFilter(setter, value) {
+    setter(value);
+    resetVisibleCount();
+  }
+
+  function toggleExpanded(id) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleSearchKeyDown(event) {
+    if (event.key === 'Enter') {
+      scrollResultsIntoView(resultsRef);
+    }
+  }
+
+  return (
+    <article className="content-detail-card module-detail-card collaboration-context-dashboard">
+      <div className="detail-badge-row">
+        <Badge>{common.moduleLabel}: {item.category}</Badge>
+        <Badge>{item.status}</Badge>
+      </div>
+
+      <div className="detail-module-label">{item.moduleLabel}</div>
+      <h1>{item.title}</h1>
+      <p className="detail-subtitle">{item.subtitle}</p>
+
+      <div className="collaboration-state-row" aria-label={item.title}>
+        <span>{ui.dataSource}: {contextState.source}</span>
+        <span>{ui.publicContexts}: {contextState.count ?? contexts.length}</span>
+        <span>{ui.lastUpdated}: {formatCollaborationDate(latestUpdatedAt)}</span>
+        <span>{ui.currentResults}: {filteredContexts.length}</span>
+      </div>
+
+      <div className="collaboration-source-card" data-source={contextState.source === 'airtable' ? 'airtable' : 'fallback'}>
+        <span>{contextState.source === 'airtable' ? ui.connected : ui.fallback}</span>
+      </div>
+
+      <section className="collaboration-summary-grid" aria-label={ui.publicContexts}>
+        {summaryItems.map((summaryItem) => (
+          <div key={summaryItem.label} className="collaboration-summary-card">
+            <span>{summaryItem.label}</span>
+            <strong>{summaryItem.value}</strong>
+          </div>
+        ))}
+      </section>
+
+      <section className="collaboration-type-summary" aria-label={ui.typeOverview}>
+        <span>{ui.typeOverview}</span>
+        <div>
+          {typeCounts.map((type) => (
+            <span key={type.label}>{type.label}: {type.count}</span>
+          ))}
+        </div>
+      </section>
+
+      <section className="collaboration-toolbar" aria-label={ui.searchPlaceholder}>
+        <input
+          className="collaboration-search-input"
+          type="search"
+          value={searchQuery}
+          onChange={(event) => updateSearchQuery(event.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder={ui.searchPlaceholder}
+          aria-label={ui.searchPlaceholder}
+        />
+
+        <label className="collaboration-sort-control">
+          <span>{ui.sort}</span>
+          <select value={sortMode} onChange={(event) => updateFilter(setSortMode, event.target.value)}>
+            <option value="recommended">{ui.recommended}</option>
+            <option value="recent">{ui.recentlyUpdated}</option>
+            <option value="name">{ui.nameAz}</option>
+            <option value="stage">{ui.stageSort}</option>
+          </select>
+        </label>
+      </section>
+
+      <section className="collaboration-filter-panel" aria-label={ui.collaborationType}>
+        <CollaborationFilterGroup label={ui.collaborationType} filters={COLLABORATION_TYPE_FILTERS} activeValue={typeFilter} onSelect={(value) => updateFilter(setTypeFilter, value)} lang={lang} />
+        <CollaborationFilterGroup label={ui.organizationType} filters={COLLABORATION_ORG_FILTERS} activeValue={orgFilter} onSelect={(value) => updateFilter(setOrgFilter, value)} lang={lang} />
+        <CollaborationFilterGroup label={ui.collaborationStage} filters={COLLABORATION_STAGE_FILTERS} activeValue={stageFilter} onSelect={(value) => updateFilter(setStageFilter, value)} lang={lang} />
+      </section>
+
+      <section ref={resultsRef} className="collaboration-context-list" aria-label={ui.publicContexts}>
+        {visibleContexts.map((context) => {
+          const isExpanded = expandedIds.has(context.id);
+          const detailFields = [
+            { label: ui.publicSummary, value: context.summary },
+            { label: ui.organizationType, value: context.organizationType },
+            { label: ui.collaborationType, value: context.collaborationTypes },
+            { label: ui.collaborationStage, value: context.publicStage },
+            { label: ui.lastUpdated, value: formatCollaborationDate(context.updatedAt) },
+          ];
+
+          return (
+            <article key={context.id} className="collaboration-context-card" data-featured={context.featured ? 'true' : 'false'}>
+              <div className="module-data-card-top collaboration-context-top">
+                {hasCollaborationValue(context.organizationType) ? <span className="content-tag">{context.organizationType}</span> : null}
+                {hasCollaborationValue(context.publicStage) ? <span className="module-data-status">{context.publicStage}</span> : null}
+                {context.featured ? <span className="module-data-status">{ui.featured}</span> : null}
+              </div>
+
+              <h2>{context.title || 'Untitled Collaboration Context'}</h2>
+
+              <div className="collaboration-compact-meta">
+                {hasCollaborationValue(context.collaborationTypes) ? <span>{ui.collaborationType}: {formatCollaborationList(context.collaborationTypes)}</span> : null}
+                {hasCollaborationValue(context.updatedAt) ? <span>{ui.lastUpdated}: {formatCollaborationDate(context.updatedAt)}</span> : null}
+              </div>
+
+              {hasCollaborationValue(context.summary) ? <p className="collaboration-context-summary">{context.summary}</p> : null}
+
+              <div className="collaboration-actions">
+                <button
+                  className="collaboration-action-button"
+                  type="button"
+                  onClick={() => toggleExpanded(context.id)}
+                  aria-expanded={isExpanded}
+                >
+                  {isExpanded ? ui.collapse : ui.expand}
+                </button>
+                {hasCollaborationValue(context.websiteUrl) ? (
+                  <a className="collaboration-action-button" href={context.websiteUrl} target="_blank" rel="noopener noreferrer">
+                    {ui.viewReference}
+                  </a>
+                ) : null}
+              </div>
+
+              {isExpanded ? (
+                <div className="collaboration-detail-panel">
+                  <div className="collaboration-detail-grid">
+                    {detailFields.map((field) => (
+                      <CollaborationDetailField key={field.label} label={field.label} value={field.value} />
+                    ))}
+                    <CollaborationDetailField label="Website URL" value={context.websiteUrl} isLink linkLabel={ui.viewReference} />
+                  </div>
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+
+        {!filteredContexts.length ? (
+          <article className="collaboration-empty-state">
+            <p>{ui.empty}</p>
+          </article>
+        ) : null}
+      </section>
+
+      {filteredContexts.length > visibleCount ? (
+        <div className="collaboration-load-more-row">
+          <span>{ui.showing} {visibleContexts.length}{ui.of}{filteredContexts.length}</span>
+          <button
+            className="collaboration-load-more"
+            type="button"
+            onClick={() => setVisibleCount((count) => count + 8)}
+          >
+            {ui.loadMore}
+          </button>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function getLiteratureSearchBody(literature, lang) {
   return [
     literature.title,
@@ -1774,6 +2327,12 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
           />
         ) : item.id === 'action-projects' ? (
           <ActionProjectDashboard
+            item={item}
+            common={common}
+            lang={lang}
+          />
+        ) : item.id === 'future-collaboration-context' ? (
+          <FutureCollaborationContextDashboard
             item={item}
             common={common}
             lang={lang}
