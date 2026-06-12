@@ -1,0 +1,114 @@
+export const SAFE_REASONS = new Set([
+  null,
+  'missing_env',
+  'upstream_timeout',
+  'upstream_failed',
+  'partial_source_failure',
+]);
+
+export const SUCCESS_CACHE_CONTROL = 'public, max-age=0, s-maxage=60, stale-while-revalidate=300';
+export const NO_STORE_CACHE_CONTROL = 'private, no-store';
+
+export function getLatestUpdatedAt(items = [], fields = ['updatedAt']) {
+  const latest = items
+    .flatMap((item) => fields.map((field) => item?.[field]))
+    .filter(Boolean)
+    .map((value) => {
+      const time = new Date(value).getTime();
+      return Number.isFinite(time) ? { value, time } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.time - a.time)[0];
+
+  return latest?.value || null;
+}
+
+export function normalizeReason(reason) {
+  if (reason === undefined || reason === null) return null;
+  return SAFE_REASONS.has(reason) ? reason : 'upstream_failed';
+}
+
+export function createApiResponse({
+  source = 'fallback',
+  reason = null,
+  items = [],
+  updatedAt,
+  extra = {},
+} = {}) {
+  const publicItems = Array.isArray(items) ? items : [];
+  const safeReason = normalizeReason(reason);
+
+  return {
+    source,
+    reason: safeReason,
+    count: publicItems.length,
+    updatedAt: updatedAt === undefined ? getLatestUpdatedAt(publicItems) : updatedAt,
+    items: publicItems,
+    data: publicItems,
+    ...extra,
+  };
+}
+
+export function isHealthySource(payload) {
+  return (payload?.source === 'notion' || payload?.source === 'airtable') && payload?.reason === null;
+}
+
+export function getCacheControlForPayload(payload) {
+  return isHealthySource(payload) ? SUCCESS_CACHE_CONTROL : NO_STORE_CACHE_CONTROL;
+}
+
+export function getUpstreamFailureReason(error) {
+  const name = String(error?.name || '').toLowerCase();
+  const code = String(error?.code || '').toLowerCase();
+
+  if (
+    name.includes('timeout')
+    || name.includes('abort')
+    || code.includes('timeout')
+    || code === 'etimedout'
+  ) {
+    return 'upstream_timeout';
+  }
+
+  return 'upstream_failed';
+}
+
+export function logSafeApiError(endpoint, category, upstream) {
+  console.error(JSON.stringify({
+    endpoint,
+    category,
+    upstream,
+    timestamp: new Date().toISOString(),
+  }));
+}
+
+export function sendJsonResponse(req, res, payload, status = 200) {
+  if (req?.method !== 'GET') {
+    sendMethodNotAllowed(res);
+    return;
+  }
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', getCacheControlForPayload(payload));
+  res.status(status).json(payload);
+}
+
+export function sendMethodNotAllowed(res) {
+  const methodPayload = createApiResponse({
+    source: 'fallback',
+    reason: 'upstream_failed',
+    items: [],
+    updatedAt: null,
+  });
+
+  res.setHeader('Allow', 'GET');
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', NO_STORE_CACHE_CONTROL);
+  res.status(405).json(methodPayload);
+}
+
+export function rejectUnsupportedMethod(req, res) {
+  if (req?.method === 'GET') return false;
+  sendMethodNotAllowed(res);
+  return true;
+}

@@ -2,6 +2,8 @@
 
 import { getAirtableRecords } from '../_airtable.js';
 import { getModuleData, getModuleEndpoint } from '../../src/data/moduleData.js';
+import { createApiResponse, getUpstreamFailureReason, logSafeApiError, rejectUnsupportedMethod, sendJsonResponse } from '../_response.js';
+import { isPublicAirtableVisibility } from '../../lib/publicFilters.js';
 
 const MODULE_KEY = 'action';
 
@@ -55,18 +57,27 @@ function getRecordField(fields, key) {
 }
 
 function isPublicRecord(record) {
-  const visibility = toText(getRecordField(record.fields || {}, 'visibility')).toLowerCase();
-  return visibility === 'public';
+  return isPublicAirtableVisibility(getRecordField(record.fields || {}, 'visibility'));
 }
 
-function normalizeAirtableProject(record) {
+function slugify(value) {
+  return String(value || 'untitled-project')
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'untitled-project';
+}
+
+export function normalizeAirtableProject(record) {
   const fields = record.fields || {};
   const currentPhase = toText(getRecordField(fields, 'currentPhase'));
   const publicSummary = toText(getRecordField(fields, 'publicSummary')) || currentPhase;
+  const name = toText(getRecordField(fields, 'name'), 'Untitled Project');
 
   return {
-    id: record.id,
-    name: toText(getRecordField(fields, 'name'), 'Untitled Project'),
+    id: `project-${slugify(name)}`,
+    name,
     projectType: toText(getRecordField(fields, 'projectType')),
     status: toText(getRecordField(fields, 'status')),
     priority: toText(getRecordField(fields, 'priority')),
@@ -133,26 +144,14 @@ function sortProjects(a, b) {
   return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
 }
 
-function getLatestUpdatedAt(items) {
-  const latest = items
-    .map((item) => item.updatedAt)
-    .filter(Boolean)
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
-
-  return latest || new Date().toISOString();
-}
-
-function createResponse(source, reason, items) {
+export function createResponse(source, reason, items) {
   const publicItems = items.slice().sort(sortProjects);
 
-  return {
+  return createApiResponse({
     source,
-    ...(reason ? { reason } : {}),
-    count: publicItems.length,
-    updatedAt: getLatestUpdatedAt(publicItems),
+    reason,
     items: publicItems,
-    data: publicItems,
-  };
+  });
 }
 
 function createFallbackResponse(reason) {
@@ -166,13 +165,13 @@ function createFallbackResponse(reason) {
 }
 
 export default async function handler(req, res) {
+  if (rejectUnsupportedMethod(req, res)) return;
+
   const baseId = process.env.AIRTABLE_BASE_ID?.trim();
   const tableId = process.env.AIRTABLE_PROJECTS_TABLE_ID?.trim();
 
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
   if (!process.env.AIRTABLE_API_KEY || !baseId || !tableId) {
-    res.status(200).json(createFallbackResponse('missing_env'));
+    sendJsonResponse(req, res, createFallbackResponse('missing_env'));
     return;
   }
 
@@ -186,9 +185,10 @@ export default async function handler(req, res) {
       .filter(isPublicRecord)
       .map(normalizeAirtableProject);
 
-    res.status(200).json(createResponse('airtable', undefined, airtableItems));
+    sendJsonResponse(req, res, createResponse('airtable', null, airtableItems));
   } catch (error) {
-    console.error('[api/action/projects] Airtable fetch failed', error?.message || 'unknown_error');
-    res.status(200).json(createFallbackResponse('airtable_fetch_failed'));
+    const reason = getUpstreamFailureReason(error);
+    logSafeApiError('/api/action/projects', reason, 'airtable');
+    sendJsonResponse(req, res, createFallbackResponse(reason));
   }
 }

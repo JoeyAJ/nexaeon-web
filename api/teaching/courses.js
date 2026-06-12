@@ -1,8 +1,10 @@
 import { getTeachingCourses } from '../../lib/teachingCourses.js';
+import { rejectUnsupportedMethod, sendJsonResponse } from '../_response.js';
 
 export default async function handler(req, res) {
+  if (rejectUnsupportedMethod(req, res)) return;
+
   const payload = await getTeachingCourses();
 
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.status(200).json(payload);
+  sendJsonResponse(req, res, payload);
 }

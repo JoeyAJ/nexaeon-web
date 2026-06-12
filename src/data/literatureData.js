@@ -1,3 +1,5 @@
+import { createApiResponse } from '../../api/_response.js';
+
 export const FALLBACK_LITERATURE_DATA = [
   {
     id: 'tam-ai-tutor-acceptance',
@@ -164,7 +166,7 @@ export function getLiteratureStatusText(source = 'fallback', lang = 'zh') {
   };
 }
 
-export function createFallbackLiteratureResponse(reason = 'notion_not_connected') {
+export function createFallbackLiteratureResponse(reason = 'upstream_failed') {
   const data = FALLBACK_LITERATURE_DATA.map((item) => ({
     ...item,
     summary: {
@@ -174,11 +176,9 @@ export function createFallbackLiteratureResponse(reason = 'notion_not_connected'
     },
   }));
 
-  return {
+  return createApiResponse({
     source: 'fallback',
     reason,
-    count: data.length,
-    data,
-    updatedAt: new Date().toISOString(),
-  };
+    items: data,
+  });
 }

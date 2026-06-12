@@ -2,6 +2,8 @@
 
 import { getModuleData, getModuleEndpoint } from '../../src/data/moduleData.js';
 import { getAirtableRecords } from '../_airtable.js';
+import { createApiResponse, getUpstreamFailureReason, logSafeApiError, rejectUnsupportedMethod, sendJsonResponse } from '../_response.js';
+import { isPublicAirtableVisibility } from '../../lib/publicFilters.js';
 
 const MODULE_KEY = 'modules';
 
@@ -79,19 +81,18 @@ function getRecordField(fields, key) {
   return fields[FIELD_MAP[key]];
 }
 
-function normalizeAirtableDemo(record) {
+export function normalizeAirtableDemo(record) {
   const fields = record.fields || {};
   const name = toText(getRecordField(fields, 'name'), 'Untitled Demo');
   const slug = toText(getRecordField(fields, 'slug')) || slugify(name);
 
   return {
-    id: record.id,
+    id: `demo-${slug}`,
     slug,
     name,
     demoType: toText(getRecordField(fields, 'demoType')),
     status: toText(getRecordField(fields, 'status')),
     version: toText(getRecordField(fields, 'version')),
-    visibility: toText(getRecordField(fields, 'visibility')),
     featured: toBoolean(getRecordField(fields, 'featured')),
     displayOrder: toNumber(getRecordField(fields, 'displayOrder')),
     summary: toText(getRecordField(fields, 'summary')),
@@ -107,7 +108,6 @@ function normalizeAirtableDemo(record) {
     relatedModules: toStringArray(getRecordField(fields, 'relatedModules')),
     researchLink: toText(getRecordField(fields, 'researchLink')),
     nextStep: toText(getRecordField(fields, 'nextStep')),
-    notes: toText(getRecordField(fields, 'notes')),
     updatedAt: toText(getRecordField(fields, 'updatedAt')),
   };
 }
@@ -138,7 +138,6 @@ function normalizeFallbackDemo(item) {
     demoType: demoTypeMap[item.type] || toText(item.type || item.category),
     status: toText(item.status),
     version: '',
-    visibility: 'Public',
     featured: toBoolean(item.featured),
     displayOrder: toNumber(item.order),
     summary: getLocalizedFallbackDescription(item),
@@ -154,7 +153,6 @@ function normalizeFallbackDemo(item) {
     relatedModules,
     researchLink: '',
     nextStep: '',
-    notes: '',
     updatedAt: toText(item.updatedAt),
   };
 }
@@ -172,30 +170,14 @@ function sortDemos(a, b) {
   return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
 }
 
-function getLatestUpdatedAt(items) {
-  const latest = items
-    .map((item) => item.updatedAt)
-    .filter(Boolean)
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+export function createResponse(source, reason, items) {
+  const visibleItems = items.slice().sort(sortDemos);
 
-  return latest || new Date().toISOString();
-}
-
-function isPubliclyVisible(item) {
-  return String(item.visibility || '').trim().toLowerCase() !== 'private';
-}
-
-function createResponse(source, reason, items) {
-  const visibleItems = items.filter(isPubliclyVisible).sort(sortDemos);
-
-  return {
+  return createApiResponse({
     source,
-    ...(reason ? { reason } : {}),
-    count: visibleItems.length,
-    updatedAt: getLatestUpdatedAt(visibleItems),
+    reason,
     items: visibleItems,
-    data: visibleItems,
-  };
+  });
 }
 
 function createFallbackResponse(reason) {
@@ -208,13 +190,13 @@ function createFallbackResponse(reason) {
 }
 
 export default async function handler(req, res) {
+  if (rejectUnsupportedMethod(req, res)) return;
+
   const baseId = process.env.AIRTABLE_BASE_ID?.trim();
   const tableId = process.env.AIRTABLE_MVP_TABLE_ID?.trim();
 
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-
   if (!process.env.AIRTABLE_API_KEY || !baseId || !tableId) {
-    res.status(200).json(createFallbackResponse('missing_env'));
+    sendJsonResponse(req, res, createFallbackResponse('missing_env'));
     return;
   }
 
@@ -224,15 +206,14 @@ export default async function handler(req, res) {
       tableId,
     });
 
-    const airtableItems = records.map(normalizeAirtableDemo);
-    if (!airtableItems.length) {
-      res.status(200).json(createFallbackResponse('empty_airtable_response'));
-      return;
-    }
+    const airtableItems = records
+      .filter((record) => isPublicAirtableVisibility(getRecordField(record.fields || {}, 'visibility')))
+      .map(normalizeAirtableDemo);
 
-    res.status(200).json(createResponse('airtable', undefined, airtableItems));
+    sendJsonResponse(req, res, createResponse('airtable', null, airtableItems));
   } catch (error) {
-    console.error('[api/modules/demos] Airtable fetch failed', error?.message || 'unknown_error');
-    res.status(200).json(createFallbackResponse('airtable_fetch_failed'));
+    const reason = getUpstreamFailureReason(error);
+    logSafeApiError('/api/modules/demos', reason, 'airtable');
+    sendJsonResponse(req, res, createFallbackResponse(reason));
   }
 }

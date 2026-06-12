@@ -1,3 +1,5 @@
+import { createApiResponse } from '../../api/_response.js';
+
 const FALLBACK_IDENTITY_PROFILES = [
   {
     id: 'fallback-nexaeon',
@@ -68,12 +70,9 @@ const FALLBACK_IDENTITY_PROFILES = [
 export function createFallbackIdentityProfilesResponse(reason = 'client_initial_fallback') {
   const items = FALLBACK_IDENTITY_PROFILES.map((item) => ({ ...item }));
 
-  return {
+  return createApiResponse({
     source: 'fallback',
     reason,
-    count: items.length,
-    updatedAt: new Date().toISOString(),
     items,
-    data: items,
-  };
+  });
 }

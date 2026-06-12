@@ -1,3 +1,5 @@
+import { createApiResponse } from '../../api/_response.js';
+
 export const FALLBACK_KNOWLEDGE_RESOURCES = [
   {
     id: 'ai-tutor-personalization',
@@ -248,16 +250,15 @@ function createFallbackKnowledgeMeta(meta) {
   };
 }
 
-export function createFallbackKnowledgeResponse(reason = 'notion_not_connected', meta) {
+export function createFallbackKnowledgeResponse(reason = 'upstream_failed', meta) {
   const items = FALLBACK_KNOWLEDGE_RESOURCES.map(normalizeFallbackKnowledgeResource);
 
-  return {
+  return createApiResponse({
     source: 'fallback',
     reason,
-    count: items.length,
-    updatedAt: new Date().toISOString(),
-    meta: createFallbackKnowledgeMeta(meta),
     items,
-    data: items,
-  };
+    extra: {
+      meta: createFallbackKnowledgeMeta(meta),
+    },
+  });
 }
