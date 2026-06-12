@@ -14,6 +14,7 @@ import {
   getKnowledgeTitle,
   KNOWLEDGE_RESOURCE_UI,
 } from '../data/knowledgeResourceData.js';
+import { createFallbackIdentityProfilesResponse } from '../data/identityProfileData.js';
 import ModuleDataLayer, { ModuleDataPanel } from './ModuleDataLayer.jsx';
 import NeuralBackground from './NeuralBackground.jsx';
 import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
@@ -2213,6 +2214,502 @@ function KnowledgeResourceDatabase({ item, common, lang }) {
   );
 }
 
+const IDENTITY_PROFILES_UI = {
+  zh: {
+    title: 'Identity Profiles｜身份節點資料',
+    subtitle: '從 Notion 讀取 Joey、NexAeon 與研究角色的公開身份節點，建立可持續更新的身份導航。',
+    dataSource: '資料來源',
+    count: '公開身份節點',
+    updatedAt: '最後更新時間',
+    filteredCount: '目前篩選結果',
+    connected: 'NOTION IDENTITY PROFILES CONNECTED',
+    fallback: 'FALLBACK ACTIVE',
+    loading: '載入中',
+    fetchError: '資料暫時無法載入，已顯示安全 fallback。',
+    retry: '重新載入',
+    searchPlaceholder: '搜尋身份、角色、理念、定位或對應模塊',
+    identityType: '身份類型',
+    roleTags: '角色標籤',
+    relatedModules: '對應模塊',
+    allIdentityTypes: '全部身份',
+    allRoles: '全部角色',
+    allModules: '全部模塊',
+    shortPositioning: '簡短定位',
+    fullIntroduction: '完整介紹',
+    corePhilosophy: '核心理念',
+    featured: '精選',
+    sort: '排序',
+    recommended: '推薦順序',
+    recent: '最近更新',
+    nameAz: '名稱 A-Z',
+    displayOrder: '顯示順序',
+    createdAt: '建立日期',
+    expand: '展開詳情',
+    collapse: '收合詳情',
+    viewLink: '查看連結',
+    loadMore: '載入更多',
+    empty: '目前沒有符合條件的公開身份節點。',
+    showing: '目前顯示',
+    of: ' / ',
+  },
+  en: {
+    title: 'Identity Profiles',
+    subtitle: 'Public identity nodes for Joey, NexAeon, and related research roles, synchronized from Notion.',
+    dataSource: 'Data Source',
+    count: 'Public Identity Nodes',
+    updatedAt: 'Last Updated',
+    filteredCount: 'Current Results',
+    connected: 'NOTION IDENTITY PROFILES CONNECTED',
+    fallback: 'FALLBACK ACTIVE',
+    loading: 'Loading',
+    fetchError: 'The data request failed, so a safe fallback is shown.',
+    retry: 'Retry',
+    searchPlaceholder: 'Search identities, roles, philosophies, positioning, or related modules',
+    identityType: 'Identity Type',
+    roleTags: 'Role Tags',
+    relatedModules: 'Related Modules',
+    allIdentityTypes: 'All Identities',
+    allRoles: 'All Roles',
+    allModules: 'All Modules',
+    shortPositioning: 'Short Positioning',
+    fullIntroduction: 'Full Introduction',
+    corePhilosophy: 'Core Philosophy',
+    featured: 'Featured',
+    sort: 'Sort',
+    recommended: 'Recommended',
+    recent: 'Recently Updated',
+    nameAz: 'Name A-Z',
+    displayOrder: 'Display Order',
+    createdAt: 'Created At',
+    expand: 'Expand details',
+    collapse: 'Collapse details',
+    viewLink: 'View Link',
+    loadMore: 'Load more',
+    empty: 'No public identity nodes match the current filters.',
+    showing: 'Showing',
+    of: ' of ',
+  },
+  ko: {
+    title: 'Identity Profiles｜정체성 데이터 노드',
+    subtitle: 'Notion에서 Joey, NexAeon 및 관련 연구 역할의 공개 정체성 노드를 불러온다.',
+    dataSource: '데이터 출처',
+    count: '공개 정체성 노드',
+    updatedAt: '최종 업데이트',
+    filteredCount: '현재 결과',
+    connected: 'NOTION IDENTITY PROFILES CONNECTED',
+    fallback: 'FALLBACK ACTIVE',
+    loading: '불러오는 중',
+    fetchError: '데이터 요청에 실패해 안전한 fallback을 표시합니다.',
+    retry: '다시 불러오기',
+    searchPlaceholder: '정체성, 역할, 철학, 포지셔닝 또는 관련 모듈 검색',
+    identityType: '정체성 유형',
+    roleTags: '역할 태그',
+    relatedModules: '관련 모듈',
+    allIdentityTypes: '전체 정체성',
+    allRoles: '전체 역할',
+    allModules: '전체 모듈',
+    shortPositioning: '간략한 포지셔닝',
+    fullIntroduction: '전체 소개',
+    corePhilosophy: '핵심 철학',
+    featured: '추천',
+    sort: '정렬',
+    recommended: '추천 순서',
+    recent: '최근 업데이트',
+    nameAz: '이름 A-Z',
+    displayOrder: '표시 순서',
+    createdAt: '생성일',
+    expand: '자세히 보기',
+    collapse: '접기',
+    viewLink: '링크 보기',
+    loadMore: '더 보기',
+    empty: '현재 필터와 일치하는 공개 정체성 노드가 없다.',
+    showing: '표시 중',
+    of: ' / ',
+  },
+};
+
+function hasIdentityValue(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).length > 0;
+  if (value === 0) return true;
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function formatIdentityList(value) {
+  if (!Array.isArray(value)) return hasIdentityValue(value) ? String(value) : '';
+  return value.filter(Boolean).join(', ');
+}
+
+function formatIdentityDate(value) {
+  if (!hasIdentityValue(value)) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function getIdentityUpdatedTime(profile) {
+  const time = new Date(profile.updatedAt || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getIdentityDisplayOrder(profile) {
+  const order = Number(profile.displayOrder);
+  return Number.isFinite(order) ? order : 0;
+}
+
+function getIdentitySearchBody(profile) {
+  return [
+    profile.name,
+    profile.identityType,
+    profile.shortPositioning,
+    profile.fullIntroduction,
+    profile.corePhilosophy,
+    profile.roleTags,
+    profile.relatedModules,
+  ].map(normalizeSearchText).join(' ');
+}
+
+function createIdentityFilterOptions(items, field, allLabel) {
+  const values = [...new Set(items.flatMap((item) => {
+    const value = item[field];
+    return Array.isArray(value) ? value : [value];
+  }).map((value) => String(value || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  return [
+    { value: 'all', label: allLabel },
+    ...values.map((value) => ({ value, label: value })),
+  ];
+}
+
+function IdentityFilterGroup({ label, filters, activeValue, onSelect }) {
+  return (
+    <div className="identity-filter-section">
+      <span>{label}</span>
+      <div className="identity-filter-row">
+        {filters.map((filter) => (
+          <button
+            key={filter.value}
+            className="identity-filter-chip"
+            data-active={activeValue === filter.value ? 'true' : 'false'}
+            type="button"
+            onClick={() => onSelect(filter.value)}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IdentityDetailField({ label, value }) {
+  if (!hasIdentityValue(value)) return null;
+
+  return (
+    <div className="identity-detail-field">
+      <span>{label}</span>
+      <p>{Array.isArray(value) ? formatIdentityList(value) : value}</p>
+    </div>
+  );
+}
+
+function IdentityProfileImage({ profile }) {
+  const [isHidden, setIsHidden] = useState(false);
+  const imageUrl = profile.image?.url;
+
+  if (!imageUrl || isHidden) return null;
+
+  return (
+    <div className="identity-profile-image">
+      <img
+        src={imageUrl}
+        alt={`${profile.name || 'Untitled Identity'} identity image`}
+        loading="lazy"
+        onError={() => setIsHidden(true)}
+      />
+    </div>
+  );
+}
+
+function useIdentityProfiles() {
+  const [profileState, setProfileState] = useState(() => ({
+    payload: createFallbackIdentityProfilesResponse('client_initial_fallback'),
+    isLoading: true,
+    hasError: false,
+  }));
+
+  async function loadProfiles() {
+    setProfileState((current) => ({ ...current, isLoading: true, hasError: false }));
+
+    try {
+      const response = await fetch('/api/identity/profiles');
+      if (!response.ok) throw new Error(`Identity Profiles API failed with status ${response.status}`);
+      const payload = await response.json();
+      setProfileState({ payload, isLoading: false, hasError: false });
+    } catch {
+      setProfileState({
+        payload: createFallbackIdentityProfilesResponse('client_fetch_failed'),
+        isLoading: false,
+        hasError: true,
+      });
+    }
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadInitialProfiles() {
+      try {
+        const response = await fetch('/api/identity/profiles');
+        if (!response.ok) throw new Error(`Identity Profiles API failed with status ${response.status}`);
+        const payload = await response.json();
+        if (isMounted) setProfileState({ payload, isLoading: false, hasError: false });
+      } catch {
+        if (isMounted) {
+          setProfileState({
+            payload: createFallbackIdentityProfilesResponse('client_fetch_failed'),
+            isLoading: false,
+            hasError: true,
+          });
+        }
+      }
+    }
+
+    loadInitialProfiles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return {
+    ...profileState,
+    retry: loadProfiles,
+  };
+}
+
+function IdentityProfilesDatabase({ item, common, lang }) {
+  const { payload: profileState, isLoading, hasError, retry } = useIdentityProfiles();
+  const ui = IDENTITY_PROFILES_UI[lang] || IDENTITY_PROFILES_UI.zh;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [identityTypeFilter, setIdentityTypeFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [sortMode, setSortMode] = useState('recommended');
+  const [visibleCount, setVisibleCount] = useState(8);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const resultsRef = useRef(null);
+  const profiles = useMemo(() => profileState.items || profileState.data || [], [profileState.data, profileState.items]);
+  const identityTypeOptions = useMemo(() => createIdentityFilterOptions(profiles, 'identityType', ui.allIdentityTypes), [profiles, ui.allIdentityTypes]);
+  const roleOptions = useMemo(() => createIdentityFilterOptions(profiles, 'roleTags', ui.allRoles), [profiles, ui.allRoles]);
+  const moduleOptions = useMemo(() => createIdentityFilterOptions(profiles, 'relatedModules', ui.allModules), [profiles, ui.allModules]);
+  const latestUpdatedAt = profileState.updatedAt || '';
+
+  const filteredProfiles = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const filtered = profiles.filter((profile) => {
+      const matchesSearch = !normalizedQuery || getIdentitySearchBody(profile).includes(normalizedQuery);
+      const matchesType = identityTypeFilter === 'all' || profile.identityType === identityTypeFilter;
+      const matchesRole = roleFilter === 'all' || (Array.isArray(profile.roleTags) && profile.roleTags.includes(roleFilter));
+      const matchesModule = moduleFilter === 'all' || (Array.isArray(profile.relatedModules) && profile.relatedModules.includes(moduleFilter));
+      return matchesSearch && matchesType && matchesRole && matchesModule;
+    });
+
+    return filtered.slice().sort((a, b) => {
+      if (sortMode === 'recent') return getIdentityUpdatedTime(b) - getIdentityUpdatedTime(a);
+      if (sortMode === 'name') return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+      if (sortMode === 'display-order') return getIdentityDisplayOrder(a) - getIdentityDisplayOrder(b);
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+
+      const orderDifference = getIdentityDisplayOrder(a) - getIdentityDisplayOrder(b);
+      if (orderDifference) return orderDifference;
+
+      const updatedDifference = getIdentityUpdatedTime(b) - getIdentityUpdatedTime(a);
+      if (updatedDifference) return updatedDifference;
+
+      return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+    });
+  }, [identityTypeFilter, moduleFilter, profiles, roleFilter, searchQuery, sortMode]);
+
+  const visibleProfiles = filteredProfiles.slice(0, visibleCount);
+
+  function resetVisibleCount() {
+    setVisibleCount(8);
+  }
+
+  function updateSearchQuery(value) {
+    setSearchQuery(value);
+    resetVisibleCount();
+  }
+
+  function updateFilter(setter, value) {
+    setter(value);
+    resetVisibleCount();
+  }
+
+  function toggleExpanded(id) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleSearchKeyDown(event) {
+    if (event.key === 'Enter') {
+      scrollResultsIntoView(resultsRef);
+    }
+  }
+
+  return (
+    <article className="content-detail-card module-detail-card identity-profiles-database">
+      <div className="detail-badge-row">
+        <Badge>{common.moduleLabel}: {item.category}</Badge>
+        <Badge>{item.status}</Badge>
+      </div>
+
+      <div className="detail-module-label">{item.moduleLabel}</div>
+      <h1>{ui.title}</h1>
+      <p className="detail-subtitle">{ui.subtitle}</p>
+
+      <div className="identity-status-bar" aria-label={ui.title}>
+        <span>{ui.dataSource}: {profileState.source}{isLoading ? ` (${ui.loading})` : ''}</span>
+        <span>{ui.count}: {profileState.count ?? profiles.length}</span>
+        <span>{ui.updatedAt}: {formatIdentityDate(latestUpdatedAt)}</span>
+        <span>{ui.filteredCount}: {filteredProfiles.length}</span>
+      </div>
+
+      <div className="identity-source-card" data-source={profileState.source === 'notion' ? 'notion' : 'fallback'}>
+        <span>{profileState.source === 'notion' ? ui.connected : ui.fallback}</span>
+        {hasError ? <p>{ui.fetchError}</p> : null}
+        {hasError ? (
+          <button className="identity-retry-button" type="button" onClick={retry}>
+            {ui.retry}
+          </button>
+        ) : null}
+      </div>
+
+      <section className="identity-toolbar" aria-label={ui.searchPlaceholder}>
+        <input
+          className="identity-search-input"
+          type="search"
+          value={searchQuery}
+          onChange={(event) => updateSearchQuery(event.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder={ui.searchPlaceholder}
+          aria-label={ui.searchPlaceholder}
+        />
+
+        <label className="identity-sort-control">
+          <span>{ui.sort}</span>
+          <select value={sortMode} onChange={(event) => updateFilter(setSortMode, event.target.value)}>
+            <option value="recommended">{ui.recommended}</option>
+            <option value="recent">{ui.recent}</option>
+            <option value="name">{ui.nameAz}</option>
+            <option value="display-order">{ui.displayOrder}</option>
+          </select>
+        </label>
+      </section>
+
+      <section className="identity-filter-panel" aria-label={ui.identityType}>
+        <IdentityFilterGroup label={ui.identityType} filters={identityTypeOptions} activeValue={identityTypeFilter} onSelect={(value) => updateFilter(setIdentityTypeFilter, value)} />
+        <IdentityFilterGroup label={ui.roleTags} filters={roleOptions} activeValue={roleFilter} onSelect={(value) => updateFilter(setRoleFilter, value)} />
+        <IdentityFilterGroup label={ui.relatedModules} filters={moduleOptions} activeValue={moduleFilter} onSelect={(value) => updateFilter(setModuleFilter, value)} />
+      </section>
+
+      <section ref={resultsRef} className="identity-profile-list" aria-label={ui.count}>
+        {visibleProfiles.map((profile) => {
+          const isExpanded = expandedIds.has(profile.id);
+          const detailFields = [
+            { label: ui.fullIntroduction, value: profile.fullIntroduction },
+            { label: ui.corePhilosophy, value: profile.corePhilosophy },
+            { label: ui.identityType, value: profile.identityType },
+            { label: ui.roleTags, value: profile.roleTags },
+            { label: ui.relatedModules, value: profile.relatedModules },
+            { label: ui.createdAt, value: formatIdentityDate(profile.createdAt) },
+            { label: ui.updatedAt, value: formatIdentityDate(profile.updatedAt) },
+          ];
+
+          return (
+            <article key={profile.id} className="identity-profile-card" data-featured={profile.featured ? 'true' : 'false'}>
+              <IdentityProfileImage profile={profile} />
+
+              <div className="identity-profile-summary">
+                <div className="module-data-card-top identity-profile-top">
+                  {hasIdentityValue(profile.identityType) ? <span className="content-tag">{profile.identityType}</span> : null}
+                  {profile.featured ? <span className="module-data-status">{ui.featured}</span> : null}
+                </div>
+
+                <h2>{profile.name || 'Untitled Identity'}</h2>
+
+                {hasIdentityValue(profile.shortPositioning) ? (
+                  <p className="identity-short-positioning">{profile.shortPositioning}</p>
+                ) : null}
+
+                <div className="identity-tag-row">
+                  {(profile.roleTags || []).map((tag) => <span key={`role-${profile.id}-${tag}`}>{tag}</span>)}
+                  {(profile.relatedModules || []).map((module) => <span key={`module-${profile.id}-${module}`}>{module}</span>)}
+                </div>
+
+                <div className="identity-compact-meta">
+                  {hasIdentityValue(profile.updatedAt) ? <span>{ui.updatedAt}: {formatIdentityDate(profile.updatedAt)}</span> : null}
+                </div>
+
+                <div className="identity-actions">
+                  <button
+                    className="identity-action-button"
+                    type="button"
+                    onClick={() => toggleExpanded(profile.id)}
+                    aria-expanded={isExpanded}
+                  >
+                    {isExpanded ? ui.collapse : ui.expand}
+                  </button>
+                </div>
+              </div>
+
+              {isExpanded ? (
+                <div className="identity-detail-panel">
+                  <div className="identity-detail-grid">
+                    {detailFields.map((field) => (
+                      <IdentityDetailField key={field.label} label={field.label} value={field.value} />
+                    ))}
+                  </div>
+                  {hasIdentityValue(profile.externalUrl) ? (
+                    <div className="identity-actions">
+                      <a className="identity-action-button" href={profile.externalUrl} target="_blank" rel="noopener noreferrer">
+                        {ui.viewLink}
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+
+        {!filteredProfiles.length ? (
+          <article className="identity-empty-state">
+            <p>{ui.empty}</p>
+          </article>
+        ) : null}
+      </section>
+
+      {filteredProfiles.length > visibleCount ? (
+        <div className="identity-load-more-row">
+          <span>{ui.showing} {visibleProfiles.length}{ui.of}{filteredProfiles.length}</span>
+          <button
+            className="identity-load-more"
+            type="button"
+            onClick={() => setVisibleCount((count) => count + 8)}
+          >
+            {ui.loadMore}
+          </button>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function TheoryModelLibrary({ item, common, parentPath, navigate, navigateBack, lang }) {
   const goToResearch = () => {
     suppressIntroReplay();
@@ -2321,6 +2818,12 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
           />
         ) : item.template === 'knowledge-resources' ? (
           <KnowledgeResourceDatabase
+            item={item}
+            common={common}
+            lang={lang}
+          />
+        ) : item.template === 'identity-profiles' ? (
+          <IdentityProfilesDatabase
             item={item}
             common={common}
             lang={lang}
