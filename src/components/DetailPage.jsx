@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { getModuleData } from '../data/moduleData.js';
 import { getDetailItem, getLocalizedSite } from '../lib/contentSource.js';
 import {
   createFallbackLiteratureResponse,
@@ -95,6 +96,624 @@ function normalizeSearchText(value) {
 
 function scrollResultsIntoView(ref) {
   ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+const ACTION_PAGE_UI = {
+  zh: {
+    dataSource: '資料來源',
+    publicProjects: '公開專案',
+    lastUpdated: '最後更新時間',
+    currentResults: '目前篩選結果',
+    connected: 'AIRTABLE PROJECTS CONNECTED',
+    fallback: 'FALLBACK ACTIVE',
+    allPublicProjects: '全部公開專案',
+    inProgress: '進行中',
+    done: '已完成',
+    blocked: '受阻',
+    averageProgress: '平均進度',
+    searchPlaceholder: '搜尋專案、階段、下一步、自動化狀態或公開摘要',
+    sort: '排序',
+    recent: '最近更新',
+    prioritySort: '優先度',
+    progressHigh: '進度高到低',
+    progressLow: '進度低到高',
+    dueDate: '截止日期',
+    nameAz: '名稱 A-Z',
+    projectType: '專案類型',
+    status: '狀態',
+    priority: '優先度',
+    automationStatus: '自動化狀態',
+    progress: '進度',
+    currentPhase: '目前階段',
+    nextAction: '下一步',
+    startDate: '開始日期',
+    publicSummary: '公開摘要',
+    expand: '展開詳情',
+    collapse: '收合詳情',
+    viewDeployment: '查看部署',
+    viewGithub: '查看 GitHub',
+    viewEvidence: '查看證據',
+    loadMore: '載入更多',
+    empty: '目前沒有符合條件的公開專案。',
+    showing: '目前顯示',
+    of: ' / ',
+  },
+  en: {
+    dataSource: 'Data Source',
+    publicProjects: 'Public Projects',
+    lastUpdated: 'Last Updated',
+    currentResults: 'Current Results',
+    connected: 'AIRTABLE PROJECTS CONNECTED',
+    fallback: 'FALLBACK ACTIVE',
+    allPublicProjects: 'All Public Projects',
+    inProgress: 'In Progress',
+    done: 'Done',
+    blocked: 'Blocked',
+    averageProgress: 'Average Progress',
+    searchPlaceholder: 'Search projects, phases, next actions, automation status, or public summaries',
+    sort: 'Sort',
+    recent: 'Latest update',
+    prioritySort: 'Priority',
+    progressHigh: 'Progress high to low',
+    progressLow: 'Progress low to high',
+    dueDate: 'Due Date',
+    nameAz: 'Name A-Z',
+    projectType: 'Project Type',
+    status: 'Status',
+    priority: 'Priority',
+    automationStatus: 'Automation Status',
+    progress: 'Progress',
+    currentPhase: 'Current Phase',
+    nextAction: 'Next Action',
+    startDate: 'Start Date',
+    publicSummary: 'Public Summary',
+    expand: 'Expand details',
+    collapse: 'Collapse details',
+    viewDeployment: 'View Deployment',
+    viewGithub: 'View GitHub',
+    viewEvidence: 'View Evidence',
+    loadMore: 'Load more',
+    empty: 'No public projects match the current filters.',
+    showing: 'Showing',
+    of: ' of ',
+  },
+  ko: {
+    dataSource: '데이터 출처',
+    publicProjects: '공개 프로젝트',
+    lastUpdated: '최종 업데이트',
+    currentResults: '현재 결과',
+    connected: 'AIRTABLE PROJECTS CONNECTED',
+    fallback: 'FALLBACK ACTIVE',
+    allPublicProjects: '전체 공개 프로젝트',
+    inProgress: '진행 중',
+    done: '완료',
+    blocked: '차단됨',
+    averageProgress: '평균 진행률',
+    searchPlaceholder: '프로젝트, 단계, 다음 작업, 자동화 상태 또는 공개 요약 검색',
+    sort: '정렬',
+    recent: '최근 업데이트',
+    prioritySort: '우선순위',
+    progressHigh: '진행률 높은순',
+    progressLow: '진행률 낮은순',
+    dueDate: '마감일',
+    nameAz: '이름 A-Z',
+    projectType: '프로젝트 유형',
+    status: '상태',
+    priority: '우선순위',
+    automationStatus: '자동화 상태',
+    progress: '진행률',
+    currentPhase: '현재 단계',
+    nextAction: '다음 작업',
+    startDate: '시작일',
+    publicSummary: '공개 요약',
+    expand: '자세히 보기',
+    collapse: '접기',
+    viewDeployment: '배포 보기',
+    viewGithub: 'GitHub 보기',
+    viewEvidence: '증거 보기',
+    loadMore: '더 보기',
+    empty: '현재 필터와 일치하는 공개 프로젝트가 없다.',
+    showing: '표시 중',
+    of: ' / ',
+  },
+};
+
+const ACTION_PROJECT_TYPE_FILTERS = [
+  { value: 'all', label: { zh: '全部類型', en: 'All Types', ko: '전체 유형' } },
+  { value: 'Product', label: { zh: 'Product', en: 'Product', ko: 'Product' } },
+  { value: 'Research', label: { zh: 'Research', en: 'Research', ko: 'Research' } },
+  { value: 'Website', label: { zh: 'Website', en: 'Website', ko: 'Website' } },
+  { value: 'Automation', label: { zh: 'Automation', en: 'Automation', ko: 'Automation' } },
+  { value: 'Operations', label: { zh: 'Operations', en: 'Operations', ko: 'Operations' } },
+  { value: 'Other', label: { zh: 'Other', en: 'Other', ko: 'Other' } },
+];
+
+const ACTION_STATUS_FILTERS = [
+  { value: 'all', label: { zh: '全部狀態', en: 'All Status', ko: '전체 상태' } },
+  { value: 'Backlog', label: { zh: 'Backlog', en: 'Backlog', ko: 'Backlog' } },
+  { value: 'Planned', label: { zh: 'Planned', en: 'Planned', ko: 'Planned' } },
+  { value: 'In Progress', label: { zh: 'In Progress', en: 'In Progress', ko: 'In Progress' } },
+  { value: 'Blocked', label: { zh: 'Blocked', en: 'Blocked', ko: 'Blocked' } },
+  { value: 'Review', label: { zh: 'Review', en: 'Review', ko: 'Review' } },
+  { value: 'Done', label: { zh: 'Done', en: 'Done', ko: 'Done' } },
+  { value: 'Paused', label: { zh: 'Paused', en: 'Paused', ko: 'Paused' } },
+];
+
+const ACTION_PRIORITY_FILTERS = [
+  { value: 'all', label: { zh: '全部優先度', en: 'All Priority', ko: '전체 우선순위' } },
+  { value: 'High', label: { zh: 'High', en: 'High', ko: 'High' } },
+  { value: 'Medium', label: { zh: 'Medium', en: 'Medium', ko: 'Medium' } },
+  { value: 'Low', label: { zh: 'Low', en: 'Low', ko: 'Low' } },
+];
+
+const ACTION_AUTOMATION_FILTERS = [
+  { value: 'all', label: { zh: '全部自動化狀態', en: 'All Automation Status', ko: '전체 자동화 상태' } },
+  { value: 'Not Connected', label: { zh: 'Not Connected', en: 'Not Connected', ko: 'Not Connected' } },
+  { value: 'Planned', label: { zh: 'Planned', en: 'Planned', ko: 'Planned' } },
+  { value: 'Active', label: { zh: 'Active', en: 'Active', ko: 'Active' } },
+  { value: 'Error', label: { zh: 'Error', en: 'Error', ko: 'Error' } },
+];
+
+const ACTION_PROGRESS_FILTERS = [
+  { value: 'all', label: { zh: '全部進度', en: 'All Progress', ko: '전체 진행률' }, min: 0, max: 100 },
+  { value: '0-25', label: { zh: '0-25%', en: '0-25%', ko: '0-25%' }, min: 0, max: 25 },
+  { value: '26-50', label: { zh: '26-50%', en: '26-50%', ko: '26-50%' }, min: 26, max: 50 },
+  { value: '51-75', label: { zh: '51-75%', en: '51-75%', ko: '51-75%' }, min: 51, max: 75 },
+  { value: '76-99', label: { zh: '76-99%', en: '76-99%', ko: '76-99%' }, min: 76, max: 99 },
+  { value: '100', label: { zh: '100%', en: '100%', ko: '100%' }, min: 100, max: 100 },
+];
+
+function normalizeActionProjectResponse(reason = 'client_initial_fallback') {
+  return {
+    source: 'fallback',
+    reason,
+    count: 0,
+    updatedAt: '',
+    items: [],
+    data: [],
+  };
+}
+
+function getLocalizedActionFallbackTitle(item, lang) {
+  if (lang === 'zh') return item.titleZh || item.titleEn || item.titleKo || 'Untitled Project';
+  if (lang === 'ko') return item.titleKo || item.titleEn || item.titleZh || 'Untitled Project';
+  return item.titleEn || item.titleZh || item.titleKo || 'Untitled Project';
+}
+
+function getLocalizedActionFallbackDescription(item, lang) {
+  if (lang === 'zh') return item.descriptionZh || item.descriptionEn || item.descriptionKo || '';
+  if (lang === 'ko') return item.descriptionKo || item.descriptionEn || item.descriptionZh || '';
+  return item.descriptionEn || item.descriptionZh || item.descriptionKo || '';
+}
+
+function normalizeActionFallbackProject(item, lang) {
+  const projectTypeMap = {
+    website: 'Website',
+    research_system: 'Research',
+    mvp: 'Product',
+    automation: 'Automation',
+    backend: 'Operations',
+  };
+
+  return {
+    id: item.id,
+    name: getLocalizedActionFallbackTitle(item, lang),
+    projectType: projectTypeMap[item.type] || projectTypeMap[item.category] || 'Other',
+    status: item.status || 'Planned',
+    priority: 'Medium',
+    startDate: '',
+    dueDate: '',
+    progress: 0,
+    currentPhase: item.category || item.status || '',
+    nextAction: '',
+    publicSummary: getLocalizedActionFallbackDescription(item, lang),
+    githubUrl: '',
+    deploymentUrl: item.actionUrl || '',
+    automationStatus: 'Planned',
+    evidenceUrl: '',
+    updatedAt: item.updatedAt || '',
+  };
+}
+
+function createClientActionFallbackResponse(reason, lang) {
+  const items = getModuleData('action').map((item) => normalizeActionFallbackProject(item, lang));
+  return {
+    ...normalizeActionProjectResponse(reason),
+    count: items.length,
+    updatedAt: getActionLatestUpdatedAt({ updatedAt: '' }, items),
+    items,
+    data: items,
+  };
+}
+
+function useActionProjects(lang) {
+  const [projectState, setProjectState] = useState(() => createClientActionFallbackResponse('client_initial_fallback', lang));
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProjects() {
+      try {
+        const response = await fetch('/api/action/projects');
+        if (!response.ok) throw new Error(`Action projects API failed with status ${response.status}`);
+        const payload = await response.json();
+        if (isMounted) setProjectState(payload);
+      } catch {
+        if (isMounted) setProjectState(createClientActionFallbackResponse('client_fetch_failed', lang));
+      }
+    }
+
+    loadProjects();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [lang]);
+
+  return projectState;
+}
+
+function hasActionValue(value) {
+  if (value === undefined || value === null) return false;
+  return String(value).trim().length > 0;
+}
+
+function normalizeActionSearchValue(value) {
+  return String(value || '').toLowerCase();
+}
+
+function getActionSearchBody(project) {
+  return [
+    project.name,
+    project.projectType,
+    project.status,
+    project.priority,
+    project.currentPhase,
+    project.nextAction,
+    project.publicSummary,
+    project.automationStatus,
+  ].map(normalizeActionSearchValue).join(' ');
+}
+
+function getActionProgress(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 0;
+  return Math.max(0, Math.min(100, Math.round(numericValue)));
+}
+
+function getActionUpdatedTime(project) {
+  const time = new Date(project.updatedAt || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getActionDueTime(project) {
+  if (!project.dueDate) return Number.POSITIVE_INFINITY;
+  const time = new Date(project.dueDate).getTime();
+  return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY;
+}
+
+function getActionPriorityRank(priority) {
+  const ranks = { High: 0, Medium: 1, Low: 2 };
+  return ranks[priority] ?? 9;
+}
+
+function formatActionDate(value) {
+  if (!hasActionValue(value)) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function isActionFilterMatch(value, activeValue) {
+  return activeValue === 'all' || String(value || '') === activeValue;
+}
+
+function isProgressFilterMatch(value, activeValue) {
+  if (activeValue === 'all') return true;
+  const filter = ACTION_PROGRESS_FILTERS.find((item) => item.value === activeValue);
+  if (!filter) return true;
+  const progress = getActionProgress(value);
+  return progress >= filter.min && progress <= filter.max;
+}
+
+function getActionLatestUpdatedAt(projectState, items) {
+  if (projectState.updatedAt) return projectState.updatedAt;
+  const latest = items
+    .map((project) => project.updatedAt)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+
+  return latest || '';
+}
+
+function ActionFilterGroup({ label, filters, activeValue, onSelect, lang }) {
+  return (
+    <div className="action-filter-section">
+      <span>{label}</span>
+      <div className="action-filter-row">
+        {filters.map((filter) => (
+          <button
+            key={filter.value}
+            className="action-filter-chip"
+            data-active={activeValue === filter.value ? 'true' : 'false'}
+            type="button"
+            onClick={() => onSelect(filter.value)}
+          >
+            {filter.label[lang] || filter.label.zh}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActionDetailField({ label, value }) {
+  if (!hasActionValue(value)) return null;
+
+  return (
+    <div className="action-detail-field">
+      <span>{label}</span>
+      <p>{value}</p>
+    </div>
+  );
+}
+
+function ActionProjectDashboard({ item, common, lang }) {
+  const projectState = useActionProjects(lang);
+  const ui = ACTION_PAGE_UI[lang] || ACTION_PAGE_UI.zh;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [projectTypeFilter, setProjectTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [automationFilter, setAutomationFilter] = useState('all');
+  const [progressFilter, setProgressFilter] = useState('all');
+  const [sortMode, setSortMode] = useState('recent');
+  const [visibleCount, setVisibleCount] = useState(8);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const resultsRef = useRef(null);
+  const projects = useMemo(() => projectState.data || projectState.items || [], [projectState.data, projectState.items]);
+
+  const filteredProjects = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const filtered = projects.filter((project) => {
+      const matchesSearch = !normalizedQuery || getActionSearchBody(project).includes(normalizedQuery);
+      return matchesSearch
+        && isActionFilterMatch(project.projectType, projectTypeFilter)
+        && isActionFilterMatch(project.status, statusFilter)
+        && isActionFilterMatch(project.priority, priorityFilter)
+        && isActionFilterMatch(project.automationStatus, automationFilter)
+        && isProgressFilterMatch(project.progress, progressFilter);
+    });
+
+    return filtered.slice().sort((a, b) => {
+      if (sortMode === 'priority') {
+        const priorityDifference = getActionPriorityRank(a.priority) - getActionPriorityRank(b.priority);
+        if (priorityDifference) return priorityDifference;
+      }
+      if (sortMode === 'progress-high') return getActionProgress(b.progress) - getActionProgress(a.progress);
+      if (sortMode === 'progress-low') return getActionProgress(a.progress) - getActionProgress(b.progress);
+      if (sortMode === 'due-date') {
+        const dueDifference = getActionDueTime(a) - getActionDueTime(b);
+        if (dueDifference) return dueDifference;
+      }
+      if (sortMode === 'name') return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+      return getActionUpdatedTime(b) - getActionUpdatedTime(a);
+    });
+  }, [automationFilter, priorityFilter, progressFilter, projectTypeFilter, projects, searchQuery, sortMode, statusFilter]);
+
+  const visibleProjects = filteredProjects.slice(0, visibleCount);
+  const latestUpdatedAt = getActionLatestUpdatedAt(projectState, projects);
+  const totalProgress = filteredProjects.reduce((sum, project) => sum + getActionProgress(project.progress), 0);
+  const averageProgress = filteredProjects.length ? Math.round(totalProgress / filteredProjects.length) : 0;
+  const summaryItems = [
+    { label: ui.allPublicProjects, value: filteredProjects.length },
+    { label: ui.inProgress, value: filteredProjects.filter((project) => project.status === 'In Progress').length },
+    { label: ui.done, value: filteredProjects.filter((project) => project.status === 'Done').length },
+    { label: ui.blocked, value: filteredProjects.filter((project) => project.status === 'Blocked').length },
+    { label: ui.averageProgress, value: `${averageProgress}%` },
+  ];
+
+  function toggleExpanded(id) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function resetVisibleCount() {
+    setVisibleCount(8);
+  }
+
+  function updateSearchQuery(value) {
+    setSearchQuery(value);
+    resetVisibleCount();
+  }
+
+  function updateFilter(setter, value) {
+    setter(value);
+    resetVisibleCount();
+  }
+
+  function handleSearchKeyDown(event) {
+    if (event.key === 'Enter') {
+      scrollResultsIntoView(resultsRef);
+    }
+  }
+
+  return (
+    <article className="content-detail-card module-detail-card action-project-dashboard">
+      <div className="detail-badge-row">
+        <Badge>{common.moduleLabel}: {item.category}</Badge>
+        <Badge>{item.status}</Badge>
+      </div>
+
+      <div className="detail-module-label">{item.moduleLabel}</div>
+      <h1>{item.title}</h1>
+      <p className="detail-subtitle">{item.subtitle}</p>
+
+      <div className="action-state-row" aria-label={item.title}>
+        <span>{ui.dataSource}: {projectState.source}</span>
+        <span>{ui.publicProjects}: {projectState.count ?? projects.length}</span>
+        <span>{ui.lastUpdated}: {formatActionDate(latestUpdatedAt)}</span>
+        <span>{ui.currentResults}: {filteredProjects.length}</span>
+      </div>
+
+      <div className="action-source-card" data-source={projectState.source === 'airtable' ? 'airtable' : 'fallback'}>
+        <span>{projectState.source === 'airtable' ? ui.connected : ui.fallback}</span>
+      </div>
+
+      <section className="action-summary-grid" aria-label={ui.progress}>
+        {summaryItems.map((summary) => (
+          <div key={summary.label} className="action-summary-card">
+            <span>{summary.label}</span>
+            <strong>{summary.value}</strong>
+          </div>
+        ))}
+      </section>
+
+      <section className="action-toolbar" aria-label={ui.searchPlaceholder}>
+        <input
+          className="action-search-input"
+          type="search"
+          value={searchQuery}
+          onChange={(event) => updateSearchQuery(event.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder={ui.searchPlaceholder}
+          aria-label={ui.searchPlaceholder}
+        />
+
+        <label className="action-sort-control">
+          <span>{ui.sort}</span>
+          <select value={sortMode} onChange={(event) => updateFilter(setSortMode, event.target.value)}>
+            <option value="recent">{ui.recent}</option>
+            <option value="priority">{ui.prioritySort}</option>
+            <option value="progress-high">{ui.progressHigh}</option>
+            <option value="progress-low">{ui.progressLow}</option>
+            <option value="due-date">{ui.dueDate}</option>
+            <option value="name">{ui.nameAz}</option>
+          </select>
+        </label>
+      </section>
+
+      <section className="action-filter-panel" aria-label={ui.projectType}>
+        <ActionFilterGroup label={ui.projectType} filters={ACTION_PROJECT_TYPE_FILTERS} activeValue={projectTypeFilter} onSelect={(value) => updateFilter(setProjectTypeFilter, value)} lang={lang} />
+        <ActionFilterGroup label={ui.status} filters={ACTION_STATUS_FILTERS} activeValue={statusFilter} onSelect={(value) => updateFilter(setStatusFilter, value)} lang={lang} />
+        <ActionFilterGroup label={ui.priority} filters={ACTION_PRIORITY_FILTERS} activeValue={priorityFilter} onSelect={(value) => updateFilter(setPriorityFilter, value)} lang={lang} />
+        <ActionFilterGroup label={ui.automationStatus} filters={ACTION_AUTOMATION_FILTERS} activeValue={automationFilter} onSelect={(value) => updateFilter(setAutomationFilter, value)} lang={lang} />
+        <ActionFilterGroup label={ui.progress} filters={ACTION_PROGRESS_FILTERS} activeValue={progressFilter} onSelect={(value) => updateFilter(setProgressFilter, value)} lang={lang} />
+      </section>
+
+      <section ref={resultsRef} className="action-project-list" aria-label={ui.publicProjects}>
+        {visibleProjects.map((project) => {
+          const isExpanded = expandedIds.has(project.id);
+          const progress = getActionProgress(project.progress);
+          const statusTone = project.status === 'Blocked' || project.automationStatus === 'Error' ? 'attention' : 'normal';
+          const detailFields = [
+            { label: ui.projectType, value: project.projectType },
+            { label: ui.status, value: project.status },
+            { label: ui.priority, value: project.priority },
+            { label: ui.startDate, value: formatActionDate(project.startDate) },
+            { label: ui.dueDate, value: formatActionDate(project.dueDate) },
+            { label: ui.progress, value: `${progress}%` },
+            { label: ui.currentPhase, value: project.currentPhase },
+            { label: ui.nextAction, value: project.nextAction },
+            { label: ui.publicSummary, value: project.publicSummary },
+            { label: ui.automationStatus, value: project.automationStatus },
+            { label: ui.lastUpdated, value: formatActionDate(project.updatedAt) },
+          ];
+
+          return (
+            <article key={project.id} className="action-project-card" data-tone={statusTone}>
+              <div className="action-project-card-main">
+                <div className="module-data-card-top action-project-top">
+                  {hasActionValue(project.projectType) ? <span className="content-tag">{project.projectType}</span> : null}
+                  {hasActionValue(project.status) ? <span className="module-data-status">{project.status}</span> : null}
+                  {hasActionValue(project.priority) ? <span className="module-data-status">{project.priority}</span> : null}
+                </div>
+
+                <h2>{project.name || 'Untitled Project'}</h2>
+
+                <div className="action-compact-meta">
+                  {hasActionValue(project.currentPhase) ? <span>{ui.currentPhase}: {project.currentPhase}</span> : null}
+                  {hasActionValue(project.automationStatus) ? <span>{ui.automationStatus}: {project.automationStatus}</span> : null}
+                  {hasActionValue(project.updatedAt) ? <span>{ui.lastUpdated}: {formatActionDate(project.updatedAt)}</span> : null}
+                </div>
+
+                <div className="action-progress">
+                  <div className="action-progress-top">
+                    <span>{ui.progress}</span>
+                    <strong>{progress}%</strong>
+                  </div>
+                  <div className="action-progress-track">
+                    <span style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+
+                {hasActionValue(project.publicSummary) ? <p className="action-project-summary">{project.publicSummary}</p> : null}
+
+                <div className="action-project-actions">
+                  <button
+                    className="action-action-button"
+                    type="button"
+                    onClick={() => toggleExpanded(project.id)}
+                    aria-expanded={isExpanded}
+                  >
+                    {isExpanded ? ui.collapse : ui.expand}
+                  </button>
+                  {hasActionValue(project.deploymentUrl) ? (
+                    <a className="action-action-button" href={project.deploymentUrl} target="_blank" rel="noopener noreferrer">
+                      {ui.viewDeployment}
+                    </a>
+                  ) : null}
+                  {hasActionValue(project.githubUrl) ? (
+                    <a className="action-action-button" href={project.githubUrl} target="_blank" rel="noopener noreferrer">
+                      {ui.viewGithub}
+                    </a>
+                  ) : null}
+                  {hasActionValue(project.evidenceUrl) ? (
+                    <a className="action-action-button" href={project.evidenceUrl} target="_blank" rel="noopener noreferrer">
+                      {ui.viewEvidence}
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              {isExpanded ? (
+                <div className="action-detail-panel">
+                  <div className="action-detail-grid">
+                    {detailFields.map((field) => (
+                      <ActionDetailField key={field.label} label={field.label} value={field.value} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+
+        {!filteredProjects.length ? (
+          <article className="action-empty-state">
+            <p>{ui.empty}</p>
+          </article>
+        ) : null}
+      </section>
+
+      {filteredProjects.length > visibleCount ? (
+        <div className="action-load-more-row">
+          <span>{ui.showing} {visibleProjects.length}{ui.of}{filteredProjects.length}</span>
+          <button
+            className="action-load-more"
+            type="button"
+            onClick={() => setVisibleCount((count) => count + 8)}
+          >
+            {ui.loadMore}
+          </button>
+        </div>
+      ) : null}
+    </article>
+  );
 }
 
 function getLiteratureSearchBody(literature, lang) {
@@ -1149,6 +1768,12 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
           />
         ) : item.template === 'knowledge-resources' ? (
           <KnowledgeResourceDatabase
+            item={item}
+            common={common}
+            lang={lang}
+          />
+        ) : item.id === 'action-projects' ? (
+          <ActionProjectDashboard
             item={item}
             common={common}
             lang={lang}
