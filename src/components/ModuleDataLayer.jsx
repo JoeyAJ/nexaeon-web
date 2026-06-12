@@ -178,9 +178,9 @@ const BACKEND_READINESS_FALLBACK = [
     plannedBackendZh: 'Airtable 或 Notion MVP 項目資料庫',
     plannedBackendEn: 'Airtable or Notion MVP Projects Database',
     plannedBackendKo: 'Airtable 또는 Notion MVP 프로젝트 데이터베이스',
-    requiredEnvKeys: ['AIRTABLE_API_KEY', 'AIRTABLE_BASE_ID', 'AIRTABLE_MODULES_TABLE_ID'],
+    requiredEnvKeys: ['AIRTABLE_API_KEY', 'AIRTABLE_BASE_ID', 'AIRTABLE_MVP_TABLE_ID'],
     configuredEnvKeys: [],
-    missingEnvKeys: ['AIRTABLE_API_KEY', 'AIRTABLE_BASE_ID', 'AIRTABLE_MODULES_TABLE_ID'],
+    missingEnvKeys: ['AIRTABLE_API_KEY', 'AIRTABLE_BASE_ID', 'AIRTABLE_MVP_TABLE_ID'],
     missingFields: ['projectName', 'problem', 'solution', 'techStack', 'status', 'nextStep', 'updatedAt'],
     readinessStatus: 'backend-not-connected',
     fallbackAvailable: true,
@@ -378,6 +378,206 @@ const TEACHING_DIFFICULTY_FILTERS = [
   { value: 'beginner', label: { zh: '初級', en: 'Beginner', ko: '초급' }, matches: ['初級', 'Beginner', 'Basic', '초급'] },
   { value: 'intermediate', label: { zh: '中級', en: 'Intermediate', ko: '중급' }, matches: ['中級', 'Intermediate', '중급'] },
   { value: 'advanced', label: { zh: '高級', en: 'Advanced', ko: '고급' }, matches: ['高級', 'Advanced', '고급'] },
+];
+
+const MVP_DATABASE_UI = {
+  zh: {
+    dataSource: '資料來源',
+    count: 'MVP 數量',
+    updatedAt: '最後更新時間',
+    filteredCount: '目前篩選結果',
+    searchPlaceholder: '搜尋 Demo、功能、技術棧、目標使用者或問題背景',
+    sort: '排序',
+    demoType: 'Demo 類型',
+    status: '狀態',
+    targetUsers: '目標使用者',
+    techStack: '技術棧',
+    relatedModules: '對應模塊',
+    visibility: '公開狀態',
+    expand: '展開詳情',
+    collapse: '收合詳情',
+    launchDemo: '啟動 Demo',
+    viewGithub: '查看 GitHub',
+    loadMore: '載入更多',
+    recommended: '推薦順序',
+    recent: '最近更新',
+    name: '名稱',
+    statusSort: '狀態',
+    problem: '問題背景',
+    solution: '解決方案',
+    coreFeatures: '核心功能',
+    launchMode: 'Launch Mode',
+    researchLink: 'Research Link',
+    nextStep: '下一步',
+    notes: 'Notes',
+    version: 'Version',
+    featured: 'Featured',
+    summary: 'Summary',
+    empty: '沒有符合條件的 MVP 或 Demo。',
+    showing: '目前顯示',
+    of: ' / ',
+    connected: 'Airtable connected',
+    fallback: 'Fallback active',
+  },
+  en: {
+    dataSource: 'Data Source',
+    count: 'MVP Count',
+    updatedAt: 'Last Updated',
+    filteredCount: 'Current Results',
+    searchPlaceholder: 'Search demos, features, tech stack, users, or problem context',
+    sort: 'Sort',
+    demoType: 'Demo Type',
+    status: 'Status',
+    targetUsers: 'Target Users',
+    techStack: 'Tech Stack',
+    relatedModules: 'Related Modules',
+    visibility: 'Visibility',
+    expand: 'Expand details',
+    collapse: 'Collapse details',
+    launchDemo: 'Launch Demo',
+    viewGithub: 'View GitHub',
+    loadMore: 'Load more',
+    recommended: 'Recommended',
+    recent: 'Recently Updated',
+    name: 'Name',
+    statusSort: 'Status',
+    problem: 'Problem',
+    solution: 'Solution',
+    coreFeatures: 'Core Features',
+    launchMode: 'Launch Mode',
+    researchLink: 'Research Link',
+    nextStep: 'Next Step',
+    notes: 'Notes',
+    version: 'Version',
+    featured: 'Featured',
+    summary: 'Summary',
+    empty: 'No MVPs or demos match the current filters.',
+    showing: 'Showing',
+    of: ' of ',
+    connected: 'Airtable connected',
+    fallback: 'Fallback active',
+  },
+  ko: {
+    dataSource: '데이터 출처',
+    count: 'MVP 수',
+    updatedAt: '최종 업데이트',
+    filteredCount: '현재 결과',
+    searchPlaceholder: '데모, 기능, 기술 스택, 대상 사용자 또는 문제 배경 검색',
+    sort: '정렬',
+    demoType: '데모 유형',
+    status: '상태',
+    targetUsers: '대상 사용자',
+    techStack: '기술 스택',
+    relatedModules: '관련 모듈',
+    visibility: '공개 상태',
+    expand: '자세히 보기',
+    collapse: '접기',
+    launchDemo: '데모 실행',
+    viewGithub: 'GitHub 보기',
+    loadMore: '더 보기',
+    recommended: '추천 순서',
+    recent: '최근 업데이트',
+    name: '이름',
+    statusSort: '상태',
+    problem: '문제 배경',
+    solution: '해결 방안',
+    coreFeatures: '핵심 기능',
+    launchMode: 'Launch Mode',
+    researchLink: 'Research Link',
+    nextStep: '다음 단계',
+    notes: 'Notes',
+    version: 'Version',
+    featured: 'Featured',
+    summary: 'Summary',
+    empty: '현재 필터와 일치하는 MVP 또는 데모가 없다.',
+    showing: '표시 중',
+    of: ' / ',
+    connected: 'Airtable connected',
+    fallback: 'Fallback active',
+  },
+};
+
+const MVP_DEMO_TYPE_FILTERS = [
+  { value: 'all', label: { zh: '全部', en: 'All', ko: '전체' } },
+  { value: 'AI Tutor', label: { zh: 'AI Tutor', en: 'AI Tutor', ko: 'AI Tutor' } },
+  { value: 'Dashboard', label: { zh: 'Dashboard', en: 'Dashboard', ko: 'Dashboard' } },
+  { value: 'Automation', label: { zh: 'Automation', en: 'Automation', ko: 'Automation' } },
+  { value: 'Learning Companion', label: { zh: 'Learning Companion', en: 'Learning Companion', ko: 'Learning Companion' } },
+  { value: 'ESG / Data System', label: { zh: 'ESG / Data System', en: 'ESG / Data System', ko: 'ESG / Data System' } },
+  { value: 'Care Tech', label: { zh: 'Care Tech', en: 'Care Tech', ko: 'Care Tech' } },
+  { value: 'Research Prototype', label: { zh: 'Research Prototype', en: 'Research Prototype', ko: 'Research Prototype' } },
+  { value: 'Other', label: { zh: 'Other', en: 'Other', ko: 'Other' } },
+];
+
+const MVP_STATUS_FILTERS = [
+  { value: 'all', label: { zh: '全部狀態', en: 'All Status', ko: '전체 상태' } },
+  { value: 'Concept', label: { zh: 'Concept', en: 'Concept', ko: 'Concept' } },
+  { value: 'Designing', label: { zh: 'Designing', en: 'Designing', ko: 'Designing' } },
+  { value: 'Developing', label: { zh: 'Developing', en: 'Developing', ko: 'Developing' } },
+  { value: 'Testing', label: { zh: 'Testing', en: 'Testing', ko: 'Testing' } },
+  { value: 'Live', label: { zh: 'Live', en: 'Live', ko: 'Live' } },
+  { value: 'Paused', label: { zh: 'Paused', en: 'Paused', ko: 'Paused' } },
+  { value: 'Archived', label: { zh: 'Archived', en: 'Archived', ko: 'Archived' } },
+];
+
+const MVP_USER_FILTERS = [
+  { value: 'all', label: { zh: '全部對象', en: 'All Users', ko: '전체 대상' } },
+  { value: 'Students', label: { zh: 'Students', en: 'Students', ko: 'Students' } },
+  { value: 'Teachers', label: { zh: 'Teachers', en: 'Teachers', ko: 'Teachers' } },
+  { value: 'Administrators', label: { zh: 'Administrators', en: 'Administrators', ko: 'Administrators' } },
+  { value: 'Researchers', label: { zh: 'Researchers', en: 'Researchers', ko: 'Researchers' } },
+  { value: 'Companies', label: { zh: 'Companies', en: 'Companies', ko: 'Companies' } },
+  { value: 'Public', label: { zh: 'Public', en: 'Public', ko: 'Public' } },
+  { value: 'Older Adults', label: { zh: 'Older Adults', en: 'Older Adults', ko: 'Older Adults' } },
+  { value: 'International Students', label: { zh: 'International Students', en: 'International Students', ko: 'International Students' } },
+];
+
+const MVP_TECH_FILTERS = [
+  { value: 'all', label: { zh: '全部技術', en: 'All Tech', ko: '전체 기술' } },
+  { value: 'React', label: { zh: 'React', en: 'React', ko: 'React' } },
+  { value: 'Vite', label: { zh: 'Vite', en: 'Vite', ko: 'Vite' } },
+  { value: 'Notion API', label: { zh: 'Notion API', en: 'Notion API', ko: 'Notion API' } },
+  { value: 'Airtable', label: { zh: 'Airtable', en: 'Airtable', ko: 'Airtable' } },
+  { value: 'n8n', label: { zh: 'n8n', en: 'n8n', ko: 'n8n' } },
+  { value: 'RAG', label: { zh: 'RAG', en: 'RAG', ko: 'RAG' } },
+  { value: 'LangChain', label: { zh: 'LangChain', en: 'LangChain', ko: 'LangChain' } },
+  { value: 'Python', label: { zh: 'Python', en: 'Python', ko: 'Python' } },
+  { value: 'Dashboard', label: { zh: 'Dashboard', en: 'Dashboard', ko: 'Dashboard' } },
+  { value: 'GitHub Pages', label: { zh: 'GitHub Pages', en: 'GitHub Pages', ko: 'GitHub Pages' } },
+  { value: 'Vercel', label: { zh: 'Vercel', en: 'Vercel', ko: 'Vercel' } },
+  { value: 'Supabase', label: { zh: 'Supabase', en: 'Supabase', ko: 'Supabase' } },
+];
+
+const MVP_MODULE_FILTERS = [
+  { value: 'all', label: { zh: '全部模塊', en: 'All Modules', ko: '전체 모듈' } },
+  { value: 'Research', label: { zh: 'Research', en: 'Research', ko: 'Research' } },
+  { value: 'Learning Coaching', label: { zh: 'Learning Coaching', en: 'Learning Coaching', ko: 'Learning Coaching' } },
+  { value: 'Knowledge Lab', label: { zh: 'Knowledge Lab', en: 'Knowledge Lab', ko: 'Knowledge Lab' } },
+  { value: 'Projects', label: { zh: 'Projects', en: 'Projects', ko: 'Projects' } },
+  { value: 'Field Lab', label: { zh: 'Field Lab', en: 'Field Lab', ko: 'Field Lab' } },
+  { value: 'Action Center', label: { zh: 'Action Center', en: 'Action Center', ko: 'Action Center' } },
+];
+
+const MVP_VISIBILITY_FILTERS = [
+  { value: 'all', label: { zh: '全部', en: 'All', ko: '전체' } },
+  { value: 'Public', label: { zh: 'Public', en: 'Public', ko: 'Public' } },
+  { value: 'Internal', label: { zh: 'Internal', en: 'Internal', ko: 'Internal' } },
+];
+
+const MVP_SEARCH_FIELDS = [
+  'name',
+  'slug',
+  'demoType',
+  'status',
+  'summary',
+  'problem',
+  'solution',
+  'targetUsers',
+  'coreFeatures',
+  'techStack',
+  'relatedModules',
+  'nextStep',
+  'notes',
 ];
 
 function getTeachingField(item, field, lang) {
@@ -711,6 +911,429 @@ function TeachingSourceCard({ source, lang }) {
   );
 }
 
+function getMvpArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return value ? [value] : [];
+}
+
+function hasMvpValue(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).length > 0;
+  if (value === 0 || value === false) return true;
+  return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function formatMvpValue(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).join(', ');
+  if (value === true) return 'true';
+  if (value === false) return 'false';
+  return String(value || '');
+}
+
+function normalizeMvpComparable(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function getMvpCoverUrl(coverImage) {
+  if (!coverImage) return '';
+  if (typeof coverImage === 'string') return coverImage;
+  return coverImage.url || '';
+}
+
+function getMvpCoverAlt(coverImage, name) {
+  if (coverImage && typeof coverImage === 'object' && coverImage.filename) return coverImage.filename;
+  return name;
+}
+
+function getMvpSearchBody(item) {
+  return MVP_SEARCH_FIELDS.map((field) => normalizeSearchText(item[field])).join(' ');
+}
+
+function doesMvpEqual(item, field, value) {
+  if (value === 'all') return true;
+  return normalizeMvpComparable(item[field]) === normalizeMvpComparable(value);
+}
+
+function doesMvpInclude(item, field, value) {
+  if (value === 'all') return true;
+  return getMvpArray(item[field]).map(normalizeMvpComparable).includes(normalizeMvpComparable(value));
+}
+
+function getMvpUpdatedTime(item) {
+  const time = new Date(item.updatedAt || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function sortMvpItems(items, sortMode) {
+  return items.slice().sort((a, b) => {
+    if (sortMode === 'recent') return getMvpUpdatedTime(b) - getMvpUpdatedTime(a);
+    if (sortMode === 'name') return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+    if (sortMode === 'status') return String(a.status || '').localeCompare(String(b.status || ''), undefined, { sensitivity: 'base' });
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+    if ((a.displayOrder || 0) !== (b.displayOrder || 0)) return (a.displayOrder || 0) - (b.displayOrder || 0);
+    const updatedDifference = getMvpUpdatedTime(b) - getMvpUpdatedTime(a);
+    if (updatedDifference) return updatedDifference;
+    return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+  });
+}
+
+function splitCoreFeatures(value) {
+  const text = String(value || '').trim();
+  if (!text) return [];
+
+  return text
+    .split(/\n|;|；|、|•|\u2022|^[-*]\s+/gm)
+    .map((item) => item.replace(/^[-*]\s+/, '').trim())
+    .filter(Boolean);
+}
+
+function slugifyMvp(value) {
+  return String(value || 'untitled-demo')
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'untitled-demo';
+}
+
+function getFallbackDemoTypeLabel(type) {
+  const map = {
+    ai_tutor: 'AI Tutor',
+    education_mvp: 'Learning Companion',
+    esg_greentech: 'ESG / Data System',
+    automation: 'Automation',
+    web_demo: 'Dashboard',
+  };
+
+  return map[type] || type || 'Other';
+}
+
+function normalizeClientMvpItem(item, lang) {
+  if (item.name || item.demoType || item.coreFeatures || item.displayOrder !== undefined) {
+    return {
+      ...item,
+      targetUsers: getMvpArray(item.targetUsers),
+      techStack: getMvpArray(item.techStack),
+      relatedModules: getMvpArray(item.relatedModules),
+      visibility: item.visibility || 'Public',
+      featured: item.featured === true,
+      displayOrder: Number.isFinite(Number(item.displayOrder)) ? Number(item.displayOrder) : 0,
+    };
+  }
+
+  const name = getLocalizedModuleField(item, 'title', lang) || item.titleEn || 'Untitled Demo';
+  const summary = item.summary || getLocalizedModuleField(item, 'description', lang) || '';
+
+  return {
+    id: item.id,
+    slug: item.slug || slugifyMvp(item.id || name),
+    name,
+    demoType: getFallbackDemoTypeLabel(item.type || item.category),
+    status: item.status || '',
+    version: '',
+    visibility: 'Public',
+    featured: item.featured === true,
+    displayOrder: Number.isFinite(Number(item.order)) ? Number(item.order) : 0,
+    summary,
+    problem: '',
+    solution: '',
+    targetUsers: getMvpArray(item.audience),
+    coreFeatures: summary,
+    techStack: getMvpArray(item.tags),
+    launchMode: '',
+    demoUrl: item.actionUrl || '',
+    githubUrl: '',
+    coverImage: '',
+    relatedModules: getMvpArray(item.relatedModule || item.relatedProject || item.relatedTheory),
+    researchLink: '',
+    nextStep: '',
+    notes: '',
+    updatedAt: item.updatedAt || '',
+  };
+}
+
+function MvpSourceCard({ source, lang }) {
+  const ui = MVP_DATABASE_UI[lang] || MVP_DATABASE_UI.zh;
+  const isAirtable = source === 'airtable';
+
+  return (
+    <section className="module-data-source-card mvp-status-card">
+      <div>
+        <div className="label">{isAirtable ? ui.connected : ui.fallback}</div>
+        <p>{ui.dataSource}: {isAirtable ? 'airtable' : 'fallback'}</p>
+      </div>
+      <span className="module-data-endpoint">{getModuleEndpoint('modules')}</span>
+    </section>
+  );
+}
+
+function MvpFilterGroup({ label, filters, activeValue, onSelect, lang }) {
+  return (
+    <div className="mvp-filter-section">
+      <span>{label}</span>
+      <div className="mvp-filter-row">
+        {filters.map((filter) => (
+          <button
+            key={filter.value}
+            className="mvp-filter-chip"
+            data-active={activeValue === filter.value ? 'true' : 'false'}
+            type="button"
+            onClick={() => onSelect(filter.value)}
+          >
+            {filter.label[lang] || filter.label.zh}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MvpMetaField({ label, value }) {
+  if (!hasMvpValue(value)) return null;
+
+  return (
+    <div className="mvp-meta-field">
+      <span>{label}</span>
+      <p>{formatMvpValue(value)}</p>
+    </div>
+  );
+}
+
+function MvpDetailField({ label, value }) {
+  if (!hasMvpValue(value)) return null;
+
+  return (
+    <div className="mvp-detail-field">
+      <span>{label}</span>
+      <p>{formatMvpValue(value)}</p>
+    </div>
+  );
+}
+
+function MvpCoreFeatures({ label, value }) {
+  const features = splitCoreFeatures(value);
+  if (!features.length) return null;
+
+  return (
+    <div className="mvp-detail-field mvp-core-features">
+      <span>{label}</span>
+      {features.length > 1 ? (
+        <ul>
+          {features.map((feature) => (
+            <li key={feature}>{feature}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>{features[0]}</p>
+      )}
+    </div>
+  );
+}
+
+function MvpDataPanel({ moduleKey, endpoint, lang }) {
+  const moduleState = useModuleData(moduleKey, endpoint);
+  const ui = MVP_DATABASE_UI[lang] || MVP_DATABASE_UI.zh;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [demoTypeFilter, setDemoTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [userFilter, setUserFilter] = useState('all');
+  const [techFilter, setTechFilter] = useState('all');
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [visibilityFilter, setVisibilityFilter] = useState('all');
+  const [sortMode, setSortMode] = useState('recommended');
+  const [visibleCount, setVisibleCount] = useState(8);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const resultsRef = useRef(null);
+  const items = useMemo(() => (moduleState.items || []).map((item) => normalizeClientMvpItem(item, lang)), [lang, moduleState.items]);
+
+  const filteredItems = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const filtered = items.filter((item) => {
+      const matchesSearch = !normalizedQuery || getMvpSearchBody(item).includes(normalizedQuery);
+      return matchesSearch
+        && doesMvpEqual(item, 'demoType', demoTypeFilter)
+        && doesMvpEqual(item, 'status', statusFilter)
+        && doesMvpInclude(item, 'targetUsers', userFilter)
+        && doesMvpInclude(item, 'techStack', techFilter)
+        && doesMvpInclude(item, 'relatedModules', moduleFilter)
+        && doesMvpEqual(item, 'visibility', visibilityFilter);
+    });
+
+    return sortMvpItems(filtered, sortMode);
+  }, [demoTypeFilter, items, moduleFilter, searchQuery, sortMode, statusFilter, techFilter, userFilter, visibilityFilter]);
+
+  const visibleItems = filteredItems.slice(0, visibleCount);
+  const latestUpdatedAt = getLatestModuleUpdate(moduleState);
+
+  function resetVisibleCount() {
+    setVisibleCount(8);
+  }
+
+  function updateSearchQuery(value) {
+    setSearchQuery(value);
+    resetVisibleCount();
+  }
+
+  function updateFilter(setter, value) {
+    setter(value);
+    resetVisibleCount();
+  }
+
+  function toggleExpanded(id) {
+    setExpandedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleSearchKeyDown(event) {
+    if (event.key === 'Enter') {
+      scrollResultsIntoView(resultsRef);
+    }
+  }
+
+  return (
+    <>
+      <div className="mvp-state-row">
+        <span>{ui.dataSource}: {moduleState.source}</span>
+        <span>{ui.count}: {moduleState.count ?? items.length}</span>
+        <span>{ui.updatedAt}: {latestUpdatedAt}</span>
+        <span>{ui.filteredCount}: {filteredItems.length}</span>
+      </div>
+
+      <MvpSourceCard source={moduleState.source} lang={lang} />
+
+      <section className="mvp-toolbar" aria-label={ui.searchPlaceholder}>
+        <input
+          className="mvp-search-input"
+          type="search"
+          value={searchQuery}
+          onChange={(event) => updateSearchQuery(event.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder={ui.searchPlaceholder}
+          aria-label={ui.searchPlaceholder}
+        />
+
+        <label className="mvp-sort-control">
+          <span>{ui.sort}</span>
+          <select value={sortMode} onChange={(event) => updateFilter(setSortMode, event.target.value)}>
+            <option value="recommended">{ui.recommended}</option>
+            <option value="recent">{ui.recent}</option>
+            <option value="name">{ui.name} A-Z</option>
+            <option value="status">{ui.statusSort}</option>
+          </select>
+        </label>
+      </section>
+
+      <section className="mvp-filter-panel" aria-label={ui.demoType}>
+        <MvpFilterGroup label={ui.demoType} filters={MVP_DEMO_TYPE_FILTERS} activeValue={demoTypeFilter} onSelect={(value) => updateFilter(setDemoTypeFilter, value)} lang={lang} />
+        <MvpFilterGroup label={ui.status} filters={MVP_STATUS_FILTERS} activeValue={statusFilter} onSelect={(value) => updateFilter(setStatusFilter, value)} lang={lang} />
+        <MvpFilterGroup label={ui.targetUsers} filters={MVP_USER_FILTERS} activeValue={userFilter} onSelect={(value) => updateFilter(setUserFilter, value)} lang={lang} />
+        <MvpFilterGroup label={ui.techStack} filters={MVP_TECH_FILTERS} activeValue={techFilter} onSelect={(value) => updateFilter(setTechFilter, value)} lang={lang} />
+        <MvpFilterGroup label={ui.relatedModules} filters={MVP_MODULE_FILTERS} activeValue={moduleFilter} onSelect={(value) => updateFilter(setModuleFilter, value)} lang={lang} />
+        <MvpFilterGroup label={ui.visibility} filters={MVP_VISIBILITY_FILTERS} activeValue={visibilityFilter} onSelect={(value) => updateFilter(setVisibilityFilter, value)} lang={lang} />
+      </section>
+
+      <section ref={resultsRef} className="mvp-compact-grid" aria-label={moduleKey}>
+        {visibleItems.map((mvp) => {
+          const isExpanded = expandedIds.has(mvp.id);
+          const coverUrl = getMvpCoverUrl(mvp.coverImage);
+
+          return (
+            <article key={mvp.id} className="mvp-compact-card">
+              <div className={coverUrl ? 'mvp-card-layout' : 'mvp-card-layout mvp-card-layout-no-cover'}>
+                {coverUrl ? (
+                  <img className="mvp-cover" src={coverUrl} alt={getMvpCoverAlt(mvp.coverImage, mvp.name)} loading="lazy" />
+                ) : null}
+
+                <div className="mvp-card-body">
+                  <div className="module-data-card-top mvp-compact-top">
+                    {hasMvpValue(mvp.demoType) ? <span className="content-tag">{mvp.demoType}</span> : null}
+                    {hasMvpValue(mvp.status) ? <span className="module-data-status">{mvp.status}</span> : null}
+                  </div>
+                  <h2>{mvp.name || 'Untitled Demo'}</h2>
+                  <div className="mvp-compact-meta">
+                    <span>{ui.version}: {formatMvpValue(mvp.version) || '-'}</span>
+                    <span>{ui.visibility}: {formatMvpValue(mvp.visibility) || '-'}</span>
+                    <span>{ui.featured}: {mvp.featured ? 'true' : 'false'}</span>
+                  </div>
+
+                  {hasMvpValue(mvp.summary) ? <p className="mvp-summary">{mvp.summary}</p> : null}
+
+                  <div className="mvp-meta-grid">
+                    <MvpMetaField label={ui.targetUsers} value={mvp.targetUsers} />
+                    <MvpMetaField label={ui.techStack} value={mvp.techStack} />
+                    <MvpMetaField label={ui.relatedModules} value={mvp.relatedModules} />
+                  </div>
+
+                  <div className="mvp-actions">
+                    <button
+                      className="mvp-action-button"
+                      type="button"
+                      onClick={() => toggleExpanded(mvp.id)}
+                      aria-expanded={isExpanded}
+                    >
+                      {isExpanded ? ui.collapse : ui.expand}
+                    </button>
+                    {hasMvpValue(mvp.demoUrl) ? (
+                      <a className="mvp-action-button" href={mvp.demoUrl} target="_blank" rel="noopener noreferrer">
+                        {ui.launchDemo}
+                      </a>
+                    ) : null}
+                    {hasMvpValue(mvp.githubUrl) ? (
+                      <a className="mvp-action-button" href={mvp.githubUrl} target="_blank" rel="noopener noreferrer">
+                        {ui.viewGithub}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {isExpanded ? (
+                <div className="mvp-detail-panel">
+                  <div className="mvp-detail-grid">
+                    <MvpDetailField label={ui.problem} value={mvp.problem} />
+                    <MvpDetailField label={ui.solution} value={mvp.solution} />
+                    <MvpCoreFeatures label={ui.coreFeatures} value={mvp.coreFeatures} />
+                    <MvpDetailField label={ui.targetUsers} value={mvp.targetUsers} />
+                    <MvpDetailField label={ui.techStack} value={mvp.techStack} />
+                    <MvpDetailField label={ui.launchMode} value={mvp.launchMode} />
+                    <MvpDetailField label={ui.relatedModules} value={mvp.relatedModules} />
+                    <MvpDetailField label={ui.researchLink} value={mvp.researchLink} />
+                    <MvpDetailField label={ui.nextStep} value={mvp.nextStep} />
+                    <MvpDetailField label={ui.notes} value={mvp.notes} />
+                    <MvpDetailField label={ui.updatedAt} value={mvp.updatedAt} />
+                  </div>
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+
+        {!filteredItems.length ? (
+          <article className="mvp-empty-state">
+            <p>{ui.empty}</p>
+          </article>
+        ) : null}
+      </section>
+
+      {filteredItems.length > visibleCount ? (
+        <div className="mvp-load-more-row">
+          <span>{ui.showing} {visibleItems.length}{ui.of}{filteredItems.length}</span>
+          <button
+            className="mvp-load-more"
+            type="button"
+            onClick={() => setVisibleCount((count) => count + 8)}
+          >
+            {ui.loadMore}
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function TeachingFilterGroup({ label, filters, activeValue, onSelect, lang }) {
   return (
     <div className="teaching-filter-section">
@@ -1033,6 +1656,10 @@ function StandardModuleDataPanel({ moduleKey, endpoint, lang }) {
 export function ModuleDataPanel({ moduleKey, endpoint, lang }) {
   if (moduleKey === 'teaching') {
     return <TeachingDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
+  }
+
+  if (moduleKey === 'modules') {
+    return <MvpDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
   }
 
   return <StandardModuleDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;

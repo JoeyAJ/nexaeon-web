@@ -114,7 +114,7 @@ export const dataSourceRegistry: DataSourceRegistryItem[] = [
     plannedBackendZh: 'Airtable 或 Notion MVP 項目資料庫',
     plannedBackendEn: 'Airtable or Notion MVP Projects Database',
     plannedBackendKo: 'Airtable 또는 Notion MVP 프로젝트 데이터베이스',
-    requiredEnvKeys: ['AIRTABLE_API_KEY', 'AIRTABLE_BASE_ID', 'AIRTABLE_MODULES_TABLE_ID'],
+    requiredEnvKeys: ['AIRTABLE_API_KEY', 'AIRTABLE_BASE_ID', 'AIRTABLE_MVP_TABLE_ID'],
     requiredFields: ['projectName', 'problem', 'solution', 'techStack', 'status', 'nextStep', 'updatedAt'],
   },
   {
