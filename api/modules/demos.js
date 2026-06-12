@@ -123,12 +123,19 @@ function getLocalizedFallbackDescription(item) {
 function normalizeFallbackDemo(item) {
   const name = getLocalizedFallbackTitle(item);
   const relatedModules = toStringArray(item.relatedModule || item.relatedProject || item.relatedTheory);
+  const demoTypeMap = {
+    ai_tutor: 'AI Tutor',
+    education_mvp: 'Learning Companion',
+    esg_greentech: 'ESG / Data System',
+    automation: 'Automation',
+    web_demo: 'Dashboard',
+  };
 
   return {
     id: item.id,
     slug: item.slug || slugify(item.id || name),
     name,
-    demoType: toText(item.type || item.category),
+    demoType: demoTypeMap[item.type] || toText(item.type || item.category),
     status: toText(item.status),
     version: '',
     visibility: 'Public',
@@ -201,8 +208,8 @@ function createFallbackResponse(reason) {
 }
 
 export default async function handler(req, res) {
-  const baseId = process.env.AIRTABLE_BASE_ID;
-  const tableId = process.env.AIRTABLE_MVP_TABLE_ID;
+  const baseId = process.env.AIRTABLE_BASE_ID?.trim();
+  const tableId = process.env.AIRTABLE_MVP_TABLE_ID?.trim();
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
@@ -215,10 +222,6 @@ export default async function handler(req, res) {
     const records = await getAirtableRecords({
       baseId,
       tableId,
-      sort: [
-        { field: FIELD_MAP.displayOrder, direction: 'asc' },
-        { field: FIELD_MAP.updatedAt, direction: 'desc' },
-      ],
     });
 
     const airtableItems = records.map(normalizeAirtableDemo);

@@ -13,9 +13,11 @@ function appendSortParams(searchParams, sort = []) {
 }
 
 export async function getAirtableRecords({ baseId, tableId, view, sort } = {}) {
-  const apiKey = process.env.AIRTABLE_API_KEY;
+  const apiKey = process.env.AIRTABLE_API_KEY?.trim();
+  const safeBaseId = baseId?.trim();
+  const safeTableId = tableId?.trim();
 
-  if (!apiKey || !baseId || !tableId) {
+  if (!apiKey || !safeBaseId || !safeTableId) {
     throw new Error('missing_airtable_config');
   }
 
@@ -23,7 +25,7 @@ export async function getAirtableRecords({ baseId, tableId, view, sort } = {}) {
   let offset = '';
 
   do {
-    const url = new URL(`${AIRTABLE_API_URL}/${encodeURIComponent(baseId)}/${encodeURIComponent(tableId)}`);
+    const url = new URL(`${AIRTABLE_API_URL}/${encodeURIComponent(safeBaseId)}/${encodeURIComponent(safeTableId)}`);
     url.searchParams.set('pageSize', '100');
     if (view) url.searchParams.set('view', view);
     if (offset) url.searchParams.set('offset', offset);
