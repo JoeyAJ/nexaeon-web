@@ -89,8 +89,14 @@ export function sendJsonResponse(req, res, payload, status = 200) {
   }
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', getCacheControlForPayload(payload));
+  setCacheHeaders(res, getCacheControlForPayload(payload));
   res.status(status).json(payload);
+}
+
+export function setCacheHeaders(res, value) {
+  res.setHeader('Cache-Control', value);
+  res.setHeader('CDN-Cache-Control', value);
+  res.setHeader('Vercel-CDN-Cache-Control', value);
 }
 
 export function sendMethodNotAllowed(res) {
@@ -103,7 +109,7 @@ export function sendMethodNotAllowed(res) {
 
   res.setHeader('Allow', 'GET');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', NO_STORE_CACHE_CONTROL);
+  setCacheHeaders(res, NO_STORE_CACHE_CONTROL);
   res.status(405).json(methodPayload);
 }
 

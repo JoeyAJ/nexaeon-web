@@ -115,6 +115,8 @@ test('405 response uses safe contract and no-store cache', () => {
   assert.equal(response.statusCode, 405);
   assert.equal(response.headers.allow, 'GET');
   assert.equal(response.headers['cache-control'], NO_STORE_CACHE_CONTROL);
+  assert.equal(response.headers['cdn-cache-control'], NO_STORE_CACHE_CONTROL);
+  assert.equal(response.headers['vercel-cdn-cache-control'], NO_STORE_CACHE_CONTROL);
   assert.equal(response.body.source, 'fallback');
   assert.equal(response.body.reason, 'upstream_failed');
 });
