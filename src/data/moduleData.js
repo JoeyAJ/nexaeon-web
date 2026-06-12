@@ -42,12 +42,12 @@ export const MODULE_PAGE_UI = {
     subtitleEn: 'Tracks website development, research systems, MVP work, automation flows, and backend preparation.',
   },
   modules: {
-    titleZh: 'NexAeon Modules｜模組實驗室資料層',
-    titleKo: 'NexAeon Modules｜모듈 실험실 데이터 레이어',
-    titleEn: 'NexAeon Modules | Demo Data Layer',
-    subtitleZh: '以資料卡片整理 AI Tutor、Campus Pet、GreenTrace、Admissions PDF 與研究儀表板原型。',
-    subtitleKo: 'AI Tutor, Campus Pet, GreenTrace, Admissions PDF, 연구 대시보드 원형을 데이터 카드로 정리한다.',
-    subtitleEn: 'Data cards for AI Tutor, Campus Pet, GreenTrace, Admissions PDF, and research dashboard prototypes.',
+    titleZh: 'MVP & Practice Projects',
+    titleKo: 'MVP & Practice Projects',
+    titleEn: 'MVP & Practice Projects',
+    subtitleZh: '資料入口：NexAeon Modules Data Skeleton。以 Airtable MVP Demos 整理 AI Tutor、Campus Pet、GreenTrace、Admissions PDF 與研究儀表板原型。',
+    subtitleKo: '데이터 입구: NexAeon Modules Data Skeleton. Airtable MVP Demos로 AI Tutor, Campus Pet, GreenTrace, Admissions PDF, 연구 대시보드 원형을 정리한다.',
+    subtitleEn: 'Data entry: NexAeon Modules Data Skeleton. Airtable MVP Demos organizes AI Tutor, Campus Pet, GreenTrace, Admissions PDF, and research dashboard prototypes.',
   },
   collaboration: {
     titleZh: 'Collaboration｜合作資料層',

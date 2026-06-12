@@ -171,9 +171,9 @@ const BACKEND_READINESS_FALLBACK = [
   },
   {
     id: 'practice-projects',
-    moduleTitleZh: '實踐項目',
-    moduleTitleEn: 'Practice Projects',
-    moduleTitleKo: '실천 프로젝트',
+    moduleTitleZh: 'MVP & Practice Projects',
+    moduleTitleEn: 'MVP & Practice Projects',
+    moduleTitleKo: 'MVP & Practice Projects',
     currentApiRoute: '/api/modules/demos',
     plannedBackendZh: 'Airtable 或 Notion MVP 項目資料庫',
     plannedBackendEn: 'Airtable or Notion MVP Projects Database',

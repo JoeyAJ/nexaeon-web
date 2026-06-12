@@ -105,9 +105,9 @@ export const dataSourceRegistry: DataSourceRegistryItem[] = [
   {
     id: 'practice-projects',
     moduleKey: 'modules',
-    moduleTitleZh: '實踐項目',
-    moduleTitleEn: 'Practice Projects',
-    moduleTitleKo: '실천 프로젝트',
+    moduleTitleZh: 'MVP & Practice Projects',
+    moduleTitleEn: 'MVP & Practice Projects',
+    moduleTitleKo: 'MVP & Practice Projects',
     currentApiRoute: '/api/modules/demos',
     currentSourceType: 'local-fallback-api',
     plannedBackend: 'Airtable or Notion MVP Projects Database',
