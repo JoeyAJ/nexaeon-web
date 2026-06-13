@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getLocalizedModuleField,
   getLocalizedModuleStatus,
@@ -10,6 +10,9 @@ import {
   getModulePageUi,
   MODULE_DATA_LABELS,
 } from '../data/moduleData.js';
+import ResourceStateNotice from './ResourceStateNotice.jsx';
+import { usePublicApiResource } from '../hooks/usePublicApiResource.js';
+import { PUBLIC_RESOURCE_STATUS } from '../lib/publicApiClient.js';
 
 function normalizeList(value) {
   if (Array.isArray(value)) return value.filter(Boolean).join(', ');
@@ -26,7 +29,7 @@ function scrollResultsIntoView(ref) {
   ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function createFallbackModuleResponse(moduleKey, reason = 'client_initial_fallback') {
+function createFallbackModuleResponse(moduleKey, reason = 'upstream_failed') {
   const items = getModuleData(moduleKey);
 
   return {
@@ -766,39 +769,11 @@ function BackendReadinessStatus({ lang }) {
 }
 
 export function useModuleData(moduleKey, endpoint) {
-  const [moduleState, setModuleState] = useState(() => createFallbackModuleResponse(moduleKey));
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadModuleData() {
-      try {
-        const response = await fetch(endpoint || getModuleEndpoint(moduleKey));
-        if (!response.ok) throw new Error(`Module API failed with status ${response.status}`);
-        const payload = await response.json();
-        const items = payload.items || payload.data || [];
-
-        if (isMounted) {
-          setModuleState({
-            ...payload,
-            items,
-            data: items,
-            source: payload.source || 'fallback',
-          });
-        }
-      } catch {
-        if (isMounted) setModuleState(createFallbackModuleResponse(moduleKey, 'client_fetch_failed'));
-      }
-    }
-
-    loadModuleData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [endpoint, moduleKey]);
-
-  return moduleState;
+  const createClientFallbackPayload = useCallback(
+    () => createFallbackModuleResponse(moduleKey, 'upstream_failed'),
+    [moduleKey],
+  );
+  return usePublicApiResource(endpoint || getModuleEndpoint(moduleKey), { createClientFallbackPayload });
 }
 
 export function ModuleFilterTabs({ moduleKey, activeFilter, setActiveFilter, lang }) {
@@ -1144,6 +1119,7 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const resultsRef = useRef(null);
   const items = useMemo(() => (moduleState.items || []).map((item) => normalizeClientMvpItem(item, lang)), [lang, moduleState.items]);
+  const mvpResourceStatus = moduleState.resourceStatus || PUBLIC_RESOURCE_STATUS.LOADING;
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -1196,13 +1172,23 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
   return (
     <>
       <div className="mvp-state-row">
-        <span>{ui.dataSource}: {moduleState.source}</span>
+        <span>{ui.dataSource}: {moduleState.source || '...'}</span>
         <span>{ui.count}: {moduleState.count ?? items.length}</span>
         <span>{ui.updatedAt}: {latestUpdatedAt}</span>
         <span>{ui.filteredCount}: {filteredItems.length}</span>
       </div>
 
-      <MvpSourceCard source={moduleState.source} lang={lang} />
+      <ResourceStateNotice
+        lang={lang}
+        status={mvpResourceStatus}
+        isRefreshing={moduleState.isRefreshing}
+        onRetry={moduleState.retry}
+        retryDisabled={moduleState.isLoading || moduleState.isRefreshing}
+      />
+
+      {moduleState.source && mvpResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING && mvpResourceStatus !== PUBLIC_RESOURCE_STATUS.ERROR ? (
+        <MvpSourceCard source={moduleState.source} lang={lang} />
+      ) : null}
 
       <section className="mvp-toolbar" aria-label={ui.searchPlaceholder}>
         <input
@@ -1311,7 +1297,7 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
           );
         })}
 
-        {!filteredItems.length ? (
+        {!filteredItems.length && mvpResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING ? (
           <article className="mvp-empty-state">
             <p>{ui.empty}</p>
           </article>
@@ -1369,6 +1355,7 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const resultsRef = useRef(null);
   const items = useMemo(() => moduleState.items || [], [moduleState.items]);
+  const teachingResourceStatus = moduleState.resourceStatus || PUBLIC_RESOURCE_STATUS.LOADING;
 
   const filteredItems = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -1451,13 +1438,23 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
   return (
     <>
       <div className="teaching-state-row">
-        <span>{ui.dataSource}: {moduleState.source}</span>
+        <span>{ui.dataSource}: {moduleState.source || '...'}</span>
         <span>{ui.count}: {moduleState.count ?? items.length}</span>
         <span>{ui.updatedAt}: {latestUpdatedAt}</span>
         <span>{ui.filteredCount}: {filteredItems.length}</span>
       </div>
 
-      <TeachingSourceCard source={moduleState.source} lang={lang} />
+      <ResourceStateNotice
+        lang={lang}
+        status={teachingResourceStatus}
+        isRefreshing={moduleState.isRefreshing}
+        onRetry={moduleState.retry}
+        retryDisabled={moduleState.isLoading || moduleState.isRefreshing}
+      />
+
+      {moduleState.source && teachingResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING && teachingResourceStatus !== PUBLIC_RESOURCE_STATUS.ERROR ? (
+        <TeachingSourceCard source={moduleState.source} lang={lang} />
+      ) : null}
 
       <section className="teaching-toolbar" aria-label={ui.searchPlaceholder}>
         <input
@@ -1595,7 +1592,7 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
           );
         })}
 
-        {!filteredItems.length ? (
+        {!filteredItems.length && teachingResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING ? (
           <article className="teaching-empty-state">
             <p>{ui.empty}</p>
           </article>

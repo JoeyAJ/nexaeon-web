@@ -67,7 +67,7 @@ const FALLBACK_IDENTITY_PROFILES = [
   },
 ];
 
-export function createFallbackIdentityProfilesResponse(reason = 'client_initial_fallback') {
+export function createFallbackIdentityProfilesResponse(reason = 'upstream_failed') {
   const items = FALLBACK_IDENTITY_PROFILES.map((item) => ({ ...item }));
 
   return createApiResponse({

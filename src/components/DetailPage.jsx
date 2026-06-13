@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { getModuleData } from '../data/moduleData.js';
 import { getDetailItem, getLocalizedSite } from '../lib/contentSource.js';
 import {
@@ -15,6 +15,9 @@ import {
   KNOWLEDGE_RESOURCE_UI,
 } from '../data/knowledgeResourceData.js';
 import { createFallbackIdentityProfilesResponse } from '../data/identityProfileData.js';
+import ResourceStateNotice from './ResourceStateNotice.jsx';
+import { usePublicApiResource } from '../hooks/usePublicApiResource.js';
+import { PUBLIC_RESOURCE_STATUS } from '../lib/publicApiClient.js';
 import ModuleDataLayer, { ModuleDataPanel } from './ModuleDataLayer.jsx';
 import NeuralBackground from './NeuralBackground.jsx';
 import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
@@ -264,7 +267,7 @@ const ACTION_PROGRESS_FILTERS = [
   { value: '100', label: { zh: '100%', en: '100%', ko: '100%' }, min: 100, max: 100 },
 ];
 
-function normalizeActionProjectResponse(reason = 'client_initial_fallback') {
+function normalizeActionProjectResponse(reason = 'upstream_failed') {
   return {
     source: 'fallback',
     reason,
@@ -328,30 +331,11 @@ function createClientActionFallbackResponse(reason, lang) {
 }
 
 function useActionProjects(lang) {
-  const [projectState, setProjectState] = useState(() => createClientActionFallbackResponse('client_initial_fallback', lang));
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadProjects() {
-      try {
-        const response = await fetch('/api/action/projects');
-        if (!response.ok) throw new Error(`Action projects API failed with status ${response.status}`);
-        const payload = await response.json();
-        if (isMounted) setProjectState(payload);
-      } catch {
-        if (isMounted) setProjectState(createClientActionFallbackResponse('client_fetch_failed', lang));
-      }
-    }
-
-    loadProjects();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [lang]);
-
-  return projectState;
+  const createClientFallbackPayload = useCallback(
+    () => createClientActionFallbackResponse('upstream_failed', lang),
+    [lang],
+  );
+  return usePublicApiResource('/api/action/projects', { createClientFallbackPayload });
 }
 
 function hasActionValue(value) {
@@ -473,6 +457,7 @@ function ActionProjectDashboard({ item, common, lang }) {
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const resultsRef = useRef(null);
   const projects = useMemo(() => projectState.data || projectState.items || [], [projectState.data, projectState.items]);
+  const actionResourceStatus = projectState.resourceStatus || PUBLIC_RESOURCE_STATUS.LOADING;
 
   const filteredProjects = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -551,19 +536,29 @@ function ActionProjectDashboard({ item, common, lang }) {
       </div>
 
       <div className="detail-module-label">{item.moduleLabel}</div>
-      <h1>{item.title}</h1>
+      <h1>Field Lab</h1>
       <p className="detail-subtitle">{item.subtitle}</p>
 
       <div className="action-state-row" aria-label={item.title}>
-        <span>{ui.dataSource}: {projectState.source}</span>
+        <span>{ui.dataSource}: {projectState.source || '...'}</span>
         <span>{ui.publicProjects}: {projectState.count ?? projects.length}</span>
         <span>{ui.lastUpdated}: {formatActionDate(latestUpdatedAt)}</span>
         <span>{ui.currentResults}: {filteredProjects.length}</span>
       </div>
 
-      <div className="action-source-card" data-source={projectState.source === 'airtable' ? 'airtable' : 'fallback'}>
-        <span>{projectState.source === 'airtable' ? ui.connected : ui.fallback}</span>
-      </div>
+      <ResourceStateNotice
+        lang={lang}
+        status={actionResourceStatus}
+        isRefreshing={projectState.isRefreshing}
+        onRetry={projectState.retry}
+        retryDisabled={projectState.isLoading || projectState.isRefreshing}
+      />
+
+      {projectState.source && actionResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING && actionResourceStatus !== PUBLIC_RESOURCE_STATUS.ERROR ? (
+        <div className="action-source-card" data-source={projectState.source === 'airtable' ? 'airtable' : 'fallback'}>
+          <span>{projectState.source === 'airtable' ? ui.connected : ui.fallback}</span>
+        </div>
+      ) : null}
 
       <section className="action-summary-grid" aria-label={ui.progress}>
         {summaryItems.map((summary) => (
@@ -694,7 +689,7 @@ function ActionProjectDashboard({ item, common, lang }) {
           );
         })}
 
-        {!filteredProjects.length ? (
+        {!filteredProjects.length && actionResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING ? (
           <article className="action-empty-state">
             <p>{ui.empty}</p>
           </article>
@@ -918,30 +913,11 @@ function createClientCollaborationFallbackResponse(reason, lang) {
 }
 
 function useCollaborationContexts(lang) {
-  const [contextState, setContextState] = useState(() => createClientCollaborationFallbackResponse('client_initial_fallback', lang));
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadContexts() {
-      try {
-        const response = await fetch('/api/collaboration/options');
-        if (!response.ok) throw new Error(`Collaboration API failed with status ${response.status}`);
-        const payload = await response.json();
-        if (isMounted) setContextState(payload);
-      } catch {
-        if (isMounted) setContextState(createClientCollaborationFallbackResponse('client_fetch_failed', lang));
-      }
-    }
-
-    loadContexts();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [lang]);
-
-  return contextState;
+  const createClientFallbackPayload = useCallback(
+    () => createClientCollaborationFallbackResponse('upstream_failed', lang),
+    [lang],
+  );
+  return usePublicApiResource('/api/collaboration/options', { createClientFallbackPayload });
 }
 
 function hasCollaborationValue(value) {
@@ -1049,6 +1025,7 @@ function FutureCollaborationContextDashboard({ item, common, lang }) {
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const resultsRef = useRef(null);
   const contexts = useMemo(() => contextState.data || contextState.items || [], [contextState.data, contextState.items]);
+  const collaborationResourceStatus = contextState.resourceStatus || PUBLIC_RESOURCE_STATUS.LOADING;
 
   const filteredContexts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -1133,15 +1110,25 @@ function FutureCollaborationContextDashboard({ item, common, lang }) {
       <p className="detail-subtitle">{item.subtitle}</p>
 
       <div className="collaboration-state-row" aria-label={item.title}>
-        <span>{ui.dataSource}: {contextState.source}</span>
+        <span>{ui.dataSource}: {contextState.source || '...'}</span>
         <span>{ui.publicContexts}: {contextState.count ?? contexts.length}</span>
         <span>{ui.lastUpdated}: {formatCollaborationDate(latestUpdatedAt)}</span>
         <span>{ui.currentResults}: {filteredContexts.length}</span>
       </div>
 
-      <div className="collaboration-source-card" data-source={contextState.source === 'airtable' ? 'airtable' : 'fallback'}>
-        <span>{contextState.source === 'airtable' ? ui.connected : ui.fallback}</span>
-      </div>
+      <ResourceStateNotice
+        lang={lang}
+        status={collaborationResourceStatus}
+        isRefreshing={contextState.isRefreshing}
+        onRetry={contextState.retry}
+        retryDisabled={contextState.isLoading || contextState.isRefreshing}
+      />
+
+      {contextState.source && collaborationResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING && collaborationResourceStatus !== PUBLIC_RESOURCE_STATUS.ERROR ? (
+        <div className="collaboration-source-card" data-source={contextState.source === 'airtable' ? 'airtable' : 'fallback'}>
+          <span>{contextState.source === 'airtable' ? ui.connected : ui.fallback}</span>
+        </div>
+      ) : null}
 
       <section className="collaboration-summary-grid" aria-label={ui.publicContexts}>
         {summaryItems.map((summaryItem) => (
@@ -1247,7 +1234,7 @@ function FutureCollaborationContextDashboard({ item, common, lang }) {
           );
         })}
 
-        {!filteredContexts.length ? (
+        {!filteredContexts.length && collaborationResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING ? (
           <article className="collaboration-empty-state">
             <p>{ui.empty}</p>
           </article>
@@ -1642,57 +1629,13 @@ function KnowledgeLinkField({ label, value, emptyValue, linkLabel }) {
 }
 
 function useResearchLiterature() {
-  const [literatureState, setLiteratureState] = useState(() => createFallbackLiteratureResponse('client_initial_fallback'));
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadLiterature() {
-      try {
-        const response = await fetch('/api/research/literature');
-        if (!response.ok) throw new Error(`Literature API failed with status ${response.status}`);
-        const payload = await response.json();
-        if (isMounted) setLiteratureState(payload);
-      } catch {
-        if (isMounted) setLiteratureState(createFallbackLiteratureResponse('client_fetch_failed'));
-      }
-    }
-
-    loadLiterature();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  return literatureState;
+  const createClientFallbackPayload = useCallback(() => createFallbackLiteratureResponse('upstream_failed'), []);
+  return usePublicApiResource('/api/research/literature', { createClientFallbackPayload });
 }
 
 function useKnowledgeResources() {
-  const [knowledgeState, setKnowledgeState] = useState(() => createFallbackKnowledgeResponse('client_initial_fallback'));
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadKnowledgeResources() {
-      try {
-        const response = await fetch('/api/knowledge/resources');
-        if (!response.ok) throw new Error(`Knowledge API failed with status ${response.status}`);
-        const payload = await response.json();
-        if (isMounted) setKnowledgeState(payload);
-      } catch {
-        if (isMounted) setKnowledgeState(createFallbackKnowledgeResponse('client_fetch_failed'));
-      }
-    }
-
-    loadKnowledgeResources();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  return knowledgeState;
+  const createClientFallbackPayload = useCallback(() => createFallbackKnowledgeResponse('upstream_failed'), []);
+  return usePublicApiResource('/api/knowledge/resources', { createClientFallbackPayload });
 }
 
 function LiteratureStatusCard({ source, lang }) {
@@ -1726,6 +1669,7 @@ function LiteratureDatabase({ item, common, lang }) {
   const methodOption = LITERATURE_METHOD_FILTERS.find((filter) => filter.value === methodFilter) || LITERATURE_METHOD_FILTERS[0];
   const statusOption = LITERATURE_STATUS_FILTERS.find((filter) => filter.value === statusFilter) || LITERATURE_STATUS_FILTERS[0];
   const literatureItems = useMemo(() => literatureState.data || [], [literatureState.data]);
+  const literatureResourceStatus = literatureState.resourceStatus || PUBLIC_RESOURCE_STATUS.LOADING;
 
   const filteredLiterature = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -1800,13 +1744,23 @@ function LiteratureDatabase({ item, common, lang }) {
       <p className="detail-subtitle">{item.subtitle}</p>
 
       <div className="literature-state-row" aria-label={ui.title}>
-        <span>{databaseUi.dataSource}: {literatureState.source}</span>
+        <span>{databaseUi.dataSource}: {literatureState.source || '...'}</span>
         <span>{databaseUi.count}: {literatureState.count ?? literatureItems.length}</span>
         <span>{databaseUi.updatedAt}: {latestUpdatedAt}</span>
         <span>{databaseUi.filteredCount}: {filteredLiterature.length}</span>
       </div>
 
-      <LiteratureStatusCard source={literatureState.source} lang={lang} />
+      <ResourceStateNotice
+        lang={lang}
+        status={literatureResourceStatus}
+        isRefreshing={literatureState.isRefreshing}
+        onRetry={literatureState.retry}
+        retryDisabled={literatureState.isLoading || literatureState.isRefreshing}
+      />
+
+      {literatureState.source && literatureResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING && literatureResourceStatus !== PUBLIC_RESOURCE_STATUS.ERROR ? (
+        <LiteratureStatusCard source={literatureState.source} lang={lang} />
+      ) : null}
 
       <section className="literature-toolbar" aria-label={ui.title}>
         <input
@@ -1951,7 +1905,7 @@ function LiteratureDatabase({ item, common, lang }) {
           );
         })}
 
-        {!filteredLiterature.length && (
+        {!filteredLiterature.length && literatureResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING && (
           <article className="literature-empty-state">
             <p>{databaseUi.empty}</p>
           </article>
@@ -2004,6 +1958,7 @@ function KnowledgeResourceDatabase({ item, common, lang }) {
   const resources = useMemo(() => knowledgeState.items || knowledgeState.data || [], [knowledgeState.data, knowledgeState.items]);
   const sourceStats = knowledgeState.meta?.sources || {};
   const latestUpdatedAt = knowledgeState.updatedAt || '';
+  const knowledgeResourceStatus = knowledgeState.resourceStatus || PUBLIC_RESOURCE_STATUS.LOADING;
 
   const filteredResources = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -2087,13 +2042,23 @@ function KnowledgeResourceDatabase({ item, common, lang }) {
       <p className="detail-subtitle">{ui.subtitle}</p>
 
       <div className="knowledge-state-row" aria-label={ui.title}>
-        <span>{databaseUi.dataSource}: {knowledgeState.source}</span>
+        <span>{databaseUi.dataSource}: {knowledgeState.source || '...'}</span>
         <span>{databaseUi.count}: {knowledgeState.count ?? resources.length}</span>
         <span>{databaseUi.updatedAt}: {latestUpdatedAt}</span>
         <span>{databaseUi.filteredCount}: {filteredResources.length}</span>
       </div>
 
-      <KnowledgeStatusCard source={knowledgeState.source} lang={lang} />
+      <ResourceStateNotice
+        lang={lang}
+        status={knowledgeResourceStatus}
+        isRefreshing={knowledgeState.isRefreshing}
+        onRetry={knowledgeState.retry}
+        retryDisabled={knowledgeState.isLoading || knowledgeState.isRefreshing}
+      />
+
+      {knowledgeState.source && knowledgeResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING && knowledgeResourceStatus !== PUBLIC_RESOURCE_STATUS.ERROR ? (
+        <KnowledgeStatusCard source={knowledgeState.source} lang={lang} />
+      ) : null}
 
       <section className="knowledge-source-overview" aria-label={databaseUi.sourceOverview}>
         <span>{databaseUi.sourceOverview}</span>
@@ -2195,7 +2160,7 @@ function KnowledgeResourceDatabase({ item, common, lang }) {
           );
         })}
 
-        {!filteredResources.length ? (
+        {!filteredResources.length && knowledgeResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING ? (
           <article className="knowledge-empty-state">
             <p>{databaseUi.empty}</p>
           </article>
@@ -2431,64 +2396,12 @@ function IdentityProfileImage({ profile }) {
 }
 
 function useIdentityProfiles() {
-  const [profileState, setProfileState] = useState(() => ({
-    payload: createFallbackIdentityProfilesResponse('client_initial_fallback'),
-    isLoading: true,
-    hasError: false,
-  }));
-
-  async function loadProfiles() {
-    setProfileState((current) => ({ ...current, isLoading: true, hasError: false }));
-
-    try {
-      const response = await fetch('/api/identity/profiles');
-      if (!response.ok) throw new Error(`Identity Profiles API failed with status ${response.status}`);
-      const payload = await response.json();
-      setProfileState({ payload, isLoading: false, hasError: false });
-    } catch {
-      setProfileState({
-        payload: createFallbackIdentityProfilesResponse('client_fetch_failed'),
-        isLoading: false,
-        hasError: true,
-      });
-    }
-  }
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadInitialProfiles() {
-      try {
-        const response = await fetch('/api/identity/profiles');
-        if (!response.ok) throw new Error(`Identity Profiles API failed with status ${response.status}`);
-        const payload = await response.json();
-        if (isMounted) setProfileState({ payload, isLoading: false, hasError: false });
-      } catch {
-        if (isMounted) {
-          setProfileState({
-            payload: createFallbackIdentityProfilesResponse('client_fetch_failed'),
-            isLoading: false,
-            hasError: true,
-          });
-        }
-      }
-    }
-
-    loadInitialProfiles();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  return {
-    ...profileState,
-    retry: loadProfiles,
-  };
+  const createClientFallbackPayload = useCallback(() => createFallbackIdentityProfilesResponse('upstream_failed'), []);
+  return usePublicApiResource('/api/identity/profiles', { createClientFallbackPayload });
 }
 
 function IdentityProfilesDatabase({ item, common, lang }) {
-  const { payload: profileState, isLoading, hasError, retry } = useIdentityProfiles();
+  const profileState = useIdentityProfiles();
   const ui = IDENTITY_PROFILES_UI[lang] || IDENTITY_PROFILES_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
   const [identityTypeFilter, setIdentityTypeFilter] = useState('all');
@@ -2503,6 +2416,7 @@ function IdentityProfilesDatabase({ item, common, lang }) {
   const roleOptions = useMemo(() => createIdentityFilterOptions(profiles, 'roleTags', ui.allRoles), [profiles, ui.allRoles]);
   const moduleOptions = useMemo(() => createIdentityFilterOptions(profiles, 'relatedModules', ui.allModules), [profiles, ui.allModules]);
   const latestUpdatedAt = profileState.updatedAt || '';
+  const identityResourceStatus = profileState.resourceStatus || PUBLIC_RESOURCE_STATUS.LOADING;
 
   const filteredProfiles = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -2573,21 +2487,25 @@ function IdentityProfilesDatabase({ item, common, lang }) {
       <p className="detail-subtitle">{ui.subtitle}</p>
 
       <div className="identity-status-bar" aria-label={ui.title}>
-        <span>{ui.dataSource}: {profileState.source}{isLoading ? ` (${ui.loading})` : ''}</span>
+        <span>{ui.dataSource}: {profileState.source || '...'}{profileState.isRefreshing ? ` (${ui.loading})` : ''}</span>
         <span>{ui.count}: {profileState.count ?? profiles.length}</span>
         <span>{ui.updatedAt}: {formatIdentityDate(latestUpdatedAt)}</span>
         <span>{ui.filteredCount}: {filteredProfiles.length}</span>
       </div>
 
-      <div className="identity-source-card" data-source={profileState.source === 'notion' ? 'notion' : 'fallback'}>
-        <span>{profileState.source === 'notion' ? ui.connected : ui.fallback}</span>
-        {hasError ? <p>{ui.fetchError}</p> : null}
-        {hasError ? (
-          <button className="identity-retry-button" type="button" onClick={retry}>
-            {ui.retry}
-          </button>
-        ) : null}
-      </div>
+      <ResourceStateNotice
+        lang={lang}
+        status={identityResourceStatus}
+        isRefreshing={profileState.isRefreshing}
+        onRetry={profileState.retry}
+        retryDisabled={profileState.isLoading || profileState.isRefreshing}
+      />
+
+      {profileState.source && identityResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING && identityResourceStatus !== PUBLIC_RESOURCE_STATUS.ERROR ? (
+        <div className="identity-source-card" data-source={profileState.source === 'notion' ? 'notion' : 'fallback'}>
+          <span>{profileState.source === 'notion' ? ui.connected : ui.fallback}</span>
+        </div>
+      ) : null}
 
       <section className="identity-toolbar" aria-label={ui.searchPlaceholder}>
         <input
@@ -2687,7 +2605,7 @@ function IdentityProfilesDatabase({ item, common, lang }) {
           );
         })}
 
-        {!filteredProfiles.length ? (
+        {!filteredProfiles.length && identityResourceStatus !== PUBLIC_RESOURCE_STATUS.LOADING ? (
           <article className="identity-empty-state">
             <p>{ui.empty}</p>
           </article>

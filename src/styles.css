@@ -5642,6 +5642,54 @@ body {
   line-height: 1.65;
 }
 
+.resource-state-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  border: 1px solid var(--line-2);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bg-2) 68%, transparent);
+  padding: 16px 18px;
+}
+
+.resource-state-notice strong {
+  display: block;
+  color: var(--accent-fg);
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.resource-state-notice p {
+  margin: 6px 0 0;
+  color: var(--fg-2);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.resource-state-notice[data-state='error'] {
+  border-color: color-mix(in srgb, var(--accent-fg) 36%, var(--line-2));
+}
+
+.resource-state-retry {
+  flex: 0 0 auto;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-1) 72%, transparent);
+  color: var(--fg-1);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0;
+  padding: 9px 13px;
+}
+
+.resource-state-retry:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .module-data-endpoint {
   flex: 0 0 auto;
   border: 1px solid var(--line-2);
