@@ -16,6 +16,7 @@ import {
 } from '../data/knowledgeResourceData.js';
 import { createFallbackIdentityProfilesResponse } from '../data/identityProfileData.js';
 import ResourceStateNotice from './ResourceStateNotice.jsx';
+import { getGuardrailCopy, GuardrailStatePage } from './AppErrorBoundary.jsx';
 import { usePublicApiResource } from '../hooks/usePublicApiResource.js';
 import { PUBLIC_RESOURCE_STATUS } from '../lib/publicApiClient.js';
 import ModuleDataLayer, { ModuleDataPanel } from './ModuleDataLayer.jsx';
@@ -2672,23 +2673,29 @@ function TheoryModelLibrary({ item, common, parentPath, navigate, navigateBack, 
   );
 }
 
-function NotFound({ navigate, navigateBack, content, lang, setLang, theme, setTheme }) {
-  const { common } = content;
+function NotFound({ navigate, navigateBack, lang, setLang, theme, setTheme }) {
+  const copy = getGuardrailCopy(lang);
+  const parentPath = '/';
+
+  function goHome() {
+    suppressIntroReplay();
+    navigate('/');
+  }
 
   return (
-    <main className="direction-shell subpage-shell" style={{ minHeight: '100vh', paddingBottom: 100 }}>
-      <NeuralBackground />
-      <DetailTopbar common={common} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} navigate={navigate} />
-      <div className="container subpage-content">
-        <div className="content-detail-card detail-empty-card">
-          <div className="detail-empty-title">{common.notFoundTitle}</div>
-          <p>{common.notFoundBody}</p>
-          <button className="btn btn-ghost" onClick={() => navigateBack('/')} type="button">
-            {common.backPrevious}
-          </button>
-        </div>
-      </div>
-    </main>
+    <GuardrailStatePage
+      lang={lang}
+      setLang={setLang}
+      theme={theme}
+      setTheme={setTheme}
+      title={copy.unavailableTitle}
+      body={copy.unavailableBody}
+      primaryLabel={copy.backPrevious}
+      secondaryLabel={copy.backHome}
+      onPrimary={() => navigateBack(parentPath)}
+      onSecondary={goHome}
+      testId="detail-unavailable"
+    />
   );
 }
 
@@ -2707,7 +2714,6 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
       <NotFound
         navigate={navigate}
         navigateBack={navigateBack}
-        content={content}
         lang={lang}
         setLang={setLang}
         theme={theme}

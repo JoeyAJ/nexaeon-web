@@ -3,6 +3,7 @@ import './styles.css';
 import DirectionB from './components/DirectionB.jsx';
 import DetailPage from './components/DetailPage.jsx';
 import RoleDetailPage from './components/RoleDetailPage.jsx';
+import AppErrorBoundary, { getGuardrailCopy, GuardrailStatePage } from './components/AppErrorBoundary.jsx';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute } from './utils/router.js';
 
 const BACK_TO_TOP_TEXT = {
@@ -10,6 +11,16 @@ const BACK_TO_TOP_TEXT = {
   en: 'Back to top',
   ko: '맨 위로',
 };
+
+const INTRO_SEEN_KEY = 'nexaeon_intro_seen';
+
+function suppressIntroReplay() {
+  try {
+    window.sessionStorage.setItem(INTRO_SEEN_KEY, 'true');
+  } catch {
+    // Navigation should still work if storage is unavailable.
+  }
+}
 
 function BackToTopButton({ lang }) {
   const label = BACK_TO_TOP_TEXT[lang] || BACK_TO_TOP_TEXT.en;
@@ -72,30 +83,59 @@ export default function App() {
     goBack(fallbackPath);
   };
 
+  const goHome = () => {
+    suppressIntroReplay();
+    navigate('/');
+  };
+
+  const invalidRouteCopy = getGuardrailCopy(lang);
+
   return (
     <div className="app-shell">
-      {route.kind === 'detail' ? (
-        <DetailPage
-          type={route.type}
-          id={route.id}
-          navigate={navigate}
-          lang={lang}
-          setLang={setLang}
-          theme={theme}
-          setTheme={setTheme}
-          navigateBack={navigateBack}
-        />
-      ) : route.kind === 'role' ? (
-        <RoleDetailPage role={route.role} navigate={navigate} navigateBack={navigateBack} lang={lang} setLang={setLang} />
-      ) : (
-        <DirectionB
-          lang={lang}
-          setLang={setLang}
-          theme={theme}
-          setTheme={setTheme}
-          navigate={navigate}
-        />
-      )}
+      <AppErrorBoundary
+        lang={lang}
+        setLang={setLang}
+        theme={theme}
+        setTheme={setTheme}
+        navigate={navigate}
+      >
+        {route.kind === 'detail' ? (
+          <DetailPage
+            type={route.type}
+            id={route.id}
+            navigate={navigate}
+            lang={lang}
+            setLang={setLang}
+            theme={theme}
+            setTheme={setTheme}
+            navigateBack={navigateBack}
+          />
+        ) : route.kind === 'role' ? (
+          <RoleDetailPage role={route.role} navigate={navigate} navigateBack={navigateBack} lang={lang} setLang={setLang} />
+        ) : route.kind === 'invalid' ? (
+          <GuardrailStatePage
+            lang={lang}
+            setLang={setLang}
+            theme={theme}
+            setTheme={setTheme}
+            title={invalidRouteCopy.notFoundTitle}
+            body={invalidRouteCopy.notFoundBody}
+            primaryLabel={invalidRouteCopy.backPrevious}
+            secondaryLabel={invalidRouteCopy.backHome}
+            onPrimary={() => navigateBack('/')}
+            onSecondary={goHome}
+            testId="not-found-route"
+          />
+        ) : (
+          <DirectionB
+            lang={lang}
+            setLang={setLang}
+            theme={theme}
+            setTheme={setTheme}
+            navigate={navigate}
+          />
+        )}
+      </AppErrorBoundary>
       <BackToTopButton lang={lang} />
     </div>
   );

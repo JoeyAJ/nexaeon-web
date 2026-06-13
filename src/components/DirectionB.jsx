@@ -269,7 +269,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
 
       <div className="container module-card-grid">
         {modules.map((module) => (
-          <article key={module.id} className="module-card liquid-glass-card">
+          <article key={module.id} className="module-card liquid-glass-card" data-testid={`module-card-${module.id}`}>
             <div className="module-card-code">{module.code}</div>
             <div className="module-card-kicker">{module.label}</div>
             <h3>{module.title}</h3>
@@ -299,6 +299,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
                 <a
                   key={item.id}
                   className="module-entry-card"
+                  data-testid={`module-entry-${item.id}`}
                   href={toDetailPath(activeModule.id, item.id)}
                   onClick={(event) => {
                     event.preventDefault();

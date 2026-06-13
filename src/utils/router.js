@@ -3,6 +3,10 @@ const ROLE_ROUTE_PATTERN = /^\/(students|researchers|university|enterprise|secon
 
 export function parseRoute(pathname) {
   const normalizedPath = pathname.replace(/\/+$/, '') || '/';
+  if (normalizedPath === '/') {
+    return { kind: 'home' };
+  }
+
   const roleMatch = normalizedPath.match(ROLE_ROUTE_PATTERN);
   if (roleMatch) {
     return {
@@ -13,7 +17,10 @@ export function parseRoute(pathname) {
 
   const match = normalizedPath.match(DETAIL_ROUTE_PATTERN);
   if (!match) {
-    return { kind: 'home' };
+    return {
+      kind: 'invalid',
+      path: normalizedPath,
+    };
   }
 
   return {

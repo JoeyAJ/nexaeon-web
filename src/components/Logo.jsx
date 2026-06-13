@@ -101,9 +101,9 @@ export function NexWordmark({ size = 22, mono = false }) {
 
 export function LangSwitcher({ lang, setLang }) {
   const langs = [
-    { code: 'zh', label: '中' },
-    { code: 'en', label: 'EN' },
-    { code: 'ko', label: '한' },
+    { code: 'zh', label: '中', ariaLabel: '切換為繁體中文' },
+    { code: 'en', label: 'EN', ariaLabel: 'Switch to English' },
+    { code: 'ko', label: '한', ariaLabel: '한국어로 전환' },
   ];
   return (
     <div style={{
@@ -116,6 +116,8 @@ export function LangSwitcher({ lang, setLang }) {
         <button
           key={l.code}
           onClick={() => setLang(l.code)}
+          type="button"
+          aria-label={l.ariaLabel}
           style={{
             padding: '5px 11px', borderRadius: 999,
             background: lang === l.code ? 'var(--fg-1)' : 'transparent',

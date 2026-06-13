@@ -1,0 +1,292 @@
+import { expect, test } from '@playwright/test';
+import { getLocalizedSite } from '../../src/lib/contentSource.js';
+
+const EXPECTED_MODULE_LABELS = [
+  'Identity',
+  'Research',
+  'Learning Coaching',
+  'Knowledge System',
+  'MVP & Practice Projects',
+  'Field Experiment',
+];
+
+const DATA_PAGE_ROUTES = [
+  { name: 'Identity', path: '/identity/identity-profiles', cardSelector: '.identity-profile-card', search: 'input[type="search"]' },
+  { name: 'Research', path: '/research/research-literature-database', cardSelector: '.literature-compact-card', search: 'input[type="search"]' },
+  { name: 'Learning Coaching', path: '/teaching/teaching-courses', cardSelector: '.teaching-compact-card', search: 'input[type="search"]' },
+  { name: 'Knowledge System', path: '/knowledge-lab/knowledge-resources', cardSelector: '.knowledge-compact-card', search: 'input[type="search"]' },
+  { name: 'MVP & Practice Projects', path: '/projects/module-demos', cardSelector: '.mvp-compact-card', search: 'input[type="search"]' },
+  { name: 'Field Experiment', path: '/field-lab/action-projects', cardSelector: '.action-project-card', search: 'input[type="search"]' },
+  { name: 'Collaboration', path: '/field-lab/future-collaboration-context', cardSelector: '.collaboration-context-card', search: 'input[type="search"]' },
+];
+
+const API_ENDPOINTS = [
+  '/api/identity/profiles',
+  '/api/research/literature',
+  '/api/teaching/courses',
+  '/api/knowledge/resources',
+  '/api/modules/demos',
+  '/api/action/projects',
+  '/api/collaboration/options',
+];
+
+const ALLOWED_SOURCES = new Set(['notion', 'airtable', 'fallback']);
+const ALLOWED_REASONS = new Set([null, 'missing_env', 'upstream_timeout', 'upstream_failed', 'partial_source_failure']);
+const SENSITIVE_KEYS = new Set([
+  'notes',
+  'owner',
+  'blockers',
+  'visibility',
+  'public status',
+  '公開狀態',
+  'email',
+  'contact name',
+  'need/request',
+  'need',
+  'request',
+]);
+
+function collectObjectKeys(value, keys = []) {
+  if (!value || typeof value !== 'object') return keys;
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectObjectKeys(item, keys));
+    return keys;
+  }
+
+  Object.keys(value).forEach((key) => {
+    keys.push(key);
+    collectObjectKeys(value[key], keys);
+  });
+  return keys;
+}
+
+function getRuntimeWatcher(page) {
+  const errors = [];
+
+  page.on('pageerror', (error) => {
+    errors.push(`pageerror:${error.name || 'Error'}`);
+  });
+
+  page.on('console', (message) => {
+    const text = message.text();
+    if (message.type() === 'error') errors.push(`console.error:${text}`);
+    if (
+      message.type() === 'warning'
+      && /(duplicate key|hydration|state update on an unmounted|react)/i.test(text)
+    ) {
+      errors.push(`console.warning:${text}`);
+    }
+  });
+
+  page.on('requestfailed', (request) => {
+    const url = request.url();
+    if (url.startsWith('data:')) return;
+    if (request.resourceType() === 'media') return;
+    if (request.failure()?.errorText?.includes('ERR_ABORTED')) return;
+    errors.push(`requestfailed:${request.method()} ${url}`);
+  });
+
+  page.on('response', (response) => {
+    const status = response.status();
+    if (status >= 500) errors.push(`http:${status} ${response.url()}`);
+  });
+
+  return {
+    assertClean() {
+      expect(errors, errors.join('\n')).toEqual([]);
+    },
+  };
+}
+
+async function resetBrowserState(page) {
+  await page.addInitScript(() => {
+    window.sessionStorage.clear();
+    window.localStorage.clear();
+  });
+}
+
+async function gotoAndSetEnglish(page, path = '/') {
+  await page.goto(path);
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+}
+
+async function expectUsableButtons(page) {
+  const emptyButtons = await page.locator('button').evaluateAll((buttons) => (
+    buttons
+      .map((button) => ({
+        text: button.innerText.trim(),
+        label: button.getAttribute('aria-label') || button.getAttribute('title') || '',
+      }))
+      .filter((button) => !button.text && !button.label)
+  ));
+
+  expect(emptyButtons).toEqual([]);
+}
+
+test.beforeEach(async ({ page }) => {
+  await resetBrowserState(page);
+});
+
+test('home loads, localizes, toggles theme, and keeps module order', async ({ page }) => {
+  const watcher = getRuntimeWatcher(page);
+  await gotoAndSetEnglish(page);
+
+  await expect(page.getByRole('heading', { name: 'NexAeon', level: 1 })).toBeVisible();
+  await expect(page.getByAltText('NexAeon').first()).toBeVisible();
+
+  const moduleLabels = await page.locator('.module-card-kicker').evaluateAll((nodes) => (
+    nodes.map((node) => node.textContent.trim())
+  ));
+  expect(moduleLabels).toEqual(EXPECTED_MODULE_LABELS);
+
+  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  await page.getByRole('button', { name: '切換為繁體中文' }).click();
+  await expect(page.getByRole('button', { name: '切換為繁體中文' })).toBeVisible();
+  await page.getByRole('button', { name: '한국어로 전환' }).click();
+  await expect(page.getByText('정체성').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await expect(page.getByText('Identity').first()).toBeVisible();
+
+  const backToTop = page.getByRole('button', { name: 'Back to top' });
+  await expect(backToTop).toBeVisible();
+  await backToTop.click();
+
+  await expectUsableButtons(page);
+  watcher.assertClean();
+});
+
+test('module navigation, browser back, direct refresh, and intro replay guard', async ({ page }) => {
+  const watcher = getRuntimeWatcher(page);
+  await gotoAndSetEnglish(page);
+
+  for (const label of EXPECTED_MODULE_LABELS) {
+    const module = getLocalizedSite('en').modules.find((item) => item.label === label);
+    await page.getByTestId(`module-card-${module.id}`).getByRole('button').click();
+    await expect(page).toHaveURL(new RegExp(`#${module.id}$`));
+    await expect(page.getByTestId(`module-entry-${module.items[0].id}`)).toBeVisible();
+  }
+
+  await page.getByTestId('module-entry-action-projects').click();
+  await expect(page).toHaveURL(/\/field-lab\/action-projects$/);
+  await expect(page.getByRole('heading', { name: 'Field Lab', level: 1 })).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL(/\/field-lab\/action-projects$/);
+  await expect(page.getByRole('heading', { name: 'Field Lab', level: 1 })).toBeVisible();
+
+  await page.goBack();
+  await expect(page).not.toHaveURL(/\/field-lab\/action-projects$/);
+
+  await page.goto('/field-lab/action-projects');
+  await page.getByRole('button', { name: /Back to home|返回首頁|홈으로 돌아가기/ }).first().click();
+  await expect(page).toHaveURL(/\/$/);
+  const introSeen = await page.evaluate(() => window.sessionStorage.getItem('nexaeon_intro_seen'));
+  expect(introSeen).toBe('true');
+
+  watcher.assertClean();
+});
+
+test('data pages support controls without fake initial fallback', async ({ page }) => {
+  for (const route of DATA_PAGE_ROUTES) {
+    const watcher = getRuntimeWatcher(page);
+    await gotoAndSetEnglish(page, route.path);
+
+    await expect(page.locator('main')).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('Loading public data');
+    if (await page.getByText('FALLBACK ACTIVE').count()) {
+      await expect(page.locator('.resource-state-notice[data-state="fallback"]').first()).toBeVisible();
+    }
+
+    const search = page.locator(route.search).first();
+    if (await search.count()) {
+      await expect(search).toBeVisible();
+      await search.fill('nexaeon-smoke');
+      await search.fill('');
+    }
+
+    const select = page.locator('select').first();
+    if (await select.count()) {
+      const value = await select.locator('option').nth(0).getAttribute('value');
+      await select.selectOption(value || '');
+    }
+
+    const filterButton = page.locator('button').filter({ hasText: /All|全部|전체/ }).first();
+    if (await filterButton.count()) await filterButton.click();
+
+    const cards = page.locator(route.cardSelector);
+    if (await cards.count()) {
+      const expand = cards.first().getByRole('button', { name: /Expand|展開|펼치기/i }).first();
+      if (await expand.count()) await expand.click();
+    } else {
+      await expect(page.locator('.resource-state-notice, .mvp-empty-state, .literature-empty-state, .teaching-empty-state, .knowledge-empty-state, .action-empty-state, .collaboration-empty-state, .identity-empty-state').first()).toBeVisible();
+    }
+
+    if (route.name === 'Knowledge System' && await page.locator('.resource-state-notice[data-state="partial"]').count()) {
+      await expect(page.locator(route.cardSelector).first()).toBeVisible();
+    }
+
+    watcher.assertClean();
+  }
+});
+
+test('direct routes and refresh stay on the same URL', async ({ page }) => {
+  const watcher = getRuntimeWatcher(page);
+  const directRoutes = [
+    '/students',
+    '/research/ai-in-education',
+    '/identity/identity-profiles',
+  ];
+
+  for (const route of directRoutes) {
+    await page.goto(route);
+    await expect(page.locator('main')).toBeVisible();
+    await page.reload();
+    await expect(page).toHaveURL(new RegExp(`${route}$`));
+    await expect(page.locator('main')).toBeVisible();
+  }
+
+  watcher.assertClean();
+});
+
+test('invalid route and unavailable detail show safe guardrail states', async ({ page }) => {
+  const watcher = getRuntimeWatcher(page);
+
+  await gotoAndSetEnglish(page, '/__nexaeon_invalid_route__');
+  await expect(page.getByTestId('not-found-route')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Page not found', level: 1 })).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId('not-found-route')).toBeVisible();
+  await page.getByRole('button', { name: /Back to home|返回首頁|홈으로 돌아가기/ }).first().click();
+  await expect(page).toHaveURL(/\/$/);
+
+  await gotoAndSetEnglish(page, '/research/not-public-smoke-id');
+  await expect(page.getByTestId('detail-unavailable')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This public content cannot be viewed right now', level: 1 })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('TypeError');
+  await expect(page.locator('body')).not.toContainText('Notion');
+  await expect(page.locator('body')).not.toContainText('Airtable');
+
+  watcher.assertClean();
+});
+
+test('seven public APIs keep the deployed public contract', async ({ request }) => {
+  for (const endpoint of API_ENDPOINTS) {
+    const response = await request.get(endpoint);
+    expect(response.status(), endpoint).toBe(200);
+    const payload = await response.json();
+
+    expect(ALLOWED_SOURCES.has(payload.source), endpoint).toBe(true);
+    expect(ALLOWED_REASONS.has(payload.reason ?? null), endpoint).toBe(true);
+    expect(Array.isArray(payload.items), endpoint).toBe(true);
+    expect(Array.isArray(payload.data), endpoint).toBe(true);
+    expect(payload.count, endpoint).toBe(payload.items.length);
+    expect(typeof payload.updatedAt === 'string' || payload.updatedAt === null, endpoint).toBe(true);
+
+    const keys = collectObjectKeys(payload).map((key) => key.trim().toLowerCase());
+    expect(keys.some((key) => SENSITIVE_KEYS.has(key)), endpoint).toBe(false);
+    expect(keys.some((key) => /stack|rawerror|exception|token|databaseid|baseid|tableid/i.test(key)), endpoint).toBe(false);
+  }
+});

@@ -2917,6 +2917,18 @@ body {
   line-height: 1.7;
 }
 
+.guardrail-state-card {
+  text-align: center;
+}
+
+.guardrail-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+
 .module-detail-card {
   margin: 24px auto 0;
   max-width: 980px;
