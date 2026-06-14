@@ -1,6 +1,6 @@
 /* global process */
 
-import { getModuleData, getModuleEndpoint } from '../../src/data/moduleData.js';
+import { getModuleEndpoint } from '../../src/data/moduleData.js';
 import { getAirtableRecords } from '../_airtable.js';
 import { createApiResponse, getUpstreamFailureReason, logSafeApiError, rejectUnsupportedMethod, sendJsonResponse } from '../_response.js';
 import { isPublicAirtableVisibility } from '../../lib/publicFilters.js';
@@ -9,6 +9,8 @@ const MODULE_KEY = 'modules';
 
 const FIELD_MAP = {
   name: 'Demo Name',
+  nameKo: 'Demo Name KO',
+  nameEn: 'Demo Name EN',
   slug: 'Slug',
   demoType: 'Demo Type',
   status: 'Status',
@@ -17,10 +19,18 @@ const FIELD_MAP = {
   featured: 'Featured',
   displayOrder: 'Display Order',
   summary: 'Summary',
+  summaryKo: 'Summary KO',
+  summaryEn: 'Summary EN',
   problem: 'Problem',
+  problemKo: 'Problem KO',
+  problemEn: 'Problem EN',
   solution: 'Solution',
+  solutionKo: 'Solution KO',
+  solutionEn: 'Solution EN',
   targetUsers: 'Target Users',
   coreFeatures: 'Core Features',
+  coreFeaturesKo: 'Core Features KO',
+  coreFeaturesEn: 'Core Features EN',
   techStack: 'Tech Stack',
   launchMode: 'Launch Mode',
   demoUrl: 'Demo URL',
@@ -29,8 +39,19 @@ const FIELD_MAP = {
   relatedModules: 'Related Modules',
   researchLink: 'Research Link',
   nextStep: 'Next Step',
+  nextStepKo: 'Next Step KO',
+  nextStepEn: 'Next Step EN',
   notes: 'Notes',
   updatedAt: 'Updated At',
+};
+
+const TRANSLATION_FIELD_KEYS = {
+  name: { zh: 'name', ko: 'nameKo', en: 'nameEn' },
+  summary: { zh: 'summary', ko: 'summaryKo', en: 'summaryEn' },
+  problem: { zh: 'problem', ko: 'problemKo', en: 'problemEn' },
+  solution: { zh: 'solution', ko: 'solutionKo', en: 'solutionEn' },
+  coreFeatures: { zh: 'coreFeatures', ko: 'coreFeaturesKo', en: 'coreFeaturesEn' },
+  nextStep: { zh: 'nextStep', ko: 'nextStepKo', en: 'nextStepEn' },
 };
 
 function toText(value, fallback = '') {
@@ -81,9 +102,24 @@ function getRecordField(fields, key) {
   return fields[FIELD_MAP[key]];
 }
 
+function buildTranslation(fields, locale) {
+  return Object.fromEntries(Object.entries(TRANSLATION_FIELD_KEYS).map(([publicKey, fieldKeys]) => (
+    [publicKey, toText(getRecordField(fields, fieldKeys[locale]))]
+  )));
+}
+
+function buildTranslations(fields) {
+  return {
+    zh: buildTranslation(fields, 'zh'),
+    ko: buildTranslation(fields, 'ko'),
+    en: buildTranslation(fields, 'en'),
+  };
+}
+
 export function normalizeAirtableDemo(record) {
   const fields = record.fields || {};
-  const name = toText(getRecordField(fields, 'name'), 'Untitled Demo');
+  const translations = buildTranslations(fields);
+  const name = translations.zh.name || 'Untitled Demo';
   const slug = toText(getRecordField(fields, 'slug')) || slugify(name);
 
   return {
@@ -95,65 +131,21 @@ export function normalizeAirtableDemo(record) {
     version: toText(getRecordField(fields, 'version')),
     featured: toBoolean(getRecordField(fields, 'featured')),
     displayOrder: toNumber(getRecordField(fields, 'displayOrder')),
-    summary: toText(getRecordField(fields, 'summary')),
-    problem: toText(getRecordField(fields, 'problem')),
-    solution: toText(getRecordField(fields, 'solution')),
+    summary: translations.zh.summary,
+    problem: translations.zh.problem,
+    solution: translations.zh.solution,
     targetUsers: toStringArray(getRecordField(fields, 'targetUsers')),
-    coreFeatures: toText(getRecordField(fields, 'coreFeatures')),
+    coreFeatures: translations.zh.coreFeatures,
     techStack: toStringArray(getRecordField(fields, 'techStack')),
     launchMode: toText(getRecordField(fields, 'launchMode')),
     demoUrl: toUrl(getRecordField(fields, 'demoUrl')),
     githubUrl: toUrl(getRecordField(fields, 'githubUrl')),
     coverImage: toCoverImage(getRecordField(fields, 'coverImage')),
     relatedModules: toStringArray(getRecordField(fields, 'relatedModules')),
-    researchLink: toText(getRecordField(fields, 'researchLink')),
-    nextStep: toText(getRecordField(fields, 'nextStep')),
+    researchLink: toUrl(getRecordField(fields, 'researchLink')),
+    nextStep: translations.zh.nextStep,
+    translations,
     updatedAt: toText(getRecordField(fields, 'updatedAt')),
-  };
-}
-
-function getLocalizedFallbackTitle(item) {
-  return item.titleEn || item.titleZh || item.titleKo || 'Untitled Demo';
-}
-
-function getLocalizedFallbackDescription(item) {
-  return item.descriptionZh || item.descriptionEn || item.descriptionKo || '';
-}
-
-function normalizeFallbackDemo(item) {
-  const name = getLocalizedFallbackTitle(item);
-  const relatedModules = toStringArray(item.relatedModule || item.relatedProject || item.relatedTheory);
-  const demoTypeMap = {
-    ai_tutor: 'AI Tutor',
-    education_mvp: 'Learning Companion',
-    esg_greentech: 'ESG / Data System',
-    automation: 'Automation',
-    web_demo: 'Dashboard',
-  };
-
-  return {
-    id: item.id,
-    slug: item.slug || slugify(item.id || name),
-    name,
-    demoType: demoTypeMap[item.type] || toText(item.type || item.category),
-    status: toText(item.status),
-    version: '',
-    featured: toBoolean(item.featured),
-    displayOrder: toNumber(item.order),
-    summary: getLocalizedFallbackDescription(item),
-    problem: '',
-    solution: '',
-    targetUsers: toStringArray(item.audience),
-    coreFeatures: getLocalizedFallbackDescription(item),
-    techStack: toStringArray(item.tags),
-    launchMode: '',
-    demoUrl: toUrl(item.actionUrl),
-    githubUrl: '',
-    coverImage: '',
-    relatedModules,
-    researchLink: '',
-    nextStep: '',
-    updatedAt: toText(item.updatedAt),
   };
 }
 
@@ -180,13 +172,18 @@ export function createResponse(source, reason, items) {
   });
 }
 
-function createFallbackResponse(reason) {
-  const fallbackItems = getModuleData(MODULE_KEY).map(normalizeFallbackDemo);
+export function createFallbackResponse(reason) {
   return {
-    ...createResponse('fallback', reason, fallbackItems),
+    ...createResponse('fallback', reason, []),
     moduleKey: MODULE_KEY,
     endpoint: getModuleEndpoint(MODULE_KEY),
   };
+}
+
+export function normalizePublicAirtableDemos(records) {
+  return records
+    .filter((record) => isPublicAirtableVisibility(getRecordField(record.fields || {}, 'visibility')))
+    .map(normalizeAirtableDemo);
 }
 
 export default async function handler(req, res) {
@@ -206,9 +203,7 @@ export default async function handler(req, res) {
       tableId,
     });
 
-    const airtableItems = records
-      .filter((record) => isPublicAirtableVisibility(getRecordField(record.fields || {}, 'visibility')))
-      .map(normalizeAirtableDemo);
+    const airtableItems = normalizePublicAirtableDemos(records);
 
     sendJsonResponse(req, res, createResponse('airtable', null, airtableItems));
   } catch (error) {

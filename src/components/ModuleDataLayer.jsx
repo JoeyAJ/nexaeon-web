@@ -30,7 +30,7 @@ function scrollResultsIntoView(ref) {
 }
 
 function createFallbackModuleResponse(moduleKey, reason = 'upstream_failed') {
-  const items = getModuleData(moduleKey);
+  const items = moduleKey === 'modules' ? [] : getModuleData(moduleKey);
 
   return {
     source: 'fallback',
@@ -396,11 +396,11 @@ const MVP_DATABASE_UI = {
     targetUsers: '目標使用者',
     techStack: '技術棧',
     relatedModules: '對應模塊',
-    visibility: '公開狀態',
     expand: '展開詳情',
     collapse: '收合詳情',
     launchDemo: '啟動 Demo',
     viewGithub: '查看 GitHub',
+    viewResearch: '查看研究連結',
     loadMore: '載入更多',
     recommended: '推薦順序',
     recent: '最近更新',
@@ -409,14 +409,14 @@ const MVP_DATABASE_UI = {
     problem: '問題背景',
     solution: '解決方案',
     coreFeatures: '核心功能',
-    launchMode: 'Launch Mode',
-    researchLink: 'Research Link',
+    launchMode: '啟動模式',
+    researchLink: '研究連結',
     nextStep: '下一步',
-    notes: 'Notes',
-    version: 'Version',
-    featured: 'Featured',
-    summary: 'Summary',
-    empty: '沒有符合條件的 MVP 或 Demo。',
+    version: '版本',
+    featuredBadge: '精選',
+    contentPending: '內容準備中',
+    coverPlaceholder: 'NexAeon Demo',
+    empty: '目前尚無公開展示的 Demo。',
     showing: '目前顯示',
     of: ' / ',
     connected: 'Airtable connected',
@@ -434,11 +434,11 @@ const MVP_DATABASE_UI = {
     targetUsers: 'Target Users',
     techStack: 'Tech Stack',
     relatedModules: 'Related Modules',
-    visibility: 'Visibility',
     expand: 'Expand details',
     collapse: 'Collapse details',
     launchDemo: 'Launch Demo',
     viewGithub: 'View GitHub',
+    viewResearch: 'Open research link',
     loadMore: 'Load more',
     recommended: 'Recommended',
     recent: 'Recently Updated',
@@ -450,11 +450,11 @@ const MVP_DATABASE_UI = {
     launchMode: 'Launch Mode',
     researchLink: 'Research Link',
     nextStep: 'Next Step',
-    notes: 'Notes',
     version: 'Version',
-    featured: 'Featured',
-    summary: 'Summary',
-    empty: 'No MVPs or demos match the current filters.',
+    featuredBadge: 'Featured',
+    contentPending: 'Content in preparation',
+    coverPlaceholder: 'NexAeon Demo',
+    empty: 'No public demos are available yet.',
     showing: 'Showing',
     of: ' of ',
     connected: 'Airtable connected',
@@ -472,11 +472,11 @@ const MVP_DATABASE_UI = {
     targetUsers: '대상 사용자',
     techStack: '기술 스택',
     relatedModules: '관련 모듈',
-    visibility: '공개 상태',
     expand: '자세히 보기',
     collapse: '접기',
     launchDemo: '데모 실행',
     viewGithub: 'GitHub 보기',
+    viewResearch: '연구 링크 보기',
     loadMore: '더 보기',
     recommended: '추천 순서',
     recent: '최근 업데이트',
@@ -485,14 +485,14 @@ const MVP_DATABASE_UI = {
     problem: '문제 배경',
     solution: '해결 방안',
     coreFeatures: '핵심 기능',
-    launchMode: 'Launch Mode',
-    researchLink: 'Research Link',
+    launchMode: '실행 방식',
+    researchLink: '연구 링크',
     nextStep: '다음 단계',
-    notes: 'Notes',
-    version: 'Version',
-    featured: 'Featured',
-    summary: 'Summary',
-    empty: '현재 필터와 일치하는 MVP 또는 데모가 없다.',
+    version: '버전',
+    featuredBadge: '추천',
+    contentPending: '콘텐츠 준비 중',
+    coverPlaceholder: 'NexAeon Demo',
+    empty: '현재 공개된 Demo가 없습니다.',
     showing: '표시 중',
     of: ' / ',
     connected: 'Airtable connected',
@@ -561,12 +561,6 @@ const MVP_MODULE_FILTERS = [
   { value: 'Action Center', label: { zh: 'Action Center', en: 'Action Center', ko: 'Action Center' } },
 ];
 
-const MVP_VISIBILITY_FILTERS = [
-  { value: 'all', label: { zh: '全部', en: 'All', ko: '전체' } },
-  { value: 'Public', label: { zh: 'Public', en: 'Public', ko: 'Public' } },
-  { value: 'Internal', label: { zh: 'Internal', en: 'Internal', ko: 'Internal' } },
-];
-
 const MVP_SEARCH_FIELDS = [
   'name',
   'slug',
@@ -580,7 +574,6 @@ const MVP_SEARCH_FIELDS = [
   'techStack',
   'relatedModules',
   'nextStep',
-  'notes',
 ];
 
 function getTeachingField(item, field, lang) {
@@ -904,6 +897,19 @@ function formatMvpValue(value) {
   return String(value || '');
 }
 
+function formatMvpDate(value, lang) {
+  if (!hasMvpValue(value)) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  const locale = { zh: 'zh-TW', ko: 'ko-KR', en: 'en-US' }[lang] || 'en-US';
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+}
+
 function normalizeMvpComparable(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -921,6 +927,13 @@ function getMvpCoverAlt(coverImage, name) {
 
 function getMvpSearchBody(item) {
   return MVP_SEARCH_FIELDS.map((field) => normalizeSearchText(item[field])).join(' ');
+}
+
+function getMvpLocalizedText(item, field, lang) {
+  const translation = item.translations?.[lang];
+  if (translation && hasMvpValue(translation[field])) return translation[field];
+  if (item.translations && lang !== 'zh') return '';
+  return item[field] || '';
 }
 
 function doesMvpEqual(item, field, value) {
@@ -986,10 +999,15 @@ function normalizeClientMvpItem(item, lang) {
   if (item.name || item.demoType || item.coreFeatures || item.displayOrder !== undefined) {
     return {
       ...item,
+      name: getMvpLocalizedText(item, 'name', lang),
+      summary: getMvpLocalizedText(item, 'summary', lang),
+      problem: getMvpLocalizedText(item, 'problem', lang),
+      solution: getMvpLocalizedText(item, 'solution', lang),
+      coreFeatures: getMvpLocalizedText(item, 'coreFeatures', lang),
+      nextStep: getMvpLocalizedText(item, 'nextStep', lang),
       targetUsers: getMvpArray(item.targetUsers),
       techStack: getMvpArray(item.techStack),
       relatedModules: getMvpArray(item.relatedModules),
-      visibility: item.visibility || 'Public',
       featured: item.featured === true,
       displayOrder: Number.isFinite(Number(item.displayOrder)) ? Number(item.displayOrder) : 0,
     };
@@ -1005,7 +1023,6 @@ function normalizeClientMvpItem(item, lang) {
     demoType: getFallbackDemoTypeLabel(item.type || item.category),
     status: item.status || '',
     version: '',
-    visibility: 'Public',
     featured: item.featured === true,
     displayOrder: Number.isFinite(Number(item.order)) ? Number(item.order) : 0,
     summary,
@@ -1021,7 +1038,6 @@ function normalizeClientMvpItem(item, lang) {
     relatedModules: getMvpArray(item.relatedModule || item.relatedProject || item.relatedTheory),
     researchLink: '',
     nextStep: '',
-    notes: '',
     updatedAt: item.updatedAt || '',
   };
 }
@@ -1084,6 +1100,29 @@ function MvpDetailField({ label, value }) {
   );
 }
 
+function MvpLinkField({ label, value, actionLabel }) {
+  if (!hasMvpValue(value)) return null;
+
+  return (
+    <div className="mvp-detail-field">
+      <span>{label}</span>
+      <p>
+        <a className="mvp-inline-link" href={value} target="_blank" rel="noopener noreferrer">
+          {actionLabel}
+        </a>
+      </p>
+    </div>
+  );
+}
+
+function MvpCoverPlaceholder({ label }) {
+  return (
+    <div className="mvp-cover mvp-cover-placeholder" aria-label={label}>
+      <span>N</span>
+    </div>
+  );
+}
+
 function MvpCoreFeatures({ label, value }) {
   const features = splitCoreFeatures(value);
   if (!features.length) return null;
@@ -1113,7 +1152,6 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
   const [userFilter, setUserFilter] = useState('all');
   const [techFilter, setTechFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
-  const [visibilityFilter, setVisibilityFilter] = useState('all');
   const [sortMode, setSortMode] = useState('recommended');
   const [visibleCount, setVisibleCount] = useState(8);
   const [expandedIds, setExpandedIds] = useState(() => new Set());
@@ -1130,12 +1168,11 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
         && doesMvpEqual(item, 'status', statusFilter)
         && doesMvpInclude(item, 'targetUsers', userFilter)
         && doesMvpInclude(item, 'techStack', techFilter)
-        && doesMvpInclude(item, 'relatedModules', moduleFilter)
-        && doesMvpEqual(item, 'visibility', visibilityFilter);
+        && doesMvpInclude(item, 'relatedModules', moduleFilter);
     });
 
     return sortMvpItems(filtered, sortMode);
-  }, [demoTypeFilter, items, moduleFilter, searchQuery, sortMode, statusFilter, techFilter, userFilter, visibilityFilter]);
+  }, [demoTypeFilter, items, moduleFilter, searchQuery, sortMode, statusFilter, techFilter, userFilter]);
 
   const visibleItems = filteredItems.slice(0, visibleCount);
   const latestUpdatedAt = getLatestModuleUpdate(moduleState);
@@ -1174,7 +1211,7 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
       <div className="mvp-state-row">
         <span>{ui.dataSource}: {moduleState.source || '...'}</span>
         <span>{ui.count}: {moduleState.count ?? items.length}</span>
-        <span>{ui.updatedAt}: {latestUpdatedAt}</span>
+        <span>{ui.updatedAt}: {formatMvpDate(latestUpdatedAt, lang) || '-'}</span>
         <span>{ui.filteredCount}: {filteredItems.length}</span>
       </div>
 
@@ -1218,7 +1255,6 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
         <MvpFilterGroup label={ui.targetUsers} filters={MVP_USER_FILTERS} activeValue={userFilter} onSelect={(value) => updateFilter(setUserFilter, value)} lang={lang} />
         <MvpFilterGroup label={ui.techStack} filters={MVP_TECH_FILTERS} activeValue={techFilter} onSelect={(value) => updateFilter(setTechFilter, value)} lang={lang} />
         <MvpFilterGroup label={ui.relatedModules} filters={MVP_MODULE_FILTERS} activeValue={moduleFilter} onSelect={(value) => updateFilter(setModuleFilter, value)} lang={lang} />
-        <MvpFilterGroup label={ui.visibility} filters={MVP_VISIBILITY_FILTERS} activeValue={visibilityFilter} onSelect={(value) => updateFilter(setVisibilityFilter, value)} lang={lang} />
       </section>
 
       <section ref={resultsRef} className="mvp-compact-grid" aria-label={moduleKey}>
@@ -1231,21 +1267,24 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
               <div className={coverUrl ? 'mvp-card-layout' : 'mvp-card-layout mvp-card-layout-no-cover'}>
                 {coverUrl ? (
                   <img className="mvp-cover" src={coverUrl} alt={getMvpCoverAlt(mvp.coverImage, mvp.name)} loading="lazy" />
-                ) : null}
+                ) : (
+                  <MvpCoverPlaceholder label={ui.coverPlaceholder} />
+                )}
 
                 <div className="mvp-card-body">
                   <div className="module-data-card-top mvp-compact-top">
                     {hasMvpValue(mvp.demoType) ? <span className="content-tag">{mvp.demoType}</span> : null}
                     {hasMvpValue(mvp.status) ? <span className="module-data-status">{mvp.status}</span> : null}
+                    {mvp.featured ? <span className="module-data-status mvp-featured-badge">{ui.featuredBadge}</span> : null}
                   </div>
-                  <h2>{mvp.name || 'Untitled Demo'}</h2>
-                  <div className="mvp-compact-meta">
-                    <span>{ui.version}: {formatMvpValue(mvp.version) || '-'}</span>
-                    <span>{ui.visibility}: {formatMvpValue(mvp.visibility) || '-'}</span>
-                    <span>{ui.featured}: {mvp.featured ? 'true' : 'false'}</span>
-                  </div>
+                  <h2>{mvp.name || ui.contentPending}</h2>
+                  {hasMvpValue(mvp.version) ? (
+                    <div className="mvp-compact-meta">
+                      <span>{ui.version}: {formatMvpValue(mvp.version)}</span>
+                    </div>
+                  ) : null}
 
-                  {hasMvpValue(mvp.summary) ? <p className="mvp-summary">{mvp.summary}</p> : null}
+                  <p className="mvp-summary">{hasMvpValue(mvp.summary) ? mvp.summary : ui.contentPending}</p>
 
                   <div className="mvp-meta-grid">
                     <MvpMetaField label={ui.targetUsers} value={mvp.targetUsers} />
@@ -1286,10 +1325,9 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
                     <MvpDetailField label={ui.techStack} value={mvp.techStack} />
                     <MvpDetailField label={ui.launchMode} value={mvp.launchMode} />
                     <MvpDetailField label={ui.relatedModules} value={mvp.relatedModules} />
-                    <MvpDetailField label={ui.researchLink} value={mvp.researchLink} />
+                    <MvpLinkField label={ui.researchLink} value={mvp.researchLink} actionLabel={ui.viewResearch} />
                     <MvpDetailField label={ui.nextStep} value={mvp.nextStep} />
-                    <MvpDetailField label={ui.notes} value={mvp.notes} />
-                    <MvpDetailField label={ui.updatedAt} value={mvp.updatedAt} />
+                    <MvpDetailField label={ui.updatedAt} value={formatMvpDate(mvp.updatedAt, lang)} />
                   </div>
                 </div>
               ) : null}

@@ -28,6 +28,16 @@ const SENSITIVE_KEYS = new Set([
   'request',
 ]);
 
+const UNSAFE_INTERNAL_KEYS = new Set([
+  'stack',
+  'rawerror',
+  'exception',
+  'token',
+  'baseid',
+  'tableid',
+  'databaseid',
+]);
+
 function normalizeBaseUrl(value) {
   return String(value || '').replace(/\/+$/, '');
 }
@@ -61,7 +71,17 @@ function collectObjectKeys(value, keys = []) {
   return keys;
 }
 
-function assertContract(endpoint, payload) {
+export function normalizePublicKeyForSecurity(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+export function hasUnsafeInternalKey(keys) {
+  return keys
+    .map(normalizePublicKeyForSecurity)
+    .some((key) => UNSAFE_INTERNAL_KEYS.has(key));
+}
+
+export function assertContract(endpoint, payload) {
   const failures = [];
 
   if (!ALLOWED_SOURCES.has(payload?.source)) failures.push('invalid source');
@@ -73,9 +93,7 @@ function assertContract(endpoint, payload) {
 
   const keys = collectObjectKeys(payload).map((key) => key.trim().toLowerCase());
   if (keys.some((key) => SENSITIVE_KEYS.has(key))) failures.push('sensitive public key present');
-  if (keys.some((key) => /stack|rawerror|exception|token|databaseid|baseid|tableid/i.test(key))) {
-    failures.push('unsafe internal key present');
-  }
+  if (hasUnsafeInternalKey(keys)) failures.push('unsafe internal key present');
 
   if (failures.length) {
     throw new Error(`${endpoint}: ${failures.join(', ')}`);
@@ -109,7 +127,7 @@ async function verifyEndpoint(endpoint) {
   };
 }
 
-try {
+async function main() {
   const home = await verifyHome();
   const endpoints = [];
   for (const endpoint of ENDPOINTS) {
@@ -122,11 +140,17 @@ try {
     home,
     endpoints,
   }, null, 2));
-} catch (error) {
-  console.error(JSON.stringify({
-    ok: false,
-    baseUrl: BASE_URL,
-    error: error.message,
-  }, null, 2));
-  process.exitCode = 1;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  try {
+    await main();
+  } catch (error) {
+    console.error(JSON.stringify({
+      ok: false,
+      baseUrl: BASE_URL,
+      error: error.message,
+    }, null, 2));
+    process.exitCode = 1;
+  }
 }

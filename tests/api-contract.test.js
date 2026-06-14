@@ -11,11 +11,60 @@ import {
 } from '../api/_response.js';
 import { normalizeAirtableProject } from '../api/action/projects.js';
 import { normalizeAirtableContext } from '../api/collaboration/options.js';
-import { normalizeAirtableDemo } from '../api/modules/demos.js';
+import {
+  createFallbackResponse as createDemoFallbackResponse,
+  createResponse as createDemoResponse,
+  normalizeAirtableDemo,
+  normalizePublicAirtableDemos,
+} from '../api/modules/demos.js';
 import { collectPaginatedNotionResults } from '../lib/notion.js';
 import { isPublicAirtableVisibility, isPublishedNotionPage } from '../lib/publicFilters.js';
+import { hasUnsafeInternalKey } from '../scripts/verify-production.mjs';
 
 const FIXED_UPDATED_AT = '2026-06-12T05:40:00.000Z';
+
+function makeDemoRecord(fields = {}) {
+  return {
+    id: 'recDemoSecret',
+    fields: {
+      'Demo Name': '繁中名稱',
+      'Demo Name KO': '한국어 이름',
+      'Demo Name EN': 'English Name',
+      Summary: '繁中摘要',
+      'Summary KO': '한국어 요약',
+      'Summary EN': 'English summary',
+      Problem: '繁中問題',
+      'Problem KO': '한국어 문제',
+      'Problem EN': 'English problem',
+      Solution: '繁中解法',
+      'Solution KO': '한국어 해결',
+      'Solution EN': 'English solution',
+      'Core Features': '繁中功能',
+      'Core Features KO': '한국어 기능',
+      'Core Features EN': 'English features',
+      'Next Step': '繁中下一步',
+      'Next Step KO': '한국어 다음 단계',
+      'Next Step EN': 'English next step',
+      Slug: 'demo-one',
+      'Demo Type': 'AI Tutor',
+      Status: 'Testing',
+      Version: 'v1',
+      Featured: false,
+      'Display Order': 2,
+      'Target Users': ['Students'],
+      'Tech Stack': ['React'],
+      'Launch Mode': 'External URL',
+      'Demo URL': 'https://example.com/demo',
+      'GitHub URL': 'https://github.com/JoeyAJ/nexaeon-web',
+      'Related Modules': ['Research'],
+      'Research Link': 'https://example.com/research',
+      Visibility: 'Public',
+      Notes: 'internal notes',
+      'Updated At': FIXED_UPDATED_AT,
+      ...fields,
+    },
+  };
+}
 
 function makeStatusPage(value, fieldName = '公開狀態') {
   return {
@@ -189,5 +238,126 @@ test('public Airtable DTOs omit internal fields and raw record IDs', () => {
     for (const forbidden of ['notes', 'owner', 'email', 'blockers', 'visibility']) {
       assert.equal(keys.includes(forbidden), false);
     }
+  }
+});
+
+test('Airtable demo multilingual fields map to zh, ko, and en translations', () => {
+  const demo = normalizeAirtableDemo(makeDemoRecord());
+
+  assert.equal(demo.name, '繁中名稱');
+  assert.equal(demo.summary, '繁中摘要');
+  assert.equal(demo.problem, '繁中問題');
+  assert.equal(demo.solution, '繁中解法');
+  assert.equal(demo.coreFeatures, '繁中功能');
+  assert.equal(demo.nextStep, '繁中下一步');
+
+  assert.deepEqual(demo.translations.zh, {
+    name: '繁中名稱',
+    summary: '繁中摘要',
+    problem: '繁中問題',
+    solution: '繁中解法',
+    coreFeatures: '繁中功能',
+    nextStep: '繁中下一步',
+  });
+  assert.deepEqual(demo.translations.ko, {
+    name: '한국어 이름',
+    summary: '한국어 요약',
+    problem: '한국어 문제',
+    solution: '한국어 해결',
+    coreFeatures: '한국어 기능',
+    nextStep: '한국어 다음 단계',
+  });
+  assert.deepEqual(demo.translations.en, {
+    name: 'English Name',
+    summary: 'English summary',
+    problem: 'English problem',
+    solution: 'English solution',
+    coreFeatures: 'English features',
+    nextStep: 'English next step',
+  });
+});
+
+test('Airtable demo publication is fail-closed and DTO excludes Visibility and Notes', () => {
+  const records = [
+    makeDemoRecord({ 'Demo Name': 'Public Demo', Visibility: 'Public' }),
+    makeDemoRecord({ 'Demo Name': 'Internal Demo', Visibility: 'Internal' }),
+    makeDemoRecord({ 'Demo Name': 'Private Demo', Visibility: 'Private' }),
+    makeDemoRecord({ 'Demo Name': 'Blank Demo', Visibility: '' }),
+  ];
+
+  const demos = normalizePublicAirtableDemos(records);
+  assert.equal(demos.length, 1);
+  assert.equal(demos[0].name, 'Public Demo');
+
+  const serialized = JSON.stringify(demos[0]).toLowerCase();
+  assert.equal(serialized.includes('visibility'), false);
+  assert.equal(serialized.includes('internal notes'), false);
+});
+
+test('Airtable demo sorting keeps featured first then display order then recency then name', () => {
+  const payload = createDemoResponse('airtable', null, [
+    normalizeAirtableDemo(makeDemoRecord({
+      'Demo Name': 'Zeta Demo',
+      Featured: false,
+      'Display Order': 1,
+      'Updated At': '2026-06-10T00:00:00.000Z',
+    })),
+    normalizeAirtableDemo(makeDemoRecord({
+      'Demo Name': 'Featured Demo',
+      Featured: true,
+      'Display Order': 99,
+      'Updated At': '2026-06-01T00:00:00.000Z',
+    })),
+    normalizeAirtableDemo(makeDemoRecord({
+      'Demo Name': 'Alpha Demo',
+      Featured: false,
+      'Display Order': 1,
+      'Updated At': '2026-06-12T00:00:00.000Z',
+    })),
+    normalizeAirtableDemo(makeDemoRecord({
+      'Demo Name': 'Beta Demo',
+      Featured: false,
+      'Display Order': 2,
+      'Updated At': '2026-06-13T00:00:00.000Z',
+    })),
+  ]);
+
+  assert.deepEqual(payload.items.map((item) => item.name), [
+    'Featured Demo',
+    'Alpha Demo',
+    'Zeta Demo',
+    'Beta Demo',
+  ]);
+});
+
+test('missing demo translations stay empty instead of falling back to another language', () => {
+  const demo = normalizeAirtableDemo(makeDemoRecord({
+    'Demo Name KO': '',
+    'Summary EN': '',
+    'Problem KO': '',
+    'Solution EN': '',
+  }));
+
+  assert.equal(demo.translations.ko.name, '');
+  assert.equal(demo.translations.en.summary, '');
+  assert.equal(demo.translations.ko.problem, '');
+  assert.equal(demo.translations.en.solution, '');
+});
+
+test('Airtable demo fallback is empty and never impersonates module data', () => {
+  const payload = createDemoFallbackResponse('upstream_failed');
+
+  assert.equal(payload.source, 'fallback');
+  assert.equal(payload.reason, 'upstream_failed');
+  assert.equal(payload.count, 0);
+  assert.deepEqual(payload.items, []);
+  assert.deepEqual(payload.data, []);
+});
+
+test('production verifier allows techStack but blocks exact unsafe internal keys', () => {
+  assert.equal(hasUnsafeInternalKey(['techStack']), false);
+
+  for (const key of ['stack', 'rawError', 'token', 'baseId', 'tableId', 'databaseId']) {
+    assert.equal(hasUnsafeInternalKey([key]), true);
   }
 });

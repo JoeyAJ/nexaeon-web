@@ -3806,7 +3806,7 @@ body {
 }
 
 .mvp-card-layout-no-cover {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(150px, 0.22fr) minmax(0, 1fr);
 }
 
 .mvp-cover {
@@ -3816,6 +3816,26 @@ body {
   border-radius: 12px;
   object-fit: cover;
   background: color-mix(in srgb, var(--bg-2) 70%, transparent);
+}
+
+.mvp-cover-placeholder {
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-blue) 28%, var(--bg-2)), color-mix(in srgb, var(--accent-gold) 12%, var(--bg-2))),
+    color-mix(in srgb, var(--bg-2) 70%, transparent);
+}
+
+.mvp-cover-placeholder span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--fg-1) 18%, transparent);
+  border-radius: 50%;
+  color: var(--fg-1);
+  font-family: var(--font-serif);
+  font-size: 24px;
 }
 
 .mvp-card-body {
@@ -3847,6 +3867,11 @@ body {
   font-size: 11px;
   line-height: 1.45;
   letter-spacing: 0;
+}
+
+.mvp-featured-badge {
+  border-color: color-mix(in srgb, var(--accent-gold) 46%, var(--line-1));
+  color: color-mix(in srgb, var(--accent-gold) 84%, var(--fg-1));
 }
 
 .mvp-summary {
@@ -3907,6 +3932,16 @@ body {
 
 .mvp-detail-field li + li {
   margin-top: 4px;
+}
+
+.mvp-inline-link {
+  color: var(--accent-fg);
+  text-decoration: none;
+}
+
+.mvp-inline-link:hover {
+  color: var(--fg-1);
+  text-decoration: underline;
 }
 
 .mvp-actions {

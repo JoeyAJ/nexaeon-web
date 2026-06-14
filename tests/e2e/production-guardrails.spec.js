@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { createApiResponse } from '../../api/_response.js';
 import { getLocalizedSite } from '../../src/lib/contentSource.js';
+import { hasUnsafeInternalKey } from '../../scripts/verify-production.mjs';
 
 const EXPECTED_MODULE_LABELS = [
   'Identity',
@@ -232,6 +234,65 @@ test('data pages support controls without fake initial fallback', async ({ page 
   }
 });
 
+test('demo showcase renders multilingual Airtable fixture without language bleed', async ({ page }) => {
+  const watcher = getRuntimeWatcher(page);
+
+  await gotoAndSetEnglish(page, '/projects/module-demos');
+  const firstCard = page.locator('.mvp-compact-card').filter({ hasText: 'Learning Demo' });
+  const secondCard = page.locator('.mvp-compact-card').filter({ hasText: 'Data Bridge Demo' });
+
+  await expect(firstCard).toBeVisible();
+  await expect(firstCard).toContainText('English summary');
+  await expect(firstCard).toContainText('v0.4');
+  await expect(firstCard).toContainText('Featured');
+  await expect(firstCard.getByRole('img', { name: 'demo-cover.png' })).toBeVisible();
+  await expect(secondCard.locator('.mvp-cover-placeholder')).toBeVisible();
+  await expect(secondCard.getByRole('link', { name: 'Launch Demo' })).toHaveCount(0);
+  await expect(secondCard.getByRole('link', { name: 'View GitHub' })).toHaveCount(0);
+
+  await firstCard.getByRole('button', { name: 'Expand details' }).click();
+  await expect(firstCard).toContainText('English problem');
+  await expect(firstCard).toContainText('English solution');
+  await expect(firstCard).toContainText('Diagnose learning issues');
+  await expect(firstCard.getByRole('link', { name: 'Open research link' })).toHaveAttribute('href', 'https://example.com/research');
+  await expect(page.locator('body')).not.toContainText('繁中摘要');
+  await expect(page.locator('body')).not.toContainText('한국어 요약');
+  await expect(page.locator('body')).not.toContainText('Visibility');
+  await expect(page.locator('body')).not.toContainText('Notes');
+
+  await page.getByRole('button', { name: '한국어로 전환' }).click();
+  await expect(page.locator('.mvp-compact-card').filter({ hasText: '학습 데모' })).toBeVisible();
+  await expect(page.locator('.mvp-compact-card').filter({ hasText: '콘텐츠 준비 중' })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('繁中摘要');
+  await expect(page.locator('body')).not.toContainText('English summary');
+  await expect(page.locator('body')).not.toContainText('Data Bridge Demo');
+
+  watcher.assertClean();
+});
+
+test('demo showcase shows localized empty states for zero public demos', async ({ page }) => {
+  const watcher = getRuntimeWatcher(page);
+  await page.route('**/api/modules/demos', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(createApiResponse({ source: 'airtable', reason: null, items: [] })),
+    });
+  });
+
+  await page.goto('/projects/module-demos');
+  await expect(page.locator('.mvp-empty-state')).toContainText('目前尚無公開展示的 Demo。');
+  await expect(page.locator('.mvp-compact-card')).toHaveCount(0);
+
+  await page.getByRole('button', { name: '한국어로 전환' }).click();
+  await expect(page.locator('.mvp-empty-state')).toContainText('현재 공개된 Demo가 없습니다.');
+
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await expect(page.locator('.mvp-empty-state')).toContainText('No public demos are available yet.');
+
+  watcher.assertClean();
+});
+
 test('direct routes and refresh stay on the same URL', async ({ page }) => {
   const watcher = getRuntimeWatcher(page);
   const directRoutes = [
@@ -287,6 +348,6 @@ test('seven public APIs keep the deployed public contract', async ({ request }) 
 
     const keys = collectObjectKeys(payload).map((key) => key.trim().toLowerCase());
     expect(keys.some((key) => SENSITIVE_KEYS.has(key)), endpoint).toBe(false);
-    expect(keys.some((key) => /stack|rawerror|exception|token|databaseid|baseid|tableid/i.test(key)), endpoint).toBe(false);
+    expect(hasUnsafeInternalKey(keys), endpoint).toBe(false);
   }
 });
