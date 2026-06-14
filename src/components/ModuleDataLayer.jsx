@@ -14,6 +14,7 @@ import ResourceStateNotice from './ResourceStateNotice.jsx';
 import { usePublicApiResource } from '../hooks/usePublicApiResource.js';
 import { PUBLIC_RESOURCE_STATUS } from '../lib/publicApiClient.js';
 import { LAUNCH_MODES, normalizeLaunchMode, resolveDemoLaunch } from '../lib/demoRuntime.js';
+import { internalDemoRegistry } from '../lib/internalDemoRegistry.js';
 import { toDemoRuntimePath } from '../utils/router.js';
 
 function normalizeList(value) {
@@ -405,6 +406,8 @@ const MVP_DATABASE_UI = {
     openInternalDemo: '開啟站內 Demo',
     viewGithub: '查看程式碼',
     viewResearch: '查看研究連結',
+    accessUnavailable: 'Demo 尚未開放操作',
+    pausedStatus: '暫停',
     loadMore: '載入更多',
     recommended: '推薦順序',
     recent: '最近更新',
@@ -445,6 +448,8 @@ const MVP_DATABASE_UI = {
     openInternalDemo: 'Open Internal Demo',
     viewGithub: 'View Code',
     viewResearch: 'Open research link',
+    accessUnavailable: 'Demo access is not available yet',
+    pausedStatus: 'Paused',
     loadMore: 'Load more',
     recommended: 'Recommended',
     recent: 'Recently Updated',
@@ -485,6 +490,8 @@ const MVP_DATABASE_UI = {
     openInternalDemo: '내부 Demo 열기',
     viewGithub: '코드 보기',
     viewResearch: '연구 링크 보기',
+    accessUnavailable: 'Demo는 아직 실행할 수 없습니다',
+    pausedStatus: '일시 중지',
     loadMore: '더 보기',
     recommended: '추천 순서',
     recent: '최근 업데이트',
@@ -1016,6 +1023,8 @@ function normalizeClientMvpItem(item, lang) {
       targetUsers: getMvpArray(item.targetUsers),
       techStack: getMvpArray(item.techStack),
       launchMode: normalizeLaunchMode(item.launchMode) || item.launchMode || '',
+      launchReady: item.launchReady === true,
+      launchActionMode: normalizeLaunchMode(item.launchActionMode) || '',
       relatedModules: getMvpArray(item.relatedModules),
       featured: item.featured === true,
       displayOrder: Number.isFinite(Number(item.displayOrder)) ? Number(item.displayOrder) : 0,
@@ -1041,6 +1050,8 @@ function normalizeClientMvpItem(item, lang) {
     coreFeatures: summary,
     techStack: getMvpArray(item.tags),
     launchMode: '',
+    launchReady: false,
+    launchActionMode: '',
     demoUrl: item.actionUrl || '',
     githubUrl: '',
     coverImage: '',
@@ -1109,6 +1120,23 @@ function MvpDetailField({ label, value }) {
   );
 }
 
+function getMvpStatusLabel(status, ui) {
+  return normalizeMvpComparable(status) === 'paused' ? ui.pausedStatus : status;
+}
+
+function getMvpLaunchAction(mvp) {
+  const actionMode = normalizeLaunchMode(mvp.launchActionMode);
+  if (actionMode) {
+    return {
+      mode: actionMode,
+      canLaunch: true,
+      url: mvp.demoUrl || null,
+    };
+  }
+
+  return resolveDemoLaunch(mvp, { internalRegistry: internalDemoRegistry });
+}
+
 function MvpLinkField({ label, value, actionLabel }) {
   if (!hasMvpValue(value)) return null;
 
@@ -1171,6 +1199,7 @@ function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window
   const filteredItems = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     const filtered = items.filter((item) => {
+      if (normalizeMvpComparable(item.status) === 'archived') return false;
       const matchesSearch = !normalizedQuery || getMvpSearchBody(item).includes(normalizedQuery);
       return matchesSearch
         && doesMvpEqual(item, 'demoType', demoTypeFilter)
@@ -1270,7 +1299,7 @@ function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window
         {visibleItems.map((mvp) => {
           const isExpanded = expandedIds.has(mvp.id);
           const coverUrl = getMvpCoverUrl(mvp.coverImage);
-          const launch = resolveDemoLaunch(mvp);
+          const launch = getMvpLaunchAction(mvp);
           const runtimePath = toDemoRuntimePath(mvp.slug || slugifyMvp(mvp.id || mvp.name));
           const launchLabel = launch.mode === LAUNCH_MODES.EMBEDDED
             ? ui.viewInNexAeon
@@ -1290,7 +1319,7 @@ function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window
                 <div className="mvp-card-body">
                   <div className="module-data-card-top mvp-compact-top">
                     {hasMvpValue(mvp.demoType) ? <span className="content-tag">{mvp.demoType}</span> : null}
-                    {hasMvpValue(mvp.status) ? <span className="module-data-status">{mvp.status}</span> : null}
+                    {hasMvpValue(mvp.status) ? <span className="module-data-status">{getMvpStatusLabel(mvp.status, ui)}</span> : null}
                     {mvp.featured ? <span className="module-data-status mvp-featured-badge">{ui.featuredBadge}</span> : null}
                   </div>
                   <h2>{mvp.name || ui.contentPending}</h2>
@@ -1330,6 +1359,9 @@ function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window
                       >
                         {launchLabel}
                       </button>
+                    ) : null}
+                    {!launch.canLaunch ? (
+                      <span className="mvp-launch-unavailable">{ui.accessUnavailable}</span>
                     ) : null}
                     {hasMvpValue(mvp.githubUrl) ? (
                       <a className="mvp-action-button" href={mvp.githubUrl} target="_blank" rel="noopener noreferrer">

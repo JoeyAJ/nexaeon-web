@@ -2,49 +2,27 @@
 
 import { getModuleEndpoint } from '../../src/data/moduleData.js';
 import { getAirtableRecords } from '../_airtable.js';
-import { createApiResponse, getUpstreamFailureReason, logSafeApiError, rejectUnsupportedMethod, sendJsonResponse } from '../_response.js';
-import { isPublicAirtableVisibility } from '../../lib/publicFilters.js';
+import {
+  createApiResponse,
+  getUpstreamFailureReason,
+  logSafeApiError,
+  NO_STORE_CACHE_CONTROL,
+  rejectUnsupportedMethod,
+  sendMethodNotAllowed,
+  setCacheHeaders,
+} from '../_response.js';
+import {
+  DEMO_FIELD_NAMES,
+  getDemoField,
+  getPublishableDemoRecords,
+  logDemoPublishingExclusion,
+  toDemoText,
+  validateDemoPublishing,
+} from '../../lib/demoPublishing.js';
 import { normalizeLaunchMode } from '../../src/lib/demoRuntime.js';
 
 const MODULE_KEY = 'modules';
-
-const FIELD_MAP = {
-  name: 'Demo Name',
-  nameKo: 'Demo Name KO',
-  nameEn: 'Demo Name EN',
-  slug: 'Slug',
-  demoType: 'Demo Type',
-  status: 'Status',
-  version: 'Version',
-  visibility: 'Visibility',
-  featured: 'Featured',
-  displayOrder: 'Display Order',
-  summary: 'Summary',
-  summaryKo: 'Summary KO',
-  summaryEn: 'Summary EN',
-  problem: 'Problem',
-  problemKo: 'Problem KO',
-  problemEn: 'Problem EN',
-  solution: 'Solution',
-  solutionKo: 'Solution KO',
-  solutionEn: 'Solution EN',
-  targetUsers: 'Target Users',
-  coreFeatures: 'Core Features',
-  coreFeaturesKo: 'Core Features KO',
-  coreFeaturesEn: 'Core Features EN',
-  techStack: 'Tech Stack',
-  launchMode: 'Launch Mode',
-  demoUrl: 'Demo URL',
-  githubUrl: 'GitHub URL',
-  coverImage: 'Cover Image',
-  relatedModules: 'Related Modules',
-  researchLink: 'Research Link',
-  nextStep: 'Next Step',
-  nextStepKo: 'Next Step KO',
-  nextStepEn: 'Next Step EN',
-  notes: 'Notes',
-  updatedAt: 'Updated At',
-};
+export const DEMO_SUCCESS_CACHE_CONTROL = 'public, max-age=0, s-maxage=30, stale-while-revalidate=30';
 
 const TRANSLATION_FIELD_KEYS = {
   name: { zh: 'name', ko: 'nameKo', en: 'nameEn' },
@@ -56,9 +34,7 @@ const TRANSLATION_FIELD_KEYS = {
 };
 
 function toText(value, fallback = '') {
-  if (value === undefined || value === null) return fallback;
-  if (typeof value === 'object' && !Array.isArray(value)) return value.name || fallback;
-  return String(value).trim() || fallback;
+  return toDemoText(value, fallback);
 }
 
 function toStringArray(value) {
@@ -100,7 +76,7 @@ function slugify(value) {
 }
 
 function getRecordField(fields, key) {
-  return fields[FIELD_MAP[key]];
+  return getDemoField(fields, key);
 }
 
 function buildTranslation(fields, locale) {
@@ -117,11 +93,13 @@ function buildTranslations(fields) {
   };
 }
 
-export function normalizeAirtableDemo(record) {
+export function normalizeAirtableDemo(record, publishingReport) {
   const fields = record.fields || {};
   const translations = buildTranslations(fields);
   const name = translations.zh.name || 'Untitled Demo';
   const slug = toText(getRecordField(fields, 'slug')) || slugify(name);
+  const report = publishingReport || validateDemoPublishing(record);
+  const launchMode = normalizeLaunchMode(getRecordField(fields, 'launchMode')) || '';
 
   return {
     id: `demo-${slug}`,
@@ -138,8 +116,10 @@ export function normalizeAirtableDemo(record) {
     targetUsers: toStringArray(getRecordField(fields, 'targetUsers')),
     coreFeatures: translations.zh.coreFeatures,
     techStack: toStringArray(getRecordField(fields, 'techStack')),
-    launchMode: normalizeLaunchMode(getRecordField(fields, 'launchMode')) || '',
-    demoUrl: toUrl(getRecordField(fields, 'demoUrl')),
+    launchMode,
+    launchReady: report.launchReady,
+    launchActionMode: report.launchActionMode,
+    demoUrl: report.safeDemoUrl || '',
     githubUrl: toUrl(getRecordField(fields, 'githubUrl')),
     coverImage: toCoverImage(getRecordField(fields, 'coverImage')),
     relatedModules: toStringArray(getRecordField(fields, 'relatedModules')),
@@ -182,9 +162,24 @@ export function createFallbackResponse(reason) {
 }
 
 export function normalizePublicAirtableDemos(records) {
-  return records
-    .filter((record) => isPublicAirtableVisibility(getRecordField(record.fields || {}, 'visibility')))
-    .map(normalizeAirtableDemo);
+  const { publishable } = getPublishableDemoRecords(records);
+  return publishable.map(({ record, report }) => normalizeAirtableDemo(record, report));
+}
+
+function getDemoCacheControl(payload) {
+  if (payload?.source === 'airtable' && payload?.reason === null) return DEMO_SUCCESS_CACHE_CONTROL;
+  return NO_STORE_CACHE_CONTROL;
+}
+
+export function sendDemoJsonResponse(req, res, payload, status = 200) {
+  if (req?.method !== 'GET') {
+    sendMethodNotAllowed(res);
+    return;
+  }
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  setCacheHeaders(res, getDemoCacheControl(payload));
+  res.status(status).json(payload);
 }
 
 export default async function handler(req, res) {
@@ -194,7 +189,7 @@ export default async function handler(req, res) {
   const tableId = process.env.AIRTABLE_MVP_TABLE_ID?.trim();
 
   if (!process.env.AIRTABLE_API_KEY || !baseId || !tableId) {
-    sendJsonResponse(req, res, createFallbackResponse('missing_env'));
+    sendDemoJsonResponse(req, res, createFallbackResponse('missing_env'));
     return;
   }
 
@@ -204,12 +199,16 @@ export default async function handler(req, res) {
       tableId,
     });
 
-    const airtableItems = normalizePublicAirtableDemos(records);
+    const { excluded, publishable } = getPublishableDemoRecords(records);
+    excluded.forEach(({ report }) => logDemoPublishingExclusion(report));
+    const airtableItems = publishable.map(({ record, report }) => normalizeAirtableDemo(record, report));
 
-    sendJsonResponse(req, res, createResponse('airtable', null, airtableItems));
+    sendDemoJsonResponse(req, res, createResponse('airtable', null, airtableItems));
   } catch (error) {
     const reason = getUpstreamFailureReason(error);
     logSafeApiError('/api/modules/demos', reason, 'airtable');
-    sendJsonResponse(req, res, createFallbackResponse(reason));
+    sendDemoJsonResponse(req, res, createFallbackResponse(reason));
   }
 }
+
+export { DEMO_FIELD_NAMES };

@@ -86,11 +86,24 @@ test('Internal Registry only allows explicitly registered slugs', () => {
 
 test('unregistered Internal Demo resolves to a safe routable state', () => {
   const launch = resolveDemoLaunch({
+    slug: 'unregistered-demo',
     launchMode: 'Internal',
     demoUrl: '',
   }, { environment: 'production' });
 
   assert.equal(launch.mode, LAUNCH_MODES.INTERNAL);
-  assert.equal(launch.canLaunch, true);
+  assert.equal(launch.canLaunch, false);
   assert.equal(getInternalDemoStatus('unregistered-demo', {}), 'unregistered');
+});
+
+test('unregistered Internal Demo can expose safe External fallback URL', () => {
+  const launch = resolveDemoLaunch({
+    slug: 'unregistered-demo',
+    launchMode: 'Internal',
+    demoUrl: 'https://example.com/demo',
+  }, { environment: 'production' });
+
+  assert.equal(launch.mode, LAUNCH_MODES.EXTERNAL);
+  assert.equal(launch.canLaunch, true);
+  assert.equal(launch.url, 'https://example.com/demo');
 });

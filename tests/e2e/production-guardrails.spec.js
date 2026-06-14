@@ -250,7 +250,9 @@ test('demo showcase renders multilingual Airtable fixture without language bleed
   await expect(firstCard.getByRole('link', { name: 'Open Demo' })).toHaveCount(1);
   await expect(firstCard.getByRole('link', { name: 'View Code' })).toHaveCount(1);
   await expect(secondCard.getByRole('link', { name: 'Open Demo' })).toHaveCount(0);
+  await expect(secondCard).toContainText('Demo access is not available yet');
   await expect(secondCard.getByRole('link', { name: 'View Code' })).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('Archived Demo');
 
   await firstCard.getByRole('button', { name: 'Expand details' }).click();
   await expect(firstCard).toContainText('English problem');
@@ -264,10 +266,15 @@ test('demo showcase renders multilingual Airtable fixture without language bleed
 
   await page.getByRole('button', { name: '한국어로 전환' }).click();
   await expect(page.locator('.mvp-compact-card').filter({ hasText: '학습 데모' })).toBeVisible();
-  await expect(page.locator('.mvp-compact-card').filter({ hasText: '콘텐츠 준비 중' })).toBeVisible();
+  await expect(page.locator('.mvp-compact-card').filter({ hasText: '데이터 브리지 Demo' })).toContainText('Demo는 아직 실행할 수 없습니다');
   await expect(page.locator('body')).not.toContainText('繁中摘要');
   await expect(page.locator('body')).not.toContainText('English summary');
   await expect(page.locator('body')).not.toContainText('Data Bridge Demo');
+
+  await page.getByRole('button', { name: '切換為繁體中文' }).click();
+  await expect(page.locator('.mvp-compact-card').filter({ hasText: '資料橋接展示' })).toContainText('Demo 尚未開放操作');
+  await page.reload();
+  await expect(page.locator('.mvp-compact-card').filter({ hasText: '資料橋接展示' })).toBeVisible();
 
   watcher.assertClean();
 });

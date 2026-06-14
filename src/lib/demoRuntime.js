@@ -62,9 +62,18 @@ export function resolveDemoLaunch(item, options = {}) {
   const safeDemoUrl = getValidatedDemoUrl(item?.demoUrl, options);
 
   if (mode === LAUNCH_MODES.INTERNAL) {
+    const internalStatus = getInternalDemoStatus(item?.slug, options.internalRegistry || {});
+    if (internalStatus === 'registered') {
+      return {
+        mode,
+        canLaunch: true,
+        url: safeDemoUrl,
+      };
+    }
+
     return {
-      mode,
-      canLaunch: true,
+      mode: safeDemoUrl ? LAUNCH_MODES.EXTERNAL : LAUNCH_MODES.INTERNAL,
+      canLaunch: Boolean(safeDemoUrl),
       url: safeDemoUrl,
     };
   }

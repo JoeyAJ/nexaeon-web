@@ -10,6 +10,7 @@ import {
   resolveDemoLaunch,
 } from '../lib/demoRuntime.js';
 import { getInternalDemoComponent } from './internalDemos/registry.jsx';
+import { internalDemoRegistry } from '../lib/internalDemoRegistry.js';
 
 const MODULE_DEMOS_ENDPOINT = '/api/modules/demos';
 const IFRAME_TIMEOUT_MS = 11_000;
@@ -288,7 +289,8 @@ export default function DemoRuntimePage({ slug, lang, setLang, theme, setTheme, 
   ) : !demo ? (
     <RuntimeNotFound ui={ui} navigate={navigate} />
   ) : (() => {
-    const launch = resolveDemoLaunch(demo);
+    const normalizedMode = normalizeLaunchMode(demo.launchMode);
+    const launch = resolveDemoLaunch(demo, { internalRegistry: internalDemoRegistry });
     const safeDemoUrl = getValidatedDemoUrl(demo.demoUrl);
     const summary = demo.summary || ui.contentPending;
 
@@ -311,15 +313,15 @@ export default function DemoRuntimePage({ slug, lang, setLang, theme, setTheme, 
             <RuntimeMetaField label={ui.demoType} value={demo.demoType} />
             <RuntimeMetaField label={ui.status} value={demo.status} />
             <RuntimeMetaField label={ui.version} value={demo.version} />
-            <RuntimeMetaField label={ui.launchMode} value={launch.mode || demo.launchMode} />
+            <RuntimeMetaField label={ui.launchMode} value={normalizedMode || launch.mode || demo.launchMode} />
             <RuntimeMetaField label={ui.summary} value={summary} />
           </div>
         </section>
 
         <section className="container demo-runtime-content">
-          {launch.mode === LAUNCH_MODES.EMBEDDED ? (
+          {normalizedMode === LAUNCH_MODES.EMBEDDED ? (
             <EmbeddedRuntime key={safeDemoUrl || demo.slug} demo={demo} safeDemoUrl={safeDemoUrl} ui={ui} />
-          ) : launch.mode === LAUNCH_MODES.INTERNAL ? (
+          ) : normalizedMode === LAUNCH_MODES.INTERNAL ? (
             <InternalRuntime demo={demo} safeDemoUrl={safeDemoUrl} ui={ui} />
           ) : (
             <section className="demo-runtime-frame-shell">

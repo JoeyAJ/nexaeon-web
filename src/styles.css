@@ -3974,6 +3974,18 @@ body {
   box-shadow: 0 10px 22px color-mix(in srgb, var(--accent-blue) 16%, transparent);
 }
 
+.mvp-launch-unavailable {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid color-mix(in srgb, var(--line-2) 72%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-2) 36%, transparent);
+  color: var(--fg-3);
+  font-size: 12px;
+  padding: 0 14px;
+}
+
 .mvp-detail-panel {
   margin-top: 16px;
   border-top: 1px solid var(--line-1);
