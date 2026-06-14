@@ -22,7 +22,15 @@ import { detectQueryIntent } from '../lib/agent/queryIntent.js';
 const ORIGINAL_ENV = { ...process.env };
 
 function restoreEnv() {
-  for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'NEXAEON_AGENT_ENABLED', 'NEXON_AGENT_ENABLED']) {
+  for (const key of [
+    'OPENAI_API_KEY',
+    'OPENAI_MODEL',
+    'NEXAEON_AGENT_ENABLED',
+    'NEXON_AGENT_ENABLED',
+    'NEXAEON_AGENT_FORCE_SOURCES_ONLY',
+    'NEXAEON_AGENT_MAX_OUTPUT_TOKENS',
+    'NEXAEON_AGENT_TIMEOUT_MS',
+  ]) {
     if (ORIGINAL_ENV[key] === undefined) delete process.env[key];
     else process.env[key] = ORIGINAL_ENV[key];
   }
@@ -144,7 +152,7 @@ function createOpenAIMock({
   };
 }
 
-async function callHandler({ req = createReq(), retrieval, openai, createGroundedAnswer, skipCooldown = true, cooldownOptions } = {}) {
+async function callHandler({ req = createReq(), retrieval, openai, createGroundedAnswer, skipCooldown = true, cooldownOptions, config, logger, requestId } = {}) {
   const res = createRes();
   await handleAgentChatRequest(req, res, {
     skipCooldown,
@@ -152,6 +160,9 @@ async function callHandler({ req = createReq(), retrieval, openai, createGrounde
     retrievePublicKnowledgeForChat: retrieval || createRetrieval(),
     openai,
     createGroundedAnswer,
+    config,
+    logger,
+    requestId,
   });
   return res;
 }
@@ -270,7 +281,8 @@ test('feature flag disabled does not call OpenAI', async () => {
 
 test('agent feature flag prefers NEXAEON_AGENT_ENABLED and temporarily supports old flag', () => {
   assert.equal(isAgentEnabled({ NEXAEON_AGENT_ENABLED: 'true', NEXON_AGENT_ENABLED: 'false' }), true);
-  assert.equal(isAgentEnabled({ NEXAEON_AGENT_ENABLED: 'false', NEXON_AGENT_ENABLED: 'true' }), true);
+  assert.equal(isAgentEnabled({ NEXAEON_AGENT_ENABLED: 'false', NEXON_AGENT_ENABLED: 'true' }), false);
+  assert.equal(isAgentEnabled({ NEXON_AGENT_ENABLED: 'true' }), true);
   assert.equal(isAgentEnabled({ NEXAEON_AGENT_ENABLED: 'false', NEXON_AGENT_ENABLED: 'false' }), false);
 });
 

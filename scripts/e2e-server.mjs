@@ -400,11 +400,12 @@ const CONTENT_TYPES = {
   '.svg': 'image/svg+xml',
 };
 
-function sendJson(res, payload, status = 200) {
+function sendJson(res, payload, status = 200, headers = {}) {
   const body = JSON.stringify(payload);
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(body),
+    ...headers,
   });
   res.end(body);
 }
@@ -444,6 +445,21 @@ function createAgentChatResponse(body) {
 
   if (query.includes('disabled')) {
     return { ok: true, mode: 'sources_only', answer: '', citations: [citation], suggestedQuestions: [], partialSources: false, reason: 'disabled' };
+  }
+  if (query.includes('forced')) {
+    return {
+      ok: true,
+      mode: 'sources_only',
+      answer: lang === 'ko'
+        ? `관련 공개 소스는 다음과 같습니다.\n\n1. ${citation.title} [S1]`
+        : lang === 'zh'
+          ? `相關公開來源包括：\n\n1. ${citation.title} [S1]`
+          : `Relevant public sources include:\n\n1. ${citation.title} [S1]`,
+      citations: [citation],
+      suggestedQuestions: [],
+      partialSources: false,
+      reason: 'forced_sources_only',
+    };
   }
   if (query.includes('unavailable')) {
     const catalogAnswer = query.includes('demo')
@@ -540,7 +556,32 @@ const server = createServer(async (req, res) => {
       }
       const rawBody = await readRequestBody(req);
       const body = rawBody ? JSON.parse(rawBody) : {};
+      if (String(body?.query || '').toLowerCase().includes('rate limit')) {
+        sendJson(res, { ok: true, mode: 'sources_only', answer: '', citations: [], suggestedQuestions: [], partialSources: false, reason: 'invalid_request' }, 429, { 'Retry-After': '2' });
+        return;
+      }
       setTimeout(() => sendJson(res, createAgentChatResponse(body)), String(body?.query || '').toLowerCase().includes('slow') ? 250 : 0);
+      return;
+    }
+
+    if (url.pathname === '/api/agent/health') {
+      const payload = {
+        ok: true,
+        service: 'NexAeon Navigator',
+        status: 'ready',
+        mode: 'ai',
+        sourceRegistryCount: 7,
+        timestamp: '2026-06-14T00:00:00.000Z',
+      };
+      if (req.method === 'HEAD') {
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'private, no-store',
+        });
+        res.end();
+        return;
+      }
+      sendJson(res, payload, 200, { 'Cache-Control': 'private, no-store' });
       return;
     }
 

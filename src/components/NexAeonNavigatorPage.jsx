@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AGENT_SOURCES } from '../../lib/agent/sourceRegistry.js';
 import { NAVIGATOR_AGENT } from '../data/agentBrands.js';
 
@@ -18,6 +18,8 @@ const ASSISTANT_UI = {
     generating: 'Navigator 正在根據公開來源整理回答……',
     disabled: 'AI 回答功能尚未啟用，您仍可查看相關公開來源。',
     modelUnavailable: 'AI 回答暫時無法使用，以下仍提供最相關的公開來源。',
+    forcedSourcesOnly: '目前以公開來源導航模式提供結果。',
+    rateLimited: (seconds) => `請稍候 ${seconds} 秒後再提問。`,
     noSources: '目前公開知識中沒有足夠資料回答這個問題。',
     moderated: '這個問題目前無法處理，請調整內容後再試一次。',
     groundedNote: '回答僅根據 NexAeon 目前公開的知識來源生成，內容可能不完整。',
@@ -43,6 +45,8 @@ const ASSISTANT_UI = {
     generating: 'Navigator가 공개된 소스를 바탕으로 답변을 정리하고 있습니다…',
     disabled: 'AI 답변 기능은 아직 활성화되지 않았지만 관련 공개 소스는 계속 확인할 수 있습니다.',
     modelUnavailable: 'AI 답변을 일시적으로 사용할 수 없습니다. 아래에서 관련 공개 소스를 확인할 수 있습니다.',
+    forcedSourcesOnly: '현재 공개 소스 탐색 모드로 결과를 제공합니다.',
+    rateLimited: (seconds) => `${seconds}초 후에 다시 질문해 주세요.`,
     noSources: '현재 공개된 지식만으로는 이 질문에 답할 충분한 정보가 없습니다.',
     moderated: '이 질문은 현재 처리할 수 없습니다. 내용을 수정한 후 다시 시도해 주세요.',
     groundedNote: '답변은 현재 공개된 NexAeon 지식 소스를 기반으로 생성되며 일부 내용이 불완전할 수 있습니다.',
@@ -68,6 +72,8 @@ const ASSISTANT_UI = {
     generating: 'Navigator is preparing an answer from the public sources…',
     disabled: 'AI answers are not enabled yet. You can still review the relevant public sources.',
     modelUnavailable: 'AI answers are temporarily unavailable. The most relevant public sources are still shown below.',
+    forcedSourcesOnly: 'Results are currently provided in public-source navigation mode.',
+    rateLimited: (seconds) => `Please wait ${seconds} seconds before asking again.`,
     noSources: 'The current public knowledge does not contain enough information to answer this question.',
     moderated: 'This request cannot be processed. Please revise it and try again.',
     groundedNote: 'Answers are generated from NexAeon’s currently public knowledge sources and may be incomplete.',
@@ -98,6 +104,7 @@ function getFallbackMessage(reason, ui) {
   if (reason === 'disabled' || reason === 'missing_configuration') return ui.disabled;
   if (reason === 'no_sources') return ui.noSources;
   if (reason === 'moderated') return ui.moderated;
+  if (reason === 'forced_sources_only') return ui.forcedSourcesOnly;
   return ui.modelUnavailable;
 }
 
@@ -212,8 +219,27 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const abortRef = useRef(null);
   const activeRequestRef = useRef(false);
+  const submissionLockRef = useRef(false);
+  const requestSequenceRef = useRef(0);
+  const lastSubmissionRef = useRef({ query: '', at: 0 });
+
+  useEffect(() => {
+    if (retryAfterSeconds <= 0) return undefined;
+    const timerId = window.setInterval(() => {
+      setRetryAfterSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearInterval(timerId);
+  }, [retryAfterSeconds]);
+
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    activeRequestRef.current = false;
+    submissionLockRef.current = false;
+    requestSequenceRef.current += 1;
+  }, []);
 
   const suggestedQuestions = useMemo(() => {
     const latest = [...messages].reverse().find((message) => message.role === 'assistant' && message.suggestedQuestions?.length);
@@ -222,11 +248,17 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
 
   async function submitQuery(nextQuery = query) {
     const trimmed = String(nextQuery || '').trim();
-    if (!trimmed || isGenerating || activeRequestRef.current) return;
+    if (!trimmed || retryAfterSeconds > 0 || isGenerating || activeRequestRef.current || submissionLockRef.current) return;
+    const now = Date.now();
+    if (lastSubmissionRef.current.query === trimmed && now - lastSubmissionRef.current.at < 1000) return;
+    lastSubmissionRef.current = { query: trimmed, at: now };
     activeRequestRef.current = true;
+    submissionLockRef.current = true;
+    const requestSequence = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestSequence;
 
     const userMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${requestSequence}-${Date.now()}`,
       role: 'user',
       content: trimmed,
     };
@@ -253,9 +285,15 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
         signal: controller.signal,
       });
       const payload = await response.json();
-      if (response.status === 429) return;
+      if (requestSequence !== requestSequenceRef.current) return;
+      if (response.status === 429) {
+        const seconds = Number.parseInt(response.headers.get('Retry-After') || '3', 10);
+        setRetryAfterSeconds(Number.isFinite(seconds) ? Math.max(1, seconds) : 3);
+        setMessages((current) => current.filter((message) => message.id !== userMessage.id));
+        return;
+      }
       const assistantMessage = {
-        id: `assistant-${Date.now()}`,
+        id: `assistant-${requestSequence}-${Date.now()}`,
         role: 'assistant',
         content: payload.answer || '',
         mode: payload.mode || 'sources_only',
@@ -264,11 +302,11 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
         suggestedQuestions: Array.isArray(payload.suggestedQuestions) ? payload.suggestedQuestions : [],
         partialSources: Boolean(payload.partialSources),
       };
-      setMessages((current) => [...current, assistantMessage]);
+      setMessages((current) => (requestSequence === requestSequenceRef.current ? [...current, assistantMessage] : current));
     } catch (error) {
-      if (error?.name !== 'AbortError') {
+      if (error?.name !== 'AbortError' && requestSequence === requestSequenceRef.current) {
         setMessages((current) => [...current, {
-          id: `assistant-${Date.now()}`,
+          id: `assistant-${requestSequence}-${Date.now()}`,
           role: 'assistant',
           content: '',
           mode: 'sources_only',
@@ -282,22 +320,30 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
       setIsGenerating(false);
       abortRef.current = null;
       activeRequestRef.current = false;
+      submissionLockRef.current = false;
     }
   }
 
   function stopGenerating() {
     abortRef.current?.abort();
+    requestSequenceRef.current += 1;
     setIsGenerating(false);
     activeRequestRef.current = false;
+    submissionLockRef.current = false;
   }
 
   function clearChat() {
     abortRef.current?.abort();
+    requestSequenceRef.current += 1;
+    lastSubmissionRef.current = { query: '', at: 0 };
     setMessages([]);
     setQuery('');
     setIsGenerating(false);
     activeRequestRef.current = false;
+    submissionLockRef.current = false;
   }
+
+  const isSubmitBlocked = isGenerating || retryAfterSeconds > 0;
 
   return (
     <article className="content-detail-card module-detail-card agent-assistant-card" data-testid="navigator-agent-page">
@@ -328,6 +374,11 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
           )
         ))}
         {isGenerating ? <p className="agent-state-message" data-state="generating">{ui.generating}</p> : null}
+        {retryAfterSeconds > 0 ? (
+          <p className="agent-state-message" data-state="rate-limited">
+            {ui.rateLimited(retryAfterSeconds)}
+          </p>
+        ) : null}
       </section>
 
       <form
@@ -346,8 +397,9 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
             maxLength={500}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={ui.placeholder}
+            disabled={isSubmitBlocked}
           />
-          <button className="mvp-action-button" type="submit" disabled={isGenerating || !query.trim()}>
+          <button className="mvp-action-button" type="submit" disabled={isSubmitBlocked || !query.trim()}>
             {ui.submit}
           </button>
           {isGenerating ? (
@@ -363,7 +415,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
 
       <section className="agent-suggestion-panel" aria-label="suggested questions">
         {suggestedQuestions.map((suggestion) => (
-          <button key={suggestion} type="button" onClick={() => submitQuery(suggestion)} disabled={isGenerating}>
+          <button key={suggestion} type="button" onClick={() => submitQuery(suggestion)} disabled={isSubmitBlocked}>
             {suggestion}
           </button>
         ))}

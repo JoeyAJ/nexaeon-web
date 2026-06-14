@@ -138,6 +138,9 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
 NEXAEON_AGENT_ENABLED=false
+NEXAEON_AGENT_FORCE_SOURCES_ONLY=false
+NEXAEON_AGENT_MAX_OUTPUT_TOKENS=800
+NEXAEON_AGENT_TIMEOUT_MS=25000
 ```
 
 `NEXAEON_AGENT_ENABLED` 是正式 feature flag。為避免既有 Production 環境只設定舊變數時突然停用，server 暫時兼容：
@@ -147,6 +150,10 @@ process.env.NEXAEON_AGENT_ENABLED === 'true' || process.env.NEXON_AGENT_ENABLED 
 ```
 
 新變數優先；`NEXON_AGENT_ENABLED` 只作 migration 兼容，不再作為正式設定。
+
+`NEXAEON_AGENT_FORCE_SOURCES_ONLY=true` 時，server 仍執行公開來源檢索，但不建立 OpenAI client、不呼叫 input moderation、不呼叫 Responses API、不呼叫 output moderation。API 回傳 `mode: "sources_only"` 與 `reason: "forced_sources_only"`；有來源時顯示 deterministic source list，沒有來源時才回 no_sources。
+
+`NEXAEON_AGENT_MAX_OUTPUT_TOKENS` 允許 200 到 800；非法或超出範圍時 fallback 800。`NEXAEON_AGENT_TIMEOUT_MS` 允許 10000 到 25000；非法或超出範圍時 fallback 25000。client request 不能覆蓋 production config。
 
 當新舊 feature flag 都不是 `true` 時：
 

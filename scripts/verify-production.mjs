@@ -57,6 +57,21 @@ async function fetchWithTimeout(url) {
   }
 }
 
+async function fetchHeadWithTimeout(url) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      method: 'HEAD',
+      headers: { Accept: 'application/json, text/html' },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function collectObjectKeys(value, keys = []) {
   if (!value || typeof value !== 'object') return keys;
   if (Array.isArray(value)) {
@@ -105,7 +120,26 @@ async function verifyHome() {
   if (!response.ok) throw new Error(`home: HTTP ${response.status}`);
   const text = await response.text();
   if (!text.includes('<div id="root"></div>')) throw new Error('home: app root missing');
-  return { path: '/', status: response.status };
+  const assetPath = text.match(/\/assets\/index-[^"]+\.js/)?.[0] || '';
+  let retiredBrandFound = false;
+  if (assetPath) {
+    const assetResponse = await fetchWithTimeout(`${BASE_URL}${assetPath}`);
+    const assetText = await assetResponse.text();
+    retiredBrandFound = /Nexōn|NEXŌN|Nexon AI Assistant|Nexōn AI Assistant/.test(assetText);
+  }
+  if (retiredBrandFound) throw new Error('home: retired Navigator brand found in public bundle');
+  return { path: '/', status: response.status, retiredBrandFound };
+}
+
+async function verifySpaRoute(path) {
+  const response = await fetchWithTimeout(`${BASE_URL}${path}`);
+  if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`);
+  const text = await response.text();
+  if (!text.includes('<div id="root"></div>')) throw new Error(`${path}: app root missing`);
+  if (/Nexōn|NEXŌN|Nexon AI Assistant|Nexōn AI Assistant/.test(text)) {
+    throw new Error(`${path}: retired public brand present`);
+  }
+  return { path, status: response.status };
 }
 
 async function verifyEndpoint(endpoint) {
@@ -145,8 +179,47 @@ async function verifyAgentChatGetGuardrail() {
   };
 }
 
+async function verifyAgentHealth() {
+  const head = await fetchHeadWithTimeout(`${BASE_URL}/api/agent/health`);
+  if (head.status !== 200) throw new Error(`/api/agent/health HEAD: expected 200, got HTTP ${head.status}`);
+
+  const response = await fetchWithTimeout(`${BASE_URL}/api/agent/health`);
+  if (response.status !== 200) throw new Error(`/api/agent/health: expected 200, got HTTP ${response.status}`);
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) throw new Error('/api/agent/health: response is not JSON');
+  const payload = await response.json();
+  if (payload?.service !== 'NexAeon Navigator') throw new Error('/api/agent/health: invalid service');
+  if (payload?.sourceRegistryCount !== 7) throw new Error('/api/agent/health: invalid source registry count');
+  if (!['ready', 'sources_only', 'disabled', 'degraded'].includes(payload?.status)) throw new Error('/api/agent/health: invalid status');
+
+  const serialized = JSON.stringify(payload);
+  const leakedMarkers = [
+    'OPENAI' + '_API_KEY',
+    ['sk', 'proj', ''].join('-'),
+    ['sk', ''].join('-'),
+    'NEXAEON' + '_AGENT_',
+    'NEXON' + '_AGENT_',
+  ];
+  if (leakedMarkers.some((marker) => serialized.includes(marker))) {
+    throw new Error('/api/agent/health: leaked environment detail');
+  }
+
+  return {
+    path: '/api/agent/health',
+    status: response.status,
+    headStatus: head.status,
+    service: payload.service,
+    healthStatus: payload.status,
+    sourceRegistryCount: payload.sourceRegistryCount,
+  };
+}
+
 async function main() {
   const home = await verifyHome();
+  const navigatorRoute = await verifySpaRoute('/identity/nexaeon-navigator');
+  const legacyNavigatorRoute = await verifySpaRoute('/identity/nexon-ai-assistant');
+  const demoRuntime = await verifySpaRoute('/projects/module-demos/nexaeon-ai-tutoring-mvp');
+  const health = await verifyAgentHealth();
   const endpoints = [];
   for (const endpoint of ENDPOINTS) {
     endpoints.push(await verifyEndpoint(endpoint));
@@ -157,6 +230,10 @@ async function main() {
     ok: true,
     baseUrl: BASE_URL,
     home,
+    navigatorRoute,
+    legacyNavigatorRoute,
+    demoRuntime,
+    health,
     endpoints,
     agentChat,
   }, null, 2));

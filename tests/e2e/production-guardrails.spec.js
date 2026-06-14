@@ -424,6 +424,43 @@ test('navigator handles sources-only fallback states', async ({ page }) => {
   await page.locator('#navigator-agent-query').fill('moderated status');
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.getByText('This request cannot be processed. Please revise it and try again.')).toBeVisible();
+
+  await page.locator('#navigator-agent-query').fill('forced status');
+  await page.getByRole('button', { name: 'Send' }).click();
+  await expect(page.getByText('Relevant public sources include:')).toBeVisible();
+  await expect(page.getByText('Results are currently provided in public-source navigation mode.')).toBeVisible();
+});
+
+test('navigator handles 429 countdown and duplicate submit guards', async ({ page }) => {
+  let chatPostCount = 0;
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().includes('/api/agent/chat')) chatPostCount += 1;
+  });
+
+  await gotoAndSetEnglish(page, '/identity/nexaeon-navigator');
+  await page.locator('#navigator-agent-query').fill('rate limit status');
+  await page.getByRole('button', { name: 'Send' }).click();
+  await expect(page.getByText('Please wait 2 seconds before asking again.')).toBeVisible();
+  await expect(page.locator('.agent-message-assistant')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Send' })).toBeDisabled();
+  await page.keyboard.press('Enter');
+  expect(chatPostCount).toBe(1);
+  await expect(page.getByText(/Please wait \d seconds before asking again\./)).toHaveCount(0, { timeout: 3500 });
+  await expect(page.getByRole('button', { name: 'Send' })).toBeEnabled();
+
+  await page.locator('#navigator-agent-query').fill('Which demos are currently public?');
+  await Promise.all([
+    page.getByRole('button', { name: 'Send' }).dblclick(),
+    page.keyboard.press('Enter'),
+  ]);
+  await expect(page.getByText('The currently public demos include Learning Demo.')).toBeVisible();
+  expect(chatPostCount).toBe(2);
+
+  await page.getByRole('button', { name: 'Clear chat' }).click();
+  await page.getByRole('button', { name: 'Which demos are currently public?' }).dblclick();
+  await expect(page.locator('.agent-message-user')).toHaveCount(1);
+  await expect(page.locator('.agent-message-assistant')).toHaveCount(1);
+  expect(chatPostCount).toBe(3);
 });
 
 test('navigator localizes, redirects legacy route, supports no-result, mobile, refresh, and back behavior', async ({ page }) => {
@@ -533,6 +570,17 @@ test('invalid route and unavailable detail show safe guardrail states', async ({
 });
 
 test('seven public APIs keep the deployed public contract', async ({ request }) => {
+  const healthHead = await request.head('/api/agent/health');
+  expect(healthHead.status()).toBe(200);
+  expect(await healthHead.text()).toBe('');
+
+  const healthResponse = await request.get('/api/agent/health');
+  expect(healthResponse.status()).toBe(200);
+  const health = await healthResponse.json();
+  expect(health.service).toBe('NexAeon Navigator');
+  expect(health.sourceRegistryCount).toBe(7);
+  expect(['ready', 'sources_only', 'disabled', 'degraded']).toContain(health.status);
+
   for (const endpoint of API_ENDPOINTS) {
     const response = await request.get(endpoint);
     expect(response.status(), endpoint).toBe(200);
