@@ -247,8 +247,10 @@ test('demo showcase renders multilingual Airtable fixture without language bleed
   await expect(firstCard).toContainText('Featured');
   await expect(firstCard.getByRole('img', { name: 'demo-cover.png' })).toBeVisible();
   await expect(secondCard.locator('.mvp-cover-placeholder')).toBeVisible();
-  await expect(secondCard.getByRole('link', { name: 'Launch Demo' })).toHaveCount(0);
-  await expect(secondCard.getByRole('link', { name: 'View GitHub' })).toHaveCount(0);
+  await expect(firstCard.getByRole('link', { name: 'Open Demo' })).toHaveCount(1);
+  await expect(firstCard.getByRole('link', { name: 'View Code' })).toHaveCount(1);
+  await expect(secondCard.getByRole('link', { name: 'Open Demo' })).toHaveCount(0);
+  await expect(secondCard.getByRole('link', { name: 'View Code' })).toHaveCount(0);
 
   await firstCard.getByRole('button', { name: 'Expand details' }).click();
   await expect(firstCard).toContainText('English problem');
@@ -268,6 +270,94 @@ test('demo showcase renders multilingual Airtable fixture without language bleed
   await expect(page.locator('body')).not.toContainText('Data Bridge Demo');
 
   watcher.assertClean();
+});
+
+test('demo runtime launch modes, iframe safeguards, localization, theme, mobile, and back stack', async ({ page, context }) => {
+  await gotoAndSetEnglish(page, '/projects/module-demos');
+
+  const externalCard = page.locator('.mvp-compact-card').filter({ hasText: 'Learning Demo' });
+  const [externalPage] = await Promise.all([
+    context.waitForEvent('page'),
+    externalCard.getByRole('link', { name: 'Open Demo' }).click(),
+  ]);
+  await externalPage.waitForLoadState('domcontentloaded');
+  expect(externalPage.url()).toContain('/runtime-fixtures/external-demo.html');
+  await externalPage.close();
+
+  const invalidCard = page.locator('.mvp-compact-card').filter({ hasText: 'Invalid URL Demo' });
+  await expect(invalidCard).toBeVisible();
+  await expect(invalidCard.getByRole('link', { name: 'Open Demo' })).toHaveCount(0);
+  await expect(invalidCard.getByRole('button', { name: 'Open Demo' })).toHaveCount(0);
+
+  const embeddedCard = page.locator('.mvp-compact-card').filter({ hasText: 'Embedded Demo' });
+  await embeddedCard.getByRole('button', { name: 'View in NexAeon' }).click();
+  await expect(page).toHaveURL(/\/projects\/module-demos\/embedded-demo$/);
+  await expect(page.getByRole('heading', { name: 'Embedded Demo', level: 1 })).toBeVisible();
+  await expect(page.locator('main')).toContainText('Embedded English summary');
+
+  const iframe = page.locator('iframe.demo-runtime-iframe');
+  await expect(iframe).toHaveAttribute('title', 'Embedded Demo');
+  await expect(iframe).toHaveAttribute('loading', 'lazy');
+  await expect(iframe).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+  const sandbox = await iframe.getAttribute('sandbox');
+  expect(sandbox).toContain('allow-scripts');
+  expect(sandbox).toContain('allow-same-origin');
+  expect(sandbox).toContain('allow-forms');
+  expect(sandbox).toContain('allow-popups');
+  expect(sandbox).toContain('allow-downloads');
+  expect(sandbox).not.toContain('allow-top-navigation');
+  await expect(page.getByRole('link', { name: 'Open in new tab' }).first()).toHaveAttribute('target', '_blank');
+
+  await page.reload();
+  await expect(page).toHaveURL(/\/projects\/module-demos\/embedded-demo$/);
+  await expect(page.getByTestId('demo-runtime-page')).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/projects\/module-demos$/);
+
+  await page.goto('/projects/module-demos/internal-demo');
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await expect(page.getByRole('heading', { name: 'Internal Demo', level: 1 })).toBeVisible();
+  await expect(page.locator('[data-state="internal-unregistered"]')).toContainText('This internal demo has not yet been connected to the NexAeon Runtime.');
+  await expect(page.getByRole('link', { name: 'Open in new tab' }).first()).toHaveAttribute('target', '_blank');
+
+  await page.goto('/projects/module-demos/__missing_demo__');
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await expect(page.getByTestId('demo-runtime-not-found')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Demo not found', level: 1 })).toBeVisible();
+
+  await page.goto('/projects/module-demos/embedded-demo');
+  await page.getByRole('button', { name: '한국어로 전환' }).click();
+  await expect(page.getByRole('heading', { name: '임베드 데모', level: 1 })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('Embedded English summary');
+  await page.getByRole('button', { name: '切換為繁體中文' }).click();
+  await expect(page.getByRole('heading', { name: '內嵌展示', level: 1 })).toBeVisible();
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+
+  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/projects/module-demos/embedded-demo');
+  await expect(page.locator('main')).toBeVisible();
+  const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  expect(hasHorizontalOverflow).toBe(false);
+
+  await page.locator('.main-logo-link').first().click();
+  await expect(page).toHaveURL(/\/$/);
+  const introSeen = await page.evaluate(() => window.sessionStorage.getItem('nexaeon_intro_seen'));
+  expect(introSeen).toBe('true');
+});
+
+test('embedded runtime loading state and timeout fallback stay usable', async ({ page }) => {
+  await gotoAndSetEnglish(page, '/projects/module-demos/timeout-demo');
+
+  await expect(page.getByRole('heading', { name: 'Timeout Demo', level: 1 })).toBeVisible();
+  await expect(page.getByText('Loading demo')).toBeVisible();
+  await expect(page.getByText('This demo may not allow embedded viewing. Please open it in a new tab.')).toBeVisible({ timeout: 13_000 });
+  await expect(page.getByRole('link', { name: 'Open in new tab' }).first()).toHaveAttribute('target', '_blank');
 });
 
 test('demo showcase shows localized empty states for zero public demos', async ({ page }) => {

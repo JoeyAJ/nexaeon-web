@@ -4,6 +4,7 @@ import { getModuleEndpoint } from '../../src/data/moduleData.js';
 import { getAirtableRecords } from '../_airtable.js';
 import { createApiResponse, getUpstreamFailureReason, logSafeApiError, rejectUnsupportedMethod, sendJsonResponse } from '../_response.js';
 import { isPublicAirtableVisibility } from '../../lib/publicFilters.js';
+import { normalizeLaunchMode } from '../../src/lib/demoRuntime.js';
 
 const MODULE_KEY = 'modules';
 
@@ -137,7 +138,7 @@ export function normalizeAirtableDemo(record) {
     targetUsers: toStringArray(getRecordField(fields, 'targetUsers')),
     coreFeatures: translations.zh.coreFeatures,
     techStack: toStringArray(getRecordField(fields, 'techStack')),
-    launchMode: toText(getRecordField(fields, 'launchMode')),
+    launchMode: normalizeLaunchMode(getRecordField(fields, 'launchMode')) || '',
     demoUrl: toUrl(getRecordField(fields, 'demoUrl')),
     githubUrl: toUrl(getRecordField(fields, 'githubUrl')),
     coverImage: toCoverImage(getRecordField(fields, 'coverImage')),

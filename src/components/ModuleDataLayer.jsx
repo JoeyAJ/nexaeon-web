@@ -13,6 +13,8 @@ import {
 import ResourceStateNotice from './ResourceStateNotice.jsx';
 import { usePublicApiResource } from '../hooks/usePublicApiResource.js';
 import { PUBLIC_RESOURCE_STATUS } from '../lib/publicApiClient.js';
+import { LAUNCH_MODES, normalizeLaunchMode, resolveDemoLaunch } from '../lib/demoRuntime.js';
+import { toDemoRuntimePath } from '../utils/router.js';
 
 function normalizeList(value) {
   if (Array.isArray(value)) return value.filter(Boolean).join(', ');
@@ -398,8 +400,10 @@ const MVP_DATABASE_UI = {
     relatedModules: '對應模塊',
     expand: '展開詳情',
     collapse: '收合詳情',
-    launchDemo: '啟動 Demo',
-    viewGithub: '查看 GitHub',
+    launchDemo: '開啟 Demo',
+    viewInNexAeon: '在 NexAeon 中查看',
+    openInternalDemo: '開啟站內 Demo',
+    viewGithub: '查看程式碼',
     viewResearch: '查看研究連結',
     loadMore: '載入更多',
     recommended: '推薦順序',
@@ -436,8 +440,10 @@ const MVP_DATABASE_UI = {
     relatedModules: 'Related Modules',
     expand: 'Expand details',
     collapse: 'Collapse details',
-    launchDemo: 'Launch Demo',
-    viewGithub: 'View GitHub',
+    launchDemo: 'Open Demo',
+    viewInNexAeon: 'View in NexAeon',
+    openInternalDemo: 'Open Internal Demo',
+    viewGithub: 'View Code',
     viewResearch: 'Open research link',
     loadMore: 'Load more',
     recommended: 'Recommended',
@@ -474,8 +480,10 @@ const MVP_DATABASE_UI = {
     relatedModules: '관련 모듈',
     expand: '자세히 보기',
     collapse: '접기',
-    launchDemo: '데모 실행',
-    viewGithub: 'GitHub 보기',
+    launchDemo: 'Demo 열기',
+    viewInNexAeon: 'NexAeon에서 보기',
+    openInternalDemo: '내부 Demo 열기',
+    viewGithub: '코드 보기',
     viewResearch: '연구 링크 보기',
     loadMore: '더 보기',
     recommended: '추천 순서',
@@ -1007,6 +1015,7 @@ function normalizeClientMvpItem(item, lang) {
       nextStep: getMvpLocalizedText(item, 'nextStep', lang),
       targetUsers: getMvpArray(item.targetUsers),
       techStack: getMvpArray(item.techStack),
+      launchMode: normalizeLaunchMode(item.launchMode) || item.launchMode || '',
       relatedModules: getMvpArray(item.relatedModules),
       featured: item.featured === true,
       displayOrder: Number.isFinite(Number(item.displayOrder)) ? Number(item.displayOrder) : 0,
@@ -1143,7 +1152,7 @@ function MvpCoreFeatures({ label, value }) {
   );
 }
 
-function MvpDataPanel({ moduleKey, endpoint, lang }) {
+function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window.location.href = path; } }) {
   const moduleState = useModuleData(moduleKey, endpoint);
   const ui = MVP_DATABASE_UI[lang] || MVP_DATABASE_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
@@ -1261,6 +1270,13 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
         {visibleItems.map((mvp) => {
           const isExpanded = expandedIds.has(mvp.id);
           const coverUrl = getMvpCoverUrl(mvp.coverImage);
+          const launch = resolveDemoLaunch(mvp);
+          const runtimePath = toDemoRuntimePath(mvp.slug || slugifyMvp(mvp.id || mvp.name));
+          const launchLabel = launch.mode === LAUNCH_MODES.EMBEDDED
+            ? ui.viewInNexAeon
+            : launch.mode === LAUNCH_MODES.INTERNAL
+              ? ui.openInternalDemo
+              : ui.launchDemo;
 
           return (
             <article key={mvp.id} className="mvp-compact-card">
@@ -1301,10 +1317,19 @@ function MvpDataPanel({ moduleKey, endpoint, lang }) {
                     >
                       {isExpanded ? ui.collapse : ui.expand}
                     </button>
-                    {hasMvpValue(mvp.demoUrl) ? (
-                      <a className="mvp-action-button" href={mvp.demoUrl} target="_blank" rel="noopener noreferrer">
-                        {ui.launchDemo}
+                    {launch.canLaunch && launch.mode === LAUNCH_MODES.EXTERNAL ? (
+                      <a className="mvp-action-button" href={launch.url} target="_blank" rel="noopener noreferrer">
+                        {launchLabel}
                       </a>
+                    ) : null}
+                    {launch.canLaunch && launch.mode !== LAUNCH_MODES.EXTERNAL ? (
+                      <button
+                        className="mvp-action-button"
+                        type="button"
+                        onClick={() => navigate(runtimePath)}
+                      >
+                        {launchLabel}
+                      </button>
                     ) : null}
                     {hasMvpValue(mvp.githubUrl) ? (
                       <a className="mvp-action-button" href={mvp.githubUrl} target="_blank" rel="noopener noreferrer">
@@ -1688,19 +1713,19 @@ function StandardModuleDataPanel({ moduleKey, endpoint, lang }) {
   );
 }
 
-export function ModuleDataPanel({ moduleKey, endpoint, lang }) {
+export function ModuleDataPanel({ moduleKey, endpoint, lang, navigate }) {
   if (moduleKey === 'teaching') {
     return <TeachingDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
   }
 
   if (moduleKey === 'modules') {
-    return <MvpDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
+    return <MvpDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} navigate={navigate} />;
   }
 
   return <StandardModuleDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
 }
 
-export default function ModuleDataLayer({ item, common, lang }) {
+export default function ModuleDataLayer({ item, common, lang, navigate }) {
   const moduleKey = item.moduleKey;
   const pageUi = getModulePageUi(moduleKey, lang);
   const showBackendReadiness = moduleKey === 'action';
@@ -1715,7 +1740,7 @@ export default function ModuleDataLayer({ item, common, lang }) {
       <div className="detail-module-label">{item.moduleLabel}</div>
       <h1>{pageUi.title}</h1>
       <p className="detail-subtitle">{pageUi.subtitle}</p>
-      <ModuleDataPanel moduleKey={moduleKey} endpoint={item.dataEndpoint} lang={lang} />
+      <ModuleDataPanel moduleKey={moduleKey} endpoint={item.dataEndpoint} lang={lang} navigate={navigate} />
       {showBackendReadiness ? <BackendReadinessStatus lang={lang} /> : null}
     </article>
   );

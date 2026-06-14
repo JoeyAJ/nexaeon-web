@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import './styles.css';
 import DirectionB from './components/DirectionB.jsx';
+import DemoRuntimePage from './components/DemoRuntimePage.jsx';
 import DetailPage from './components/DetailPage.jsx';
 import RoleDetailPage from './components/RoleDetailPage.jsx';
 import AppErrorBoundary, { getGuardrailCopy, GuardrailStatePage } from './components/AppErrorBoundary.jsx';
@@ -69,7 +70,7 @@ export default function App() {
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: 'auto' });
     });
-  }, [route.kind, route.type, route.id, route.role]);
+  }, [route.kind, route.type, route.id, route.role, route.slug]);
 
   const navigate = (path, options) => {
     navigateTo(path, options);
@@ -99,7 +100,16 @@ export default function App() {
         setTheme={setTheme}
         navigate={navigate}
       >
-        {route.kind === 'detail' ? (
+        {route.kind === 'demoRuntime' ? (
+          <DemoRuntimePage
+            slug={route.slug}
+            navigate={navigate}
+            lang={lang}
+            setLang={setLang}
+            theme={theme}
+            setTheme={setTheme}
+          />
+        ) : route.kind === 'detail' ? (
           <DetailPage
             type={route.type}
             id={route.id}

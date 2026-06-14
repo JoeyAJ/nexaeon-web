@@ -84,8 +84,8 @@ function renderBody(body) {
   return <p>{body}</p>;
 }
 
-function ModuleDataSkeleton({ item, common, lang }) {
-  return <ModuleDataLayer item={item} common={common} lang={lang} />;
+function ModuleDataSkeleton({ item, common, lang, navigate }) {
+  return <ModuleDataLayer item={item} common={common} lang={lang} navigate={navigate} />;
 }
 
 function normalizeList(value) {
@@ -2769,6 +2769,7 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             item={item}
             common={common}
             lang={lang}
+            navigate={navigate}
           />
         ) : item.template === 'literature-database' ? (
           <LiteratureDatabase

@@ -1,4 +1,5 @@
 const DETAIL_ROUTE_PATTERN = /^\/(identity|research|teaching|knowledge-lab|projects|field-lab)\/([^/]+)$/;
+const DEMO_RUNTIME_ROUTE_PATTERN = /^\/projects\/module-demos\/([^/]+)$/;
 const ROLE_ROUTE_PATTERN = /^\/(students|researchers|university|enterprise|second-brain)$/;
 
 export function parseRoute(pathname) {
@@ -12,6 +13,14 @@ export function parseRoute(pathname) {
     return {
       kind: 'role',
       role: roleMatch[1],
+    };
+  }
+
+  const runtimeMatch = normalizedPath.match(DEMO_RUNTIME_ROUTE_PATTERN);
+  if (runtimeMatch) {
+    return {
+      kind: 'demoRuntime',
+      slug: decodeURIComponent(runtimeMatch[1]),
     };
   }
 
@@ -32,6 +41,10 @@ export function parseRoute(pathname) {
 
 export function toDetailPath(type, id) {
   return `/${type}/${encodeURIComponent(id)}`;
+}
+
+export function toDemoRuntimePath(slug) {
+  return `/projects/module-demos/${encodeURIComponent(slug)}`;
 }
 
 function getCurrentPath() {
