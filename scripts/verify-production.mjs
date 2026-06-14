@@ -127,18 +127,38 @@ async function verifyEndpoint(endpoint) {
   };
 }
 
+async function verifyAgentChatGetGuardrail() {
+  const response = await fetchWithTimeout(`${BASE_URL}/api/agent/chat`);
+  if (response.status !== 405) throw new Error(`/api/agent/chat: expected 405, got HTTP ${response.status}`);
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) throw new Error('/api/agent/chat: response is not JSON');
+  const payload = await response.json();
+  if (payload?.ok !== true || payload?.mode !== 'sources_only' || payload?.reason !== 'invalid_request') {
+    throw new Error('/api/agent/chat: unsafe 405 contract');
+  }
+
+  return {
+    path: '/api/agent/chat',
+    status: response.status,
+    method: 'GET',
+  };
+}
+
 async function main() {
   const home = await verifyHome();
   const endpoints = [];
   for (const endpoint of ENDPOINTS) {
     endpoints.push(await verifyEndpoint(endpoint));
   }
+  const agentChat = await verifyAgentChatGetGuardrail();
 
   console.log(JSON.stringify({
     ok: true,
     baseUrl: BASE_URL,
     home,
     endpoints,
+    agentChat,
   }, null, 2));
 }
 

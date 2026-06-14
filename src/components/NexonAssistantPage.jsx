@@ -1,65 +1,84 @@
-import { useMemo, useState } from 'react';
-import { AGENT_SOURCES, getAgentSourceLabel } from '../../lib/agent/sourceRegistry.js';
-import { retrieveKnowledge } from '../../lib/agent/retrieval.js';
-import { AGENT_KNOWLEDGE_STATUS, useAgentKnowledge } from '../hooks/useAgentKnowledge.js';
+import { useMemo, useRef, useState } from 'react';
+import { AGENT_SOURCES } from '../../lib/agent/sourceRegistry.js';
+
+const MAX_HISTORY_ITEMS = 4;
+const MAX_HISTORY_ITEM_CHARS = 1000;
 
 const ASSISTANT_UI = {
   zh: {
     title: 'Nexōn AI Assistant',
-    intro: '第一版 Nexōn 只檢索 NexAeon 已公開的知識來源，提供來源導向的查詢結果，不生成自由回答。',
-    inputLabel: '輸入你想查詢的 NexAeon 公開內容',
+    intro: 'Nexōn 只根據 NexAeon 目前公開的知識來源回答，並顯示可驗證來源。',
+    inputLabel: '輸入你想詢問的 NexAeon 公開內容',
     placeholder: '例如：Joey 的研究方向是什麼？',
-    submit: '查詢',
-    clear: '清除查詢',
+    submit: '送出',
+    stop: '停止等待',
+    clear: '清除對話',
     suggestions: ['Joey 的研究方向是什麼？', 'NexAeon 有哪些 AI 學習項目？', '目前有哪些公開 Demo？', 'NexAeon 的學習教練理念是什麼？'],
-    loading: '正在整理 NexAeon 的公開知識……',
+    generating: 'Nexōn 正在根據公開來源整理回答……',
+    disabled: 'AI 回答功能尚未啟用，您仍可查看相關公開來源。',
+    modelUnavailable: 'AI 回答暫時無法使用，以下仍提供最相關的公開來源。',
+    noSources: '目前公開知識中沒有足夠資料回答這個問題。',
+    moderated: '這個問題目前無法處理，請調整內容後再試一次。',
+    groundedNote: '回答僅根據 NexAeon 目前公開的知識來源生成，內容可能不完整。',
     partial: '部分知識來源暫時無法使用，其餘內容仍可正常查詢。',
-    noResult: '目前沒有找到相關的公開內容，請嘗試其他關鍵字。',
-    empty: '目前尚無可供查詢的公開知識。',
-    resultIntro: '根據 NexAeon 的公開知識，以下是最相關的內容：',
+    sourcesOnly: '以下仍提供最相關的公開來源。',
     source: '來源',
     type: '類型',
     updatedAt: '更新時間',
     viewSource: '查看來源',
     openExternal: '開啟外部來源',
+    userLabel: '你',
+    assistantLabel: 'Nexōn',
   },
   ko: {
     title: 'Nexōn AI Assistant',
-    intro: '첫 번째 Nexōn은 NexAeon의 공개 지식만 검색하고 출처 중심 결과를 제공합니다. 자유 생성 답변은 제공하지 않습니다.',
-    inputLabel: '검색할 NexAeon 공개 콘텐츠를 입력하세요',
+    intro: 'Nexōn은 현재 공개된 NexAeon 지식 소스만 바탕으로 답변하고 확인 가능한 출처를 함께 제공합니다.',
+    inputLabel: 'NexAeon 공개 콘텐츠에 대해 질문하세요',
     placeholder: '예: Joey의 연구 방향은 무엇인가요?',
-    submit: '검색',
-    clear: '검색 지우기',
+    submit: '보내기',
+    stop: '대기 중지',
+    clear: '대화 지우기',
     suggestions: ['Joey의 연구 방향은 무엇인가요?', 'NexAeon에는 어떤 AI 학습 프로젝트가 있나요?', '현재 공개된 Demo는 무엇인가요?', 'NexAeon의 학습 코칭 철학은 무엇인가요?'],
-    loading: 'NexAeon의 공개 지식을 불러오고 있습니다…',
+    generating: 'Nexōn이 공개된 소스를 바탕으로 답변을 정리하고 있습니다…',
+    disabled: 'AI 답변 기능은 아직 활성화되지 않았지만 관련 공개 소스는 계속 확인할 수 있습니다.',
+    modelUnavailable: 'AI 답변을 일시적으로 사용할 수 없습니다. 아래에서 관련 공개 소스를 확인할 수 있습니다.',
+    noSources: '현재 공개된 지식만으로는 이 질문에 답할 충분한 정보가 없습니다.',
+    moderated: '이 질문은 현재 처리할 수 없습니다. 내용을 수정한 후 다시 시도해 주세요.',
+    groundedNote: '답변은 현재 공개된 NexAeon 지식 소스를 기반으로 생성되며 일부 내용이 불완전할 수 있습니다.',
     partial: '일부 지식 소스를 현재 사용할 수 없지만 나머지 콘텐츠는 계속 검색할 수 있습니다.',
-    noResult: '관련된 공개 콘텐츠를 찾지 못했습니다. 다른 키워드로 검색해 주세요.',
-    empty: '현재 검색할 수 있는 공개 지식이 없습니다.',
-    resultIntro: 'NexAeon의 공개 지식을 바탕으로 가장 관련성이 높은 내용을 확인해 보세요.',
+    sourcesOnly: '아래에서 가장 관련 있는 공개 소스를 확인할 수 있습니다.',
     source: '출처',
     type: '유형',
     updatedAt: '업데이트',
     viewSource: '출처 보기',
     openExternal: '외부 출처 열기',
+    userLabel: '나',
+    assistantLabel: 'Nexōn',
   },
   en: {
     title: 'Nexōn AI Assistant',
-    intro: 'This first Nexōn foundation searches only NexAeon’s public knowledge sources and shows source-grounded results. It does not generate free-form AI answers.',
-    inputLabel: 'Enter a question about NexAeon public knowledge',
+    intro: 'Nexōn answers only from NexAeon’s currently public knowledge sources and includes verifiable citations.',
+    inputLabel: 'Ask about NexAeon public knowledge',
     placeholder: 'Example: What are Joey’s research interests?',
-    submit: 'Search',
-    clear: 'Clear query',
+    submit: 'Send',
+    stop: 'Stop waiting',
+    clear: 'Clear chat',
     suggestions: ['What are Joey’s research interests?', 'Which AI learning projects are available in NexAeon?', 'Which demos are currently public?', 'What is NexAeon’s learning coaching philosophy?'],
-    loading: 'Loading NexAeon’s public knowledge…',
+    generating: 'Nexōn is preparing an answer from the public sources…',
+    disabled: 'AI answers are not enabled yet. You can still review the relevant public sources.',
+    modelUnavailable: 'AI answers are temporarily unavailable. The most relevant public sources are still shown below.',
+    noSources: 'The current public knowledge does not contain enough information to answer this question.',
+    moderated: 'This request cannot be processed. Please revise it and try again.',
+    groundedNote: 'Answers are generated from NexAeon’s currently public knowledge sources and may be incomplete.',
     partial: 'Some knowledge sources are temporarily unavailable. The remaining sources can still be searched.',
-    noResult: 'No relevant public content was found. Please try different keywords.',
-    empty: 'No public knowledge is currently available for search.',
-    resultIntro: 'Based on NexAeon’s public knowledge, these are the most relevant sources:',
+    sourcesOnly: 'The most relevant public sources are still shown below.',
     source: 'Source',
     type: 'Type',
     updatedAt: 'Updated At',
     viewSource: 'View source',
     openExternal: 'Open external source',
+    userLabel: 'You',
+    assistantLabel: 'Nexōn',
   },
 };
 
@@ -74,31 +93,80 @@ function formatDate(value, lang) {
   }).format(new Date(time));
 }
 
-function KnowledgeSourceCard({ result, lang, navigate, ui }) {
-  const { document, excerpt } = result;
-  const sourceLabel = getAgentSourceLabel(document.sourceId, lang);
+function getFallbackMessage(reason, ui) {
+  if (reason === 'disabled' || reason === 'missing_configuration') return ui.disabled;
+  if (reason === 'no_sources') return ui.noSources;
+  if (reason === 'moderated') return ui.moderated;
+  return ui.modelUnavailable;
+}
+
+function normalizeHistory(messages) {
+  return messages
+    .filter((message) => message.role === 'user' || message.role === 'assistant')
+    .slice(-MAX_HISTORY_ITEMS)
+    .map((message) => ({
+      role: message.role,
+      content: String(message.content || '').slice(0, MAX_HISTORY_ITEM_CHARS),
+    }));
+}
+
+function scrollToCitation(sourceId) {
+  const target = document.getElementById(`citation-${sourceId}`);
+  if (!target) return;
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.focus({ preventScroll: true });
+}
+
+function AnswerText({ text }) {
+  const paragraphs = String(text || '').split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean);
 
   return (
-    <article className="agent-result-card">
+    <div className="agent-answer-text">
+      {paragraphs.map((paragraph) => (
+        <p key={paragraph}>
+          {paragraph.split(/(\[S\d+\])/g).filter(Boolean).map((part, index) => {
+            const match = part.match(/^\[(S\d+)\]$/);
+            if (!match) return <span key={`${part}-${index}`}>{part}</span>;
+            return (
+              <button
+                key={`${part}-${index}`}
+                className="agent-citation-marker"
+                type="button"
+                onClick={() => scrollToCitation(match[1])}
+              >
+                {part}
+              </button>
+            );
+          })}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function CitationCard({ citation, lang, navigate, ui }) {
+  return (
+    <article className="agent-result-card" id={`citation-${citation.sourceId}`} tabIndex={-1}>
       <div className="agent-result-topline">
-        <span>{sourceLabel}</span>
-        {document.itemType ? <span>{document.itemType}</span> : null}
+        <span>{citation.sourceId}</span>
+        <span>{citation.moduleLabel}</span>
+        {citation.itemType ? <span>{citation.itemType}</span> : null}
       </div>
-      <h2>{document.title}</h2>
-      <p>{excerpt || document.summary}</p>
+      <h2>{citation.title}</h2>
+      <p>{citation.excerpt}</p>
       <div className="agent-result-meta">
-        <span>{ui.source}: {sourceLabel}</span>
-        {document.itemType ? <span>{ui.type}: {document.itemType}</span> : null}
-        {document.updatedAt ? <span>{ui.updatedAt}: {formatDate(document.updatedAt, lang)}</span> : null}
+        <span>{ui.source}: {citation.moduleLabel}</span>
+        {citation.itemType ? <span>{ui.type}: {citation.itemType}</span> : null}
+        {citation.updatedAt ? <span>{ui.updatedAt}: {formatDate(citation.updatedAt, lang)}</span> : null}
       </div>
       <div className="mvp-actions">
-        {document.sourceRoute ? (
-          <button className="mvp-action-button" type="button" onClick={() => navigate(document.sourceRoute)}>
+        {citation.sourceRoute ? (
+          <button className="mvp-action-button" type="button" onClick={() => navigate(citation.sourceRoute)}>
             {ui.viewSource}
           </button>
         ) : null}
-        {document.sourceUrl ? (
-          <a className="mvp-action-button" href={document.sourceUrl} target="_blank" rel="noopener noreferrer">
+        {citation.sourceUrl ? (
+          <a className="mvp-action-button" href={citation.sourceUrl} target="_blank" rel="noopener noreferrer">
             {ui.openExternal}
           </a>
         ) : null}
@@ -107,28 +175,114 @@ function KnowledgeSourceCard({ result, lang, navigate, ui }) {
   );
 }
 
+function AssistantMessage({ message, lang, navigate, ui }) {
+  const isSourcesOnly = message.mode === 'sources_only';
+  return (
+    <section className="agent-message agent-message-assistant">
+      <div className="agent-message-label">{ui.assistantLabel}</div>
+      {message.content ? <AnswerText text={message.content} /> : null}
+      {isSourcesOnly && !message.content ? (
+        <p className="agent-state-message" data-state={message.reason || 'sources-only'}>
+          {getFallbackMessage(message.reason, ui)}
+        </p>
+      ) : null}
+      {message.partialSources ? <p className="agent-state-message" data-state="partial">{ui.partial}</p> : null}
+      <p className="agent-grounding-note">{ui.groundedNote}</p>
+      {message.citations?.length ? (
+        <div className="agent-result-grid">
+          {message.citations.map((citation) => (
+            <CitationCard key={citation.sourceId} citation={citation} lang={lang} navigate={navigate} ui={ui} />
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export default function NexonAssistantPage({ item, common, lang, navigate }) {
   const ui = ASSISTANT_UI[lang] || ASSISTANT_UI.en;
-  const knowledge = useAgentKnowledge(lang);
   const [query, setQuery] = useState('');
-  const [submittedQuery, setSubmittedQuery] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const abortRef = useRef(null);
 
-  const results = useMemo(() => (
-    retrieveKnowledge(knowledge.documents, submittedQuery, { limit: 8 })
-  ), [knowledge.documents, submittedQuery]);
+  const suggestedQuestions = useMemo(() => {
+    const latest = [...messages].reverse().find((message) => message.role === 'assistant' && message.suggestedQuestions?.length);
+    return latest?.suggestedQuestions?.length ? latest.suggestedQuestions : ui.suggestions;
+  }, [messages, ui.suggestions]);
 
-  const hasSubmitted = submittedQuery.trim().length > 0;
-  const isLoading = knowledge.status === AGENT_KNOWLEDGE_STATUS.LOADING;
-  const isEmpty = knowledge.status === AGENT_KNOWLEDGE_STATUS.EMPTY || knowledge.status === AGENT_KNOWLEDGE_STATUS.ERROR;
+  async function submitQuery(nextQuery = query) {
+    const trimmed = String(nextQuery || '').trim();
+    if (!trimmed || isGenerating) return;
 
-  function submitQuery(nextQuery = query) {
-    setSubmittedQuery(nextQuery);
-    setQuery(nextQuery);
+    const userMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: trimmed,
+    };
+    const history = normalizeHistory(messages);
+    setMessages((current) => [...current, userMessage]);
+    setQuery(trimmed);
+    setIsGenerating(true);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      const response = await fetch('/api/agent/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          query: trimmed,
+          lang,
+          history,
+        }),
+        signal: controller.signal,
+      });
+      const payload = await response.json();
+      const assistantMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        content: payload.mode === 'ai' ? payload.answer : payload.answer || '',
+        mode: payload.mode || 'sources_only',
+        reason: payload.reason || '',
+        citations: Array.isArray(payload.citations) ? payload.citations : [],
+        suggestedQuestions: Array.isArray(payload.suggestedQuestions) ? payload.suggestedQuestions : [],
+        partialSources: Boolean(payload.partialSources),
+      };
+      setMessages((current) => [...current, assistantMessage]);
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        setMessages((current) => [...current, {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: '',
+          mode: 'sources_only',
+          reason: 'model_unavailable',
+          citations: [],
+          suggestedQuestions: [],
+          partialSources: false,
+        }]);
+      }
+    } finally {
+      setIsGenerating(false);
+      abortRef.current = null;
+    }
   }
 
-  function clearQuery() {
+  function stopGenerating() {
+    abortRef.current?.abort();
+    setIsGenerating(false);
+  }
+
+  function clearChat() {
+    abortRef.current?.abort();
+    setMessages([]);
     setQuery('');
-    setSubmittedQuery('');
+    setIsGenerating(false);
   }
 
   return (
@@ -148,9 +302,19 @@ export default function NexonAssistantPage({ item, common, lang, navigate }) {
         ))}
       </section>
 
-      {isLoading ? <p className="agent-state-message">{ui.loading}</p> : null}
-      {knowledge.status === AGENT_KNOWLEDGE_STATUS.PARTIAL ? <p className="agent-state-message" data-state="partial">{ui.partial}</p> : null}
-      {isEmpty ? <p className="agent-state-message" data-state="empty">{ui.empty}</p> : null}
+      <section className="agent-chat-panel" aria-live="polite">
+        {messages.map((message) => (
+          message.role === 'user' ? (
+            <section className="agent-message agent-message-user" key={message.id}>
+              <div className="agent-message-label">{ui.userLabel}</div>
+              <p>{message.content}</p>
+            </section>
+          ) : (
+            <AssistantMessage key={message.id} message={message} lang={lang} navigate={navigate} ui={ui} />
+          )
+        ))}
+        {isGenerating ? <p className="agent-state-message" data-state="generating">{ui.generating}</p> : null}
+      </section>
 
       <form
         className="agent-search-panel"
@@ -165,42 +329,30 @@ export default function NexonAssistantPage({ item, common, lang, navigate }) {
             id="nexon-agent-query"
             type="search"
             value={query}
-            maxLength={300}
+            maxLength={500}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={ui.placeholder}
           />
-          <button className="mvp-action-button" type="submit" disabled={isLoading || !query.trim()}>
+          <button className="mvp-action-button" type="submit" disabled={isGenerating || !query.trim()}>
             {ui.submit}
           </button>
-          <button className="mvp-action-button" type="button" onClick={clearQuery}>
+          {isGenerating ? (
+            <button className="mvp-action-button" type="button" onClick={stopGenerating}>
+              {ui.stop}
+            </button>
+          ) : null}
+          <button className="mvp-action-button" type="button" onClick={clearChat}>
             {ui.clear}
           </button>
         </div>
       </form>
 
       <section className="agent-suggestion-panel" aria-label="suggested questions">
-        {ui.suggestions.map((suggestion) => (
-          <button key={suggestion} type="button" onClick={() => submitQuery(suggestion)}>
+        {suggestedQuestions.map((suggestion) => (
+          <button key={suggestion} type="button" onClick={() => submitQuery(suggestion)} disabled={isGenerating}>
             {suggestion}
           </button>
         ))}
-      </section>
-
-      <section className="agent-results-panel" aria-live="polite">
-        {hasSubmitted && results.length > 0 ? (
-          <>
-            <p className="agent-result-intro">{ui.resultIntro}</p>
-            <div className="agent-result-grid">
-              {results.map((result) => (
-                <KnowledgeSourceCard key={result.document.id} result={result} lang={lang} navigate={navigate} ui={ui} />
-              ))}
-            </div>
-          </>
-        ) : null}
-
-        {hasSubmitted && !results.length && !isLoading && !isEmpty ? (
-          <p className="agent-state-message" data-state="no-result">{ui.noResult}</p>
-        ) : null}
       </section>
     </article>
   );

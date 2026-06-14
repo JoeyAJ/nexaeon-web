@@ -409,6 +409,82 @@ function sendJson(res, payload, status = 200) {
   res.end(body);
 }
 
+function readRequestBody(req, limit = 20_000) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > limit) {
+        reject(new Error('request too large'));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+function createAgentChatResponse(body) {
+  const query = String(body?.query || '').toLowerCase();
+  const lang = body?.lang || 'en';
+  const citation = {
+    sourceId: 'S1',
+    title: lang === 'ko' ? '학습 데모' : lang === 'zh' ? '智慧學習展示' : 'Learning Demo',
+    moduleKey: 'projects',
+    moduleLabel: 'Demo Showcase',
+    itemType: 'AI Tutor',
+    excerpt: lang === 'ko' ? '한국어 요약' : lang === 'zh' ? '繁中摘要' : 'English summary',
+    sourceRoute: '/projects/module-demos',
+    sourceUrl: 'https://example.com/research',
+    updatedAt: '2026-06-12T05:40:00.000Z',
+  };
+
+  if (query.includes('disabled')) {
+    return { ok: true, mode: 'sources_only', answer: '', citations: [citation], suggestedQuestions: [], partialSources: false, reason: 'disabled' };
+  }
+  if (query.includes('unavailable')) {
+    return { ok: true, mode: 'sources_only', answer: '', citations: [citation], suggestedQuestions: [], partialSources: false, reason: 'model_unavailable' };
+  }
+  if (query.includes('nosource')) {
+    return { ok: true, mode: 'sources_only', answer: '', citations: [], suggestedQuestions: [], partialSources: false, reason: 'no_sources' };
+  }
+  if (query.includes('moderated')) {
+    return {
+      ok: true,
+      mode: 'sources_only',
+      answer: lang === 'ko'
+        ? '이 질문은 현재 처리할 수 없습니다. 내용을 수정한 후 다시 시도해 주세요.'
+        : lang === 'zh'
+          ? '這個問題目前無法處理，請調整內容後再試一次。'
+          : 'This request cannot be processed. Please revise it and try again.',
+      citations: [citation],
+      suggestedQuestions: [],
+      partialSources: false,
+      reason: 'moderated',
+    };
+  }
+
+  return {
+    ok: true,
+    mode: 'ai',
+    answer: lang === 'ko'
+      ? '현재 공개된 Demo에는 학습 데모가 포함됩니다. [S1]'
+      : lang === 'zh'
+        ? '目前公開 Demo 包含智慧學習展示。 [S1]'
+        : 'The currently public demos include Learning Demo. [S1]',
+    citations: [citation],
+    suggestedQuestions: lang === 'ko'
+      ? ['NexAeon의 학습 코칭 철학은 무엇인가요?']
+      : lang === 'zh'
+        ? ['NexAeon 的學習教練理念是什麼？']
+        : ['What is NexAeon’s learning coaching philosophy?'],
+    partialSources: query.includes('partial'),
+  };
+}
+
 function getSafeFilePath(pathname) {
   const normalized = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, '');
   const relativePath = normalized === '/' ? '/index.html' : normalized;
@@ -449,6 +525,17 @@ function sendRuntimeFixture(res, title) {
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${HOST}:${PORT}`);
+
+    if (url.pathname === '/api/agent/chat') {
+      if (req.method !== 'POST') {
+        sendJson(res, { ok: true, mode: 'sources_only', answer: '', citations: [], suggestedQuestions: [], partialSources: false, reason: 'invalid_request' }, 405);
+        return;
+      }
+      const rawBody = await readRequestBody(req);
+      const body = rawBody ? JSON.parse(rawBody) : {};
+      setTimeout(() => sendJson(res, createAgentChatResponse(body)), String(body?.query || '').toLowerCase().includes('slow') ? 250 : 0);
+      return;
+    }
 
     if (req.method !== 'GET') {
       sendJson(res, createApiResponse({ source: 'fallback', reason: 'upstream_failed', items: [] }), 405);
