@@ -3986,6 +3986,116 @@ body {
   padding: 0 14px;
 }
 
+.agent-assistant-card {
+  display: grid;
+  gap: 18px;
+}
+
+.agent-source-strip,
+.agent-suggestion-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agent-source-strip span,
+.agent-suggestion-panel button,
+.agent-state-message {
+  border: 1px solid var(--line-1);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-2) 44%, transparent);
+  color: var(--fg-2);
+  font-size: 13px;
+  padding: 9px 12px;
+}
+
+.agent-suggestion-panel button {
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+
+.agent-suggestion-panel button:hover {
+  border-color: color-mix(in srgb, var(--accent-cyan) 48%, var(--line-1));
+  color: var(--fg-1);
+}
+
+.agent-state-message {
+  border-radius: 8px;
+  margin: 0;
+}
+
+.agent-search-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-search-panel label {
+  color: var(--accent-fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.agent-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+}
+
+.agent-search-row input {
+  width: 100%;
+  border: 1px solid var(--line-1);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-2) 62%, transparent);
+  color: var(--fg-1);
+  font: inherit;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.agent-result-intro {
+  color: var(--fg-1);
+  font-weight: 700;
+  margin: 0 0 14px;
+}
+
+.agent-result-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.agent-result-card {
+  border: 1px solid var(--line-1);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-2) 52%, transparent);
+  padding: 16px;
+}
+
+.agent-result-topline,
+.agent-result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  color: var(--accent-fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.agent-result-card h2 {
+  color: var(--fg-1);
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.25;
+  margin: 10px 0 8px;
+}
+
+.agent-result-card p {
+  color: var(--fg-2);
+  line-height: 1.65;
+  margin: 0 0 12px;
+}
+
 .mvp-detail-panel {
   margin-top: 16px;
   border-top: 1px solid var(--line-1);
@@ -5995,6 +6105,7 @@ body {
   .identity-profile-card,
   .identity-detail-grid,
   .demo-runtime-hero,
+  .agent-search-row,
   .mvp-toolbar,
   .mvp-card-layout,
   .mvp-meta-grid,
