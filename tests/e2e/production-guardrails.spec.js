@@ -367,14 +367,16 @@ test('embedded runtime loading state and timeout fallback stay usable', async ({
   await expect(page.getByRole('link', { name: 'Open in new tab' }).first()).toHaveAttribute('target', '_blank');
 });
 
-test('nexon assistant searches public knowledge with grounded source cards', async ({ page, context }) => {
+test('navigator searches public knowledge with grounded source cards', async ({ page, context }) => {
   const watcher = getRuntimeWatcher(page);
-  await gotoAndSetEnglish(page, '/identity/nexon-ai-assistant');
+  await gotoAndSetEnglish(page, '/identity/nexaeon-navigator');
 
-  await expect(page.getByTestId('nexon-agent-page')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Nexōn AI Assistant', level: 1 })).toBeVisible();
+  await expect(page.getByTestId('navigator-agent-page')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'NexAeon Navigator', level: 1 })).toBeVisible();
+  await expect(page.locator('body')).not.toContainText(new RegExp('Nex\\u014dn'));
 
   await page.getByRole('button', { name: 'Which demos are currently public?' }).click();
+  await expect(page.locator('.agent-message-assistant .agent-message-label').filter({ hasText: /^NAVIGATOR$/ })).toBeVisible();
   await expect(page.getByText('The currently public demos include Learning Demo.')).toBeVisible();
   await expect(page.getByRole('button', { name: '[S1]' })).toBeVisible();
 
@@ -399,32 +401,34 @@ test('nexon assistant searches public knowledge with grounded source cards', asy
   watcher.assertClean();
 });
 
-test('nexon assistant handles sources-only fallback states', async ({ page }) => {
-  await gotoAndSetEnglish(page, '/identity/nexon-ai-assistant');
-  await page.locator('#nexon-agent-query').fill('partial status');
+test('navigator handles sources-only fallback states', async ({ page }) => {
+  await gotoAndSetEnglish(page, '/identity/nexaeon-navigator');
+  await page.locator('#navigator-agent-query').fill('partial status');
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.getByText('Some knowledge sources are temporarily unavailable. The remaining sources can still be searched.')).toBeVisible();
 
-  await page.locator('#nexon-agent-query').fill('disabled status');
+  await page.locator('#navigator-agent-query').fill('disabled status');
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.getByText('AI answers are not enabled yet. You can still review the relevant public sources.')).toBeVisible();
   await expect(page.locator('.agent-result-card').filter({ hasText: 'Learning Demo' }).first()).toBeVisible();
 
-  await page.locator('#nexon-agent-query').fill('unavailable status');
+  await page.locator('#navigator-agent-query').fill('unavailable public demo status');
   await page.getByRole('button', { name: 'Send' }).click();
+  await expect(page.getByText('The currently public demos include:')).toBeVisible();
   await expect(page.getByText('AI answers are temporarily unavailable. The most relevant public sources are still shown below.')).toBeVisible();
 
-  await page.locator('#nexon-agent-query').fill('nosource status');
+  await page.locator('#navigator-agent-query').fill('nosource status');
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.getByText('The current public knowledge does not contain enough information to answer this question.')).toBeVisible();
 
-  await page.locator('#nexon-agent-query').fill('moderated status');
+  await page.locator('#navigator-agent-query').fill('moderated status');
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.getByText('This request cannot be processed. Please revise it and try again.')).toBeVisible();
 });
 
-test('nexon assistant localizes, supports no-result, mobile, refresh, and back behavior', async ({ page }) => {
+test('navigator localizes, redirects legacy route, supports no-result, mobile, refresh, and back behavior', async ({ page }) => {
   await page.goto('/identity/nexon-ai-assistant');
+  await expect(page).toHaveURL(/\/identity\/nexaeon-navigator$/);
   await page.getByRole('button', { name: '한국어로 전환' }).click();
   await expect(page.getByRole('button', { name: '현재 공개된 Demo는 무엇인가요?' })).toBeVisible();
   await page.getByRole('button', { name: '현재 공개된 Demo는 무엇인가요?' }).click();
@@ -433,7 +437,7 @@ test('nexon assistant localizes, supports no-result, mobile, refresh, and back b
   await expect(page.locator('body')).not.toContainText('English Demo summary');
 
   await page.getByRole('button', { name: '切換為繁體中文' }).click();
-  await page.locator('#nexon-agent-query').fill('目前有哪些公開 Demo？');
+  await page.locator('#navigator-agent-query').fill('目前有哪些公開 Demo？');
   await page.getByRole('button', { name: '送出' }).click();
   await expect(page.getByText('目前公開 Demo 包含智慧學習展示。')).toBeVisible();
 
@@ -441,11 +445,11 @@ test('nexon assistant localizes, supports no-result, mobile, refresh, and back b
   await page.getByRole('button', { name: 'Clear chat' }).click();
   await expect(page.getByText('The currently public demos include Learning Demo.')).toHaveCount(0);
 
-  await page.locator('#nexon-agent-query').fill('slow answer');
+  await page.locator('#navigator-agent-query').fill('slow answer');
   await page.getByRole('button', { name: 'Send' }).click();
-  await expect(page.getByText('Nexōn is preparing an answer from the public sources…')).toBeVisible();
+  await expect(page.getByText('Navigator is preparing an answer from the public sources…')).toBeVisible();
   await page.getByRole('button', { name: 'Stop waiting' }).click();
-  await expect(page.getByText('Nexōn is preparing an answer from the public sources…')).toHaveCount(0);
+  await expect(page.getByText('Navigator is preparing an answer from the public sources…')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Toggle theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -454,8 +458,8 @@ test('nexon assistant localizes, supports no-result, mobile, refresh, and back b
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
-  await expect(page).toHaveURL(/\/identity\/nexon-ai-assistant$/);
-  await expect(page.getByTestId('nexon-agent-page')).toBeVisible();
+  await expect(page).toHaveURL(/\/identity\/nexaeon-navigator$/);
+  await expect(page.getByTestId('navigator-agent-page')).toBeVisible();
   const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(hasHorizontalOverflow).toBe(false);
 

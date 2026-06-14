@@ -7,18 +7,22 @@ import {
   buildDeveloperInstruction,
   buildResponsesApiRequest,
   citationsFromNumberedSources,
+  createCatalogAnswer,
   DEFAULT_OPENAI_MODEL,
   handleAgentChatRequest,
+  isAgentEnabled,
   MAX_CONTEXT_CHARS,
   numberRetrievedSources,
+  retrievePublicKnowledgeForChat,
   validateChatRequestBody,
   validateModelOutput,
 } from '../lib/agent/chatRuntime.js';
+import { detectQueryIntent } from '../lib/agent/queryIntent.js';
 
 const ORIGINAL_ENV = { ...process.env };
 
 function restoreEnv() {
-  for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'NEXON_AGENT_ENABLED']) {
+  for (const key of ['OPENAI_API_KEY', 'OPENAI_MODEL', 'NEXAEON_AGENT_ENABLED', 'NEXON_AGENT_ENABLED']) {
     if (ORIGINAL_ENV[key] === undefined) delete process.env[key];
     else process.env[key] = ORIGINAL_ENV[key];
   }
@@ -75,6 +79,28 @@ function sampleResult(overrides = {}) {
       ...overrides.document,
     },
   };
+}
+
+function demoCatalogResult(title = 'NexAeon AI Tutoring MVP', sortOrder = 0, overrides = {}) {
+  return sampleResult({
+    id: `demos:${title}`,
+    document: {
+      id: `demos:${title}`,
+      sourceId: 'demos',
+      moduleKey: 'projects',
+      itemType: 'AI Tutor',
+      title,
+      summary: 'A public demo summary.',
+      content: 'A public demo catalog item.',
+      tags: ['React', 'RAG'],
+      searchAliases: ['Demo', 'public demo', 'prototype', 'MVP'],
+      sourceRoute: '/projects/module-demos',
+      sourceUrl: '',
+      updatedAt: '2026-06-12T05:40:00.000Z',
+      sortOrder,
+      ...overrides,
+    },
+  });
 }
 
 function createRetrieval(overrides = {}) {
@@ -204,7 +230,34 @@ test('client-supplied context is rejected', () => {
   assert.equal(result.ok, false);
 });
 
+test('client-supplied query intent is rejected', () => {
+  assert.equal(validateChatRequestBody({
+    query: 'Which demos are public?',
+    lang: 'en',
+    queryIntent: 'list',
+  }).ok, false);
+  assert.equal(validateChatRequestBody({
+    query: 'Which demos are public?',
+    lang: 'en',
+    sourceIntent: 'demos',
+  }).ok, false);
+});
+
+test('demo catalog queries are detected across zh ko and en', () => {
+  for (const query of ['目前有哪些公開 Demo？', '有哪些 Demo？', '展示目前公開的原型', '目前有哪些 MVP？']) {
+    assert.deepEqual(detectQueryIntent(query), { intent: 'list', sourceIntent: 'demos' });
+  }
+  for (const query of ['현재 공개된 Demo는 무엇인가요?', '공개 데모를 보여 주세요.', '현재 어떤 MVP가 있나요?']) {
+    assert.deepEqual(detectQueryIntent(query), { intent: 'list', sourceIntent: 'demos' });
+  }
+  for (const query of ['Which demos are currently public?', 'Show me the public demos.', 'Which MVPs are available?']) {
+    assert.deepEqual(detectQueryIntent(query), { intent: 'list', sourceIntent: 'demos' });
+  }
+  assert.deepEqual(detectQueryIntent('公開'), { intent: 'search', sourceIntent: null });
+});
+
 test('feature flag disabled does not call OpenAI', async () => {
+  process.env.NEXAEON_AGENT_ENABLED = 'false';
   process.env.NEXON_AGENT_ENABLED = 'false';
   process.env.OPENAI_API_KEY = 'test-key';
   const openai = createOpenAIMock();
@@ -213,6 +266,12 @@ test('feature flag disabled does not call OpenAI', async () => {
   assert.equal(res.payload.reason, 'disabled');
   assert.equal(openai.calls.length, 0);
   assert.equal(res.payload.citations.length, 1);
+});
+
+test('agent feature flag prefers NEXAEON_AGENT_ENABLED and temporarily supports old flag', () => {
+  assert.equal(isAgentEnabled({ NEXAEON_AGENT_ENABLED: 'true', NEXON_AGENT_ENABLED: 'false' }), true);
+  assert.equal(isAgentEnabled({ NEXAEON_AGENT_ENABLED: 'false', NEXON_AGENT_ENABLED: 'true' }), true);
+  assert.equal(isAgentEnabled({ NEXAEON_AGENT_ENABLED: 'false', NEXON_AGENT_ENABLED: 'false' }), false);
 });
 
 test('missing API key does not call OpenAI', async () => {
@@ -239,7 +298,7 @@ test('no sources does not call OpenAI', async () => {
 });
 
 test('partial sources can still produce an AI answer', async () => {
-  process.env.NEXON_AGENT_ENABLED = 'true';
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
   process.env.OPENAI_API_KEY = 'test-key';
   const openai = createOpenAIMock();
   const res = await callHandler({
@@ -252,7 +311,7 @@ test('partial sources can still produce an AI answer', async () => {
 });
 
 test('retrieval is executed on the server for every valid request', async () => {
-  process.env.NEXON_AGENT_ENABLED = 'false';
+  process.env.NEXAEON_AGENT_ENABLED = 'false';
   let calls = 0;
   await callHandler({
     retrieval: async ({ query, lang }) => {
@@ -344,6 +403,12 @@ test('developer instruction selects English', () => {
   assert.ok(buildDeveloperInstruction('en').includes('natural English'));
 });
 
+test('developer instruction uses NexAeon Navigator brand', () => {
+  const instruction = buildDeveloperInstruction('en');
+  assert.ok(instruction.includes('You are NexAeon Navigator, the public knowledge navigation agent for NexAeon.'));
+  assert.equal(instruction.includes('You are Nex\u014dn'), false);
+});
+
 test('moderated input returns safe fallback and does not call model', async () => {
   process.env.NEXON_AGENT_ENABLED = 'true';
   process.env.OPENAI_API_KEY = 'test-key';
@@ -365,7 +430,7 @@ test('moderated output is not shown', async () => {
 });
 
 test('OpenAI timeout maps to model_timeout', async () => {
-  process.env.NEXON_AGENT_ENABLED = 'true';
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
   process.env.OPENAI_API_KEY = 'test-key';
   const openai = createOpenAIMock();
   const error = new Error('slow');
@@ -379,7 +444,7 @@ test('OpenAI timeout maps to model_timeout', async () => {
 });
 
 test('OpenAI upstream failure maps to model_unavailable', async () => {
-  process.env.NEXON_AGENT_ENABLED = 'true';
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
   process.env.OPENAI_API_KEY = 'test-key';
   const openai = createOpenAIMock();
   const res = await callHandler({
@@ -388,6 +453,115 @@ test('OpenAI upstream failure maps to model_unavailable', async () => {
   });
 
   assert.equal(res.payload.reason, 'model_unavailable');
+});
+
+test('model failures on demo catalog queries return deterministic sources-only answer', async () => {
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
+  process.env.OPENAI_API_KEY = 'test-key';
+  const openai = createOpenAIMock();
+  const res = await callHandler({
+    req: createReq({ body: { query: 'Which demos are currently public?', lang: 'en' } }),
+    openai: openai.client,
+    retrieval: createRetrieval({
+      results: [demoCatalogResult()],
+      queryIntent: { intent: 'list', sourceIntent: 'demos' },
+    }),
+    createGroundedAnswer: async () => { throw new Error('upstream unavailable'); },
+  });
+
+  assert.equal(res.payload.mode, 'sources_only');
+  assert.equal(res.payload.reason, 'model_unavailable');
+  assert.equal(res.payload.answer, 'The currently public demos include:\n\n1. NexAeon AI Tutoring MVP [S1]');
+  assert.equal(res.payload.citations[0].title, 'NexAeon AI Tutoring MVP');
+});
+
+test('model timeout on demo catalog queries returns deterministic sources-only answer', async () => {
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
+  process.env.OPENAI_API_KEY = 'test-key';
+  const error = new Error('slow');
+  error.name = 'TimeoutError';
+  const res = await callHandler({
+    req: createReq({ body: { query: '目前有哪些公開 Demo？', lang: 'zh' } }),
+    openai: createOpenAIMock().client,
+    retrieval: createRetrieval({
+      results: [demoCatalogResult()],
+      queryIntent: { intent: 'list', sourceIntent: 'demos' },
+    }),
+    createGroundedAnswer: async () => { throw error; },
+  });
+
+  assert.equal(res.payload.reason, 'model_timeout');
+  assert.equal(res.payload.answer, '目前公開的 Demo 包括：\n\n1. NexAeon AI Tutoring MVP [S1]');
+});
+
+test('invalid structured output on demo catalog queries returns deterministic sources-only answer', async () => {
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
+  process.env.OPENAI_API_KEY = 'test-key';
+  const res = await callHandler({
+    req: createReq({ body: { query: '현재 공개된 Demo는 무엇인가요?', lang: 'ko' } }),
+    openai: createOpenAIMock().client,
+    retrieval: createRetrieval({
+      results: [demoCatalogResult()],
+      queryIntent: { intent: 'list', sourceIntent: 'demos' },
+    }),
+    createGroundedAnswer: async () => ({ parsed: { answer: 'No marker', citedSourceIds: [], suggestedQuestions: [] } }),
+  });
+
+  assert.equal(res.payload.reason, 'model_unavailable');
+  assert.equal(res.payload.answer, '현재 공개된 Demo는 다음과 같습니다.\n\n1. NexAeon AI Tutoring MVP [S1]');
+});
+
+test('deterministic catalog answer de-duplicates titles and keeps citation markers', () => {
+  const numbered = numberRetrievedSources([
+    demoCatalogResult('NexAeon AI Tutoring MVP', 0),
+    demoCatalogResult('NexAeon AI Tutoring MVP', 1),
+  ], 'en');
+
+  assert.equal(createCatalogAnswer({ numberedSources: numbered, lang: 'en' }), 'The currently public demos include:\n\n1. NexAeon AI Tutoring MVP [S1]');
+});
+
+test('demo catalog retrieval only returns demo sources in stable public order', async () => {
+  const demoItems = [
+    {
+      slug: 'nexaeon-ai-tutoring-mvp',
+      name: 'NexAeon AI Tutoring MVP',
+      demoType: 'AI Tutor',
+      status: 'Testing',
+      summary: '研究型個別化 AI Tutor 原型，聚焦提問診斷、分層提示、任務拆解與學習反思。',
+      translations: {
+        zh: { name: 'NexAeon AI Tutoring MVP', summary: '研究型個別化 AI Tutor 原型，聚焦提問診斷、分層提示、任務拆解與學習反思。' },
+        ko: { name: 'NexAeon AI Tutoring MVP', summary: '질문 진단, 단계별 힌트, 과제 분해 및 학습 성찰에 초점을 둔 개인화 AI Tutor 프로토타입입니다.' },
+        en: { name: 'NexAeon AI Tutoring MVP', summary: 'A personalized AI Tutor prototype focused on diagnostic questioning, layered hints, task decomposition, and learning reflection.' },
+      },
+      techStack: ['React', 'RAG'],
+      relatedModules: ['Learning Coaching'],
+      targetUsers: ['Students'],
+    },
+    { slug: 'second-demo', name: 'Second Demo', demoType: 'Prototype', status: 'Testing', summary: 'Second public demo.' },
+  ];
+  const payloads = {
+    '/api/identity/profiles': { source: 'notion', reason: null, count: 1, updatedAt: null, items: [{ id: 'identity-one', name: 'Joey Research Identity', shortPositioning: 'Research identity' }] },
+    '/api/research/literature': { source: 'notion', reason: null, count: 1, updatedAt: null, items: [{ id: 'research-one', title: 'Demo Research', summary: 'Research summary' }] },
+    '/api/teaching/courses': { source: 'notion', reason: null, count: 0, updatedAt: null, items: [] },
+    '/api/knowledge/resources': { source: 'notion', reason: null, count: 0, updatedAt: null, items: [] },
+    '/api/modules/demos': { source: 'airtable', reason: null, count: demoItems.length, updatedAt: null, items: demoItems },
+    '/api/action/projects': { source: 'airtable', reason: null, count: 0, updatedAt: null, items: [] },
+    '/api/collaboration/options': { source: 'airtable', reason: null, count: 0, updatedAt: null, items: [] },
+  };
+  const retrieval = await retrievePublicKnowledgeForChat({
+    req: createReq(),
+    query: '展示目前公開的原型',
+    lang: 'zh',
+    baseUrl: 'https://local.test',
+    fetchImpl: async (url) => ({
+      ok: true,
+      json: async () => payloads[new URL(url).pathname],
+    }),
+  });
+
+  assert.deepEqual(retrieval.queryIntent, { intent: 'list', sourceIntent: 'demos' });
+  assert.deepEqual(retrieval.results.map((result) => result.document.title), ['NexAeon AI Tutoring MVP', 'Second Demo']);
+  assert.deepEqual([...new Set(retrieval.results.map((result) => result.document.sourceId))], ['demos']);
 });
 
 test('Responses API request uses store false', () => {
@@ -414,7 +588,7 @@ test('Responses API request disables tools', () => {
 });
 
 test('model is selected only by server env', async () => {
-  process.env.NEXON_AGENT_ENABLED = 'true';
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
   process.env.OPENAI_API_KEY = 'test-key';
   process.env.OPENAI_MODEL = 'server-model';
   let capturedRequest;
@@ -429,11 +603,12 @@ test('model is selected only by server env', async () => {
   await callHandler({
     openai: openai.client,
     createGroundedAnswer: async ({ query, lang, history, numberedSources }) => {
-      capturedRequest = buildResponsesApiRequest({ query, lang, history, numberedSources, model: process.env.OPENAI_MODEL });
+      capturedRequest = buildResponsesApiRequest({ query, lang, history, numberedSources, model: process.env.OPENAI_MODEL, queryIntent: { intent: 'list', sourceIntent: 'demos' } });
       return { parsed: { answer: 'Learning Demo is public. [S1]', citedSourceIds: ['S1'], suggestedQuestions: [] } };
     },
   });
   assert.equal(capturedRequest.model, 'server-model');
+  assert.ok(capturedRequest.input[0].content[0].text.includes('"sourceIntent":"demos"'));
 });
 
 test('public response does not include secrets or raw model metadata', async () => {

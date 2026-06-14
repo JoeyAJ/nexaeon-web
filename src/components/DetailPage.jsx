@@ -23,7 +23,7 @@ import ModuleDataLayer, { ModuleDataPanel } from './ModuleDataLayer.jsx';
 import NeuralBackground from './NeuralBackground.jsx';
 import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
 import { toDetailPath } from '../utils/router.js';
-import NexonAssistantPage from './NexonAssistantPage.jsx';
+import NexAeonNavigatorPage from './NexAeonNavigatorPage.jsx';
 
 const INTRO_SEEN_KEY = 'nexaeon_intro_seen';
 
@@ -2732,8 +2732,8 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
           {common.backPrevious}
         </button>
 
-        {item.id === 'nexon-ai-assistant' ? (
-          <NexonAssistantPage
+        {item.id === 'nexaeon-navigator' ? (
+          <NexAeonNavigatorPage
             item={item}
             common={common}
             lang={lang}

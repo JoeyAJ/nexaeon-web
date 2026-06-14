@@ -1,20 +1,21 @@
 import { useMemo, useRef, useState } from 'react';
 import { AGENT_SOURCES } from '../../lib/agent/sourceRegistry.js';
+import { NAVIGATOR_AGENT } from '../data/agentBrands.js';
 
 const MAX_HISTORY_ITEMS = 4;
 const MAX_HISTORY_ITEM_CHARS = 1000;
 
 const ASSISTANT_UI = {
   zh: {
-    title: 'Nexōn AI Assistant',
-    intro: 'Nexōn 只根據 NexAeon 目前公開的知識來源回答，並顯示可驗證來源。',
+    title: NAVIGATOR_AGENT.name,
+    intro: NAVIGATOR_AGENT.subtitles.zh,
     inputLabel: '輸入你想詢問的 NexAeon 公開內容',
     placeholder: '例如：Joey 的研究方向是什麼？',
     submit: '送出',
     stop: '停止等待',
     clear: '清除對話',
     suggestions: ['Joey 的研究方向是什麼？', 'NexAeon 有哪些 AI 學習項目？', '目前有哪些公開 Demo？', 'NexAeon 的學習教練理念是什麼？'],
-    generating: 'Nexōn 正在根據公開來源整理回答……',
+    generating: 'Navigator 正在根據公開來源整理回答……',
     disabled: 'AI 回答功能尚未啟用，您仍可查看相關公開來源。',
     modelUnavailable: 'AI 回答暫時無法使用，以下仍提供最相關的公開來源。',
     noSources: '目前公開知識中沒有足夠資料回答這個問題。',
@@ -28,18 +29,18 @@ const ASSISTANT_UI = {
     viewSource: '查看來源',
     openExternal: '開啟外部來源',
     userLabel: '你',
-    assistantLabel: 'Nexōn',
+    assistantLabel: NAVIGATOR_AGENT.answerLabel,
   },
   ko: {
-    title: 'Nexōn AI Assistant',
-    intro: 'Nexōn은 현재 공개된 NexAeon 지식 소스만 바탕으로 답변하고 확인 가능한 출처를 함께 제공합니다.',
+    title: NAVIGATOR_AGENT.name,
+    intro: NAVIGATOR_AGENT.subtitles.ko,
     inputLabel: 'NexAeon 공개 콘텐츠에 대해 질문하세요',
     placeholder: '예: Joey의 연구 방향은 무엇인가요?',
     submit: '보내기',
     stop: '대기 중지',
     clear: '대화 지우기',
     suggestions: ['Joey의 연구 방향은 무엇인가요?', 'NexAeon에는 어떤 AI 학습 프로젝트가 있나요?', '현재 공개된 Demo는 무엇인가요?', 'NexAeon의 학습 코칭 철학은 무엇인가요?'],
-    generating: 'Nexōn이 공개된 소스를 바탕으로 답변을 정리하고 있습니다…',
+    generating: 'Navigator가 공개된 소스를 바탕으로 답변을 정리하고 있습니다…',
     disabled: 'AI 답변 기능은 아직 활성화되지 않았지만 관련 공개 소스는 계속 확인할 수 있습니다.',
     modelUnavailable: 'AI 답변을 일시적으로 사용할 수 없습니다. 아래에서 관련 공개 소스를 확인할 수 있습니다.',
     noSources: '현재 공개된 지식만으로는 이 질문에 답할 충분한 정보가 없습니다.',
@@ -53,18 +54,18 @@ const ASSISTANT_UI = {
     viewSource: '출처 보기',
     openExternal: '외부 출처 열기',
     userLabel: '나',
-    assistantLabel: 'Nexōn',
+    assistantLabel: NAVIGATOR_AGENT.answerLabel,
   },
   en: {
-    title: 'Nexōn AI Assistant',
-    intro: 'Nexōn answers only from NexAeon’s currently public knowledge sources and includes verifiable citations.',
+    title: NAVIGATOR_AGENT.name,
+    intro: NAVIGATOR_AGENT.subtitles.en,
     inputLabel: 'Ask about NexAeon public knowledge',
     placeholder: 'Example: What are Joey’s research interests?',
     submit: 'Send',
     stop: 'Stop waiting',
     clear: 'Clear chat',
     suggestions: ['What are Joey’s research interests?', 'Which AI learning projects are available in NexAeon?', 'Which demos are currently public?', 'What is NexAeon’s learning coaching philosophy?'],
-    generating: 'Nexōn is preparing an answer from the public sources…',
+    generating: 'Navigator is preparing an answer from the public sources…',
     disabled: 'AI answers are not enabled yet. You can still review the relevant public sources.',
     modelUnavailable: 'AI answers are temporarily unavailable. The most relevant public sources are still shown below.',
     noSources: 'The current public knowledge does not contain enough information to answer this question.',
@@ -78,7 +79,7 @@ const ASSISTANT_UI = {
     viewSource: 'View source',
     openExternal: 'Open external source',
     userLabel: 'You',
-    assistantLabel: 'Nexōn',
+    assistantLabel: NAVIGATOR_AGENT.answerLabel,
   },
 };
 
@@ -177,12 +178,19 @@ function CitationCard({ citation, lang, navigate, ui }) {
 
 function AssistantMessage({ message, lang, navigate, ui }) {
   const isSourcesOnly = message.mode === 'sources_only';
+  const showFallback = isSourcesOnly && !message.content;
+  const showSourcesOnlyNotice = isSourcesOnly && Boolean(message.content) && message.reason !== 'moderated';
   return (
     <section className="agent-message agent-message-assistant">
       <div className="agent-message-label">{ui.assistantLabel}</div>
       {message.content ? <AnswerText text={message.content} /> : null}
-      {isSourcesOnly && !message.content ? (
+      {showFallback ? (
         <p className="agent-state-message" data-state={message.reason || 'sources-only'}>
+          {getFallbackMessage(message.reason, ui)}
+        </p>
+      ) : null}
+      {showSourcesOnlyNotice ? (
+        <p className="agent-state-message" data-state="sources-only">
           {getFallbackMessage(message.reason, ui)}
         </p>
       ) : null}
@@ -199,12 +207,13 @@ function AssistantMessage({ message, lang, navigate, ui }) {
   );
 }
 
-export default function NexonAssistantPage({ item, common, lang, navigate }) {
+export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
   const ui = ASSISTANT_UI[lang] || ASSISTANT_UI.en;
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const abortRef = useRef(null);
+  const activeRequestRef = useRef(false);
 
   const suggestedQuestions = useMemo(() => {
     const latest = [...messages].reverse().find((message) => message.role === 'assistant' && message.suggestedQuestions?.length);
@@ -213,7 +222,8 @@ export default function NexonAssistantPage({ item, common, lang, navigate }) {
 
   async function submitQuery(nextQuery = query) {
     const trimmed = String(nextQuery || '').trim();
-    if (!trimmed || isGenerating) return;
+    if (!trimmed || isGenerating || activeRequestRef.current) return;
+    activeRequestRef.current = true;
 
     const userMessage = {
       id: `user-${Date.now()}`,
@@ -243,10 +253,11 @@ export default function NexonAssistantPage({ item, common, lang, navigate }) {
         signal: controller.signal,
       });
       const payload = await response.json();
+      if (response.status === 429) return;
       const assistantMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: payload.mode === 'ai' ? payload.answer : payload.answer || '',
+        content: payload.answer || '',
         mode: payload.mode || 'sources_only',
         reason: payload.reason || '',
         citations: Array.isArray(payload.citations) ? payload.citations : [],
@@ -270,12 +281,14 @@ export default function NexonAssistantPage({ item, common, lang, navigate }) {
     } finally {
       setIsGenerating(false);
       abortRef.current = null;
+      activeRequestRef.current = false;
     }
   }
 
   function stopGenerating() {
     abortRef.current?.abort();
     setIsGenerating(false);
+    activeRequestRef.current = false;
   }
 
   function clearChat() {
@@ -283,10 +296,11 @@ export default function NexonAssistantPage({ item, common, lang, navigate }) {
     setMessages([]);
     setQuery('');
     setIsGenerating(false);
+    activeRequestRef.current = false;
   }
 
   return (
-    <article className="content-detail-card module-detail-card agent-assistant-card" data-testid="nexon-agent-page">
+    <article className="content-detail-card module-detail-card agent-assistant-card" data-testid="navigator-agent-page">
       <div className="detail-badge-row">
         <span className="content-tag">{common.moduleLabel}: {item.category}</span>
         <span className="content-tag">{item.status}</span>
@@ -323,10 +337,10 @@ export default function NexonAssistantPage({ item, common, lang, navigate }) {
           submitQuery();
         }}
       >
-        <label htmlFor="nexon-agent-query">{ui.inputLabel}</label>
+        <label htmlFor="navigator-agent-query">{ui.inputLabel}</label>
         <div className="agent-search-row">
           <input
-            id="nexon-agent-query"
+            id="navigator-agent-query"
             type="search"
             value={query}
             maxLength={500}

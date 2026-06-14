@@ -1,16 +1,16 @@
-# Nexōn Agent Foundation
+# NexAeon Navigator Agent Foundation
 
-Stage 5-1A 建立 Nexōn AI Assistant 的公開知識檢索基礎。這一階段只做 deterministic retrieval 與 source grounding，不接入 OpenAI、Claude、Gemini 或其他模型，也不生成自由回答。
+Stage 5-1A 建立 NexAeon Navigator 的公開知識檢索基礎。這一階段只做 deterministic retrieval 與 source grounding，不接入 OpenAI、Claude、Gemini 或其他模型，也不生成自由回答。
 
 ## Agent 定位
 
-Nexōn 在本階段是 NexAeon 公開知識的檢索介面。它協助使用者從網站已公開的內容中找到相關來源，並顯示可追溯的來源卡片。
+NexAeon Navigator 在本階段是 NexAeon 公開知識的檢索介面。它協助使用者從網站已公開的內容中找到相關來源，並顯示可追溯的來源卡片。
 
 它不是聊天機器人、不是自動化 Agent，也不具備寫入後台資料的能力。
 
 ## 七個公開來源
 
-Nexōn 只能讀取以下已經過公開資料過濾的 API：
+NexAeon Navigator 只能讀取以下已經過公開資料過濾的 API：
 
 - `/api/identity/profiles`
 - `/api/research/literature`
@@ -36,6 +36,9 @@ Agent 不直接讀取 Notion、Airtable、GitHub 或任何私有資料源。
   summary,
   content,
   tags,
+  searchAliases,
+  moduleLabel,
+  sourceLabel,
   status,
   sourceUrl,
   sourceRoute,
@@ -44,7 +47,7 @@ Agent 不直接讀取 Notion、Airtable、GitHub 或任何私有資料源。
 }
 ```
 
-轉換層只保留檢索需要的公開資訊，不保留 raw API item。`Notes`、`Visibility`、`Owner`、`Blockers`、`Email`、record id、Base ID、Table ID、API Key 都不得進入 Knowledge Document。
+轉換層只保留檢索需要的公開資訊，不保留 raw API item。`searchAliases`、`moduleLabel`、`sourceLabel`、`itemType` 與 `status` 只使用受控公開欄位，且依目前語言建立索引。`Notes`、`Visibility`、`Owner`、`Blockers`、`Email`、record id、Base ID、Table ID、API Key 都不得進入 Knowledge Document。
 
 ## Retrieval 排序原則
 
@@ -53,6 +56,7 @@ Agent 不直接讀取 Notion、Airtable、GitHub 或任何私有資料源。
 - Title 命中權重最高
 - Tags 次之
 - Summary 再次之
+- 受控 `searchAliases`、`itemType`、`status`、`sourceLabel` 只作低權重輔助
 - Content 最低
 - 完整片語命中高於零散 token
 - `updatedAt` 只作為同分時的輕微排序依據
@@ -60,7 +64,7 @@ Agent 不直接讀取 Notion、Airtable、GitHub 或任何私有資料源。
 - 查詢長度上限為 300 字元
 - 不使用 RegExp injection，不執行 HTML 或 JavaScript
 
-本階段不使用 embedding、不使用向量資料庫、不使用 RAG generation。
+Demo Catalog Query 由 server-side Query Intent 判定。當 intent 是 `list` 且 sourceIntent 是 `demos` 時，只使用公開 Demo Knowledge Documents，最多回傳 8 筆，並保留 Demo API 既有的 Featured、Display Order 與公開過濾順序。本階段不使用 embedding、不使用向量資料庫、不使用 RAG generation。
 
 ## 三語原則
 

@@ -12,12 +12,12 @@ import { normalizeQuery, retrieveKnowledge } from '../lib/agent/retrieval.js';
 const SOURCE_FIXTURES = {
   identity: [{
     id: 'identity-one',
-    name: 'Nexōn AI Assistant',
+    name: 'NexAeon Navigator',
     identityType: 'AI Assistant',
     shortPositioning: 'Language mediator for public knowledge',
     fullIntroduction: 'Public assistant role for research and teaching.',
     corePhilosophy: 'Help people understand questions.',
-    roleTags: ['Nexōn', 'Nexōn', 'AI Assistant'],
+    roleTags: ['NexAeon Navigator', 'NexAeon Navigator', 'AI Assistant'],
     notes: 'secret notes',
     visibility: 'Internal',
   }],
@@ -128,6 +128,23 @@ test('localized summaries do not bleed across language indexes', () => {
   assert.equal(ko.searchableText.includes('繁中研究摘要'), false);
   assert.equal(en.searchableText.includes('한국어 연구 요약'), false);
   assert.equal(zh.searchableText.includes('English research summary'), false);
+});
+
+test('demo aliases are language isolated and searchable', () => {
+  const zh = createKnowledgeDocuments('demos', SOURCE_FIXTURES.demos, 'zh')[0];
+  const ko = createKnowledgeDocuments('demos', SOURCE_FIXTURES.demos, 'ko')[0];
+  const en = createKnowledgeDocuments('demos', SOURCE_FIXTURES.demos, 'en')[0];
+
+  assert.ok(zh.searchAliases.includes('公開 Demo'));
+  assert.ok(ko.searchAliases.includes('공개 데모'));
+  assert.ok(en.searchAliases.includes('public demo'));
+  assert.equal(en.searchableText.includes('공개 데모'), false);
+  assert.equal(ko.searchableText.includes('public demo'), false);
+  assert.equal(zh.searchableText.includes('public demo'), false);
+
+  assert.equal(retrieveKnowledge([zh], '目前有哪些公開 Demo？')[0].document.id, zh.id);
+  assert.equal(retrieveKnowledge([ko], '공개 데모를 보여 주세요.')[0].document.id, ko.id);
+  assert.equal(retrieveKnowledge([en], 'Which public demos are available?')[0].document.id, en.id);
 });
 
 test('title matches outrank summary matches and summary outranks content', () => {

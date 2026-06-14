@@ -446,7 +446,14 @@ function createAgentChatResponse(body) {
     return { ok: true, mode: 'sources_only', answer: '', citations: [citation], suggestedQuestions: [], partialSources: false, reason: 'disabled' };
   }
   if (query.includes('unavailable')) {
-    return { ok: true, mode: 'sources_only', answer: '', citations: [citation], suggestedQuestions: [], partialSources: false, reason: 'model_unavailable' };
+    const catalogAnswer = query.includes('demo')
+      ? lang === 'ko'
+        ? `현재 공개된 Demo는 다음과 같습니다.\n\n1. ${citation.title} [S1]`
+        : lang === 'zh'
+          ? `目前公開的 Demo 包括：\n\n1. ${citation.title} [S1]`
+          : `The currently public demos include:\n\n1. ${citation.title} [S1]`
+      : '';
+    return { ok: true, mode: 'sources_only', answer: catalogAnswer, citations: [citation], suggestedQuestions: [], partialSources: false, reason: 'model_unavailable' };
   }
   if (query.includes('nosource')) {
     return { ok: true, mode: 'sources_only', answer: '', citations: [], suggestedQuestions: [], partialSources: false, reason: 'no_sources' };

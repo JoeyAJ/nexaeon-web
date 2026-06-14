@@ -1,3 +1,5 @@
+import { NAVIGATOR_AGENT } from '../data/agentBrands.js';
+
 const DETAIL_ROUTE_PATTERN = /^\/(identity|research|teaching|knowledge-lab|projects|field-lab)\/([^/]+)$/;
 const DEMO_RUNTIME_ROUTE_PATTERN = /^\/projects\/module-demos\/([^/]+)$/;
 const ROLE_ROUTE_PATTERN = /^\/(students|researchers|university|enterprise|second-brain)$/;
@@ -6,6 +8,14 @@ export function parseRoute(pathname) {
   const normalizedPath = pathname.replace(/\/+$/, '') || '/';
   if (normalizedPath === '/') {
     return { kind: 'home' };
+  }
+
+  if (NAVIGATOR_AGENT.legacyRoutes.includes(normalizedPath)) {
+    return {
+      kind: 'redirect',
+      to: NAVIGATOR_AGENT.route,
+      replace: true,
+    };
   }
 
   const roleMatch = normalizedPath.match(ROLE_ROUTE_PATTERN);
@@ -102,6 +112,19 @@ export function navigateTo(path, options = {}) {
   requestAnimationFrame(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   });
+}
+
+export function replaceCurrentRoute(path) {
+  window.history.replaceState(
+    {
+      ...(window.history.state || {}),
+      nexaeonEntry: true,
+      nexaeonDepth: getNavigationDepth(),
+    },
+    '',
+    path,
+  );
+  window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 export function goBack(fallbackPath = '/') {

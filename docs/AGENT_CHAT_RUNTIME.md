@@ -1,6 +1,6 @@
-# Stage 5-1B｜Nexōn Grounded AI Chat Runtime
+# Stage 5-1B｜NexAeon Navigator Grounded AI Chat Runtime
 
-本階段在 Stage 5-1A 的七個公開來源、Knowledge Document adapters 與 deterministic retrieval 上，新增 server-only 的 OpenAI Responses API 回答流程。Nexōn 只能根據本次伺服器重新檢索出的 NexAeon 公開來源回答，並回傳由伺服器建立的 citation cards。
+本階段在 Stage 5-1A 的七個公開來源、Knowledge Document adapters 與 deterministic retrieval 上，新增 server-only 的 OpenAI Responses API 回答流程。NexAeon Navigator 只能根據本次伺服器重新檢索出的 NexAeon 公開來源回答，並回傳由伺服器建立的 citation cards。
 
 ## 架構
 
@@ -20,7 +20,7 @@
 
 ## 不信任 Client Context
 
-前端顯示的來源只是一種使用者體驗，不能作為模型 grounding 的信任邊界。`/api/agent/chat` 會忽略並拒絕 client 嘗試傳入的 `context`、`sources`、`prompt`、`model`、`tools` 等欄位，避免使用者把任意內容偽裝成 NexAeon 公開知識。
+前端顯示的來源只是一種使用者體驗，不能作為模型 grounding 的信任邊界。`/api/agent/chat` 會忽略並拒絕 client 嘗試傳入的 `context`、`sources`、`prompt`、`model`、`tools`、`queryIntent`、`sourceIntent` 等欄位，避免使用者把任意內容偽裝成 NexAeon 公開知識或控制任意 endpoint。
 
 同站 API base URL 只允許 trusted production host `https://nexaeon-web.vercel.app`；開發環境只接受 `localhost` 或 `127.0.0.1` host，不依任意 request header 連到外部網域，以降低 SSRF 風險。
 
@@ -36,6 +36,7 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 - 每個事實性陳述必須使用 `[S#]` marker
 - 不聲稱存取私人 Notion、Airtable、email、calendar、files 或 internal systems
 - 不執行動作、不揭露 hidden configuration
+- list 類問題必須直接列出 supplied sources，且每一項都附 `[S#]`
 
 語言規則：
 
@@ -89,6 +90,7 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 - `content`
 - `tags`
 - `updatedAt`
+- server 判定的 `queryIntent` 與 `sourceIntent`
 
 不送入 Visibility、Notes、Owner、Email、Blockers、API endpoint、Airtable record ID、Notion page ID、Base ID、Table ID、API key、raw error 或 stack trace。
 
@@ -99,7 +101,34 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 1. 檢查使用者 query 與受限 history
 2. 模型輸出 answer 後再次檢查
 
-被攔截時不回傳 moderation category、score、內部政策或原始 moderation payload，只回三語安全訊息並轉為 `sources_only`。
+實際 flagged 時不回傳 moderation category、score、內部政策或原始 moderation payload，只回三語安全訊息並轉為 `sources_only`。Moderation API 自身失敗時不回 `no_sources`，而是安全映射為 `model_unavailable`，保留同批 citation cards；若該 request 是 Demo Catalog Query，會顯示 deterministic Demo 清單。
+
+## Query Intent 與 Demo Catalog
+
+`lib/agent/queryIntent.js` 在 server-side 判定：
+
+- `intent`: `search` 或 `list`
+- `sourceIntent`: `identity`、`research`、`teaching`、`knowledge`、`demos`、`action`、`collaboration` 或 `null`
+
+單獨「公開／public」不會被判定為 Demo。只有明確 Demo、公開 Demo、原型、MVP、데모、프로토타입、public demos、prototype 等 catalog query 才會設定 `sourceIntent: "demos"`。
+
+當 `intent = "list"` 且 `sourceIntent = "demos"`：
+
+- 只使用公開 Demo Knowledge Documents
+- 不要求查詢文字逐字出現在 Demo 名稱
+- 最多回傳 8 筆
+- 不混入 Identity、Research 或其他模塊來源
+- 保持 Demo API 已發布過濾與排序
+
+當 server retrieval 已取得 Demo，但 OpenAI 發生 `model_unavailable`、`model_timeout`、invalid structured output、invalid citation output 或 moderation unavailable 時，API 會回傳 `mode: "sources_only"` 與非空 deterministic answer，例如：
+
+```text
+目前公開的 Demo 包括：
+
+1. NexAeon AI Tutoring MVP [S1]
+```
+
+`no_sources` 只代表 server retrieval 確實沒有任何相關公開來源，不代表 OpenAI、moderation、structured output 或 citation validation 失敗。
 
 ## Feature Flag
 
@@ -108,23 +137,31 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 ```text
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.4-mini
-NEXON_AGENT_ENABLED=false
+NEXAEON_AGENT_ENABLED=false
 ```
 
-當 `NEXON_AGENT_ENABLED !== "true"` 時：
+`NEXAEON_AGENT_ENABLED` 是正式 feature flag。為避免既有 Production 環境只設定舊變數時突然停用，server 暫時兼容：
+
+```js
+process.env.NEXAEON_AGENT_ENABLED === 'true' || process.env.NEXON_AGENT_ENABLED === 'true'
+```
+
+新變數優先；`NEXON_AGENT_ENABLED` 只作 migration 兼容，不再作為正式設定。
+
+當新舊 feature flag 都不是 `true` 時：
 
 - 不呼叫 OpenAI
 - server-side deterministic retrieval 仍執行
 - 回傳 `sources_only`、`reason: "disabled"`
 - 前端顯示 Disabled 三語提示與相關 source cards
 
-當 `NEXON_AGENT_ENABLED = "true"` 但缺少 `OPENAI_API_KEY` 時：
+當 feature flag 已啟用但缺少 `OPENAI_API_KEY` 時：
 
 - 不呼叫 OpenAI
 - 回傳 `sources_only`、`reason: "missing_configuration"`
 - 前端不白屏
 
-停用 AI 回答只需要將 `NEXON_AGENT_ENABLED` 設為非 `true`，或移除 `OPENAI_API_KEY`。
+停用 AI 回答只需要將 `NEXAEON_AGENT_ENABLED` 設為非 `true` 且不依賴舊兼容變數，或移除 `OPENAI_API_KEY`。
 
 ## 隱私邊界
 
@@ -137,12 +174,12 @@ server log 只允許：
 ```json
 {
   "endpoint": "/api/agent/chat",
-  "category": "model_unavailable",
+  "category": "model_request_failed",
   "timestamp": "..."
 }
 ```
 
-不得記錄 query、answer、history、context、API key、citation 內容或 user IP 原文。
+安全 category 可使用 `input_moderation_unavailable`、`model_request_failed`、`model_output_invalid`、`output_moderation_unavailable`、`model_timeout`。不得記錄 query、answer、history、context、API key、citation 內容或 user IP 原文。
 
 ## Pilot Cooldown
 

@@ -5,7 +5,7 @@ import DemoRuntimePage from './components/DemoRuntimePage.jsx';
 import DetailPage from './components/DetailPage.jsx';
 import RoleDetailPage from './components/RoleDetailPage.jsx';
 import AppErrorBoundary, { getGuardrailCopy, GuardrailStatePage } from './components/AppErrorBoundary.jsx';
-import { goBack, markInitialHistoryEntry, navigateTo, parseRoute } from './utils/router.js';
+import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
 const BACK_TO_TOP_TEXT = {
   zh: '回到頂部',
@@ -66,11 +66,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (route.kind === 'redirect' && route.replace && route.to) {
+      suppressIntroReplay();
+      replaceCurrentRoute(route.to);
+      return;
+    }
+
     if (route.kind === 'home' && window.location.hash) return;
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: 'auto' });
     });
-  }, [route.kind, route.type, route.id, route.role, route.slug]);
+  }, [route.kind, route.type, route.id, route.role, route.slug, route.replace, route.to]);
 
   const navigate = (path, options) => {
     navigateTo(path, options);
@@ -122,7 +128,7 @@ export default function App() {
           />
         ) : route.kind === 'role' ? (
           <RoleDetailPage role={route.role} navigate={navigate} navigateBack={navigateBack} lang={lang} setLang={setLang} />
-        ) : route.kind === 'invalid' ? (
+        ) : route.kind === 'invalid' || route.kind === 'redirect' ? (
           <GuardrailStatePage
             lang={lang}
             setLang={setLang}
