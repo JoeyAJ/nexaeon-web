@@ -1,23 +1,78 @@
-# React + Vite
+# NexAeon Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+NexAeon Web is the public site for the NexAeon knowledge system. The production site is:
 
-Currently, two official plugins are available:
+```text
+https://nexaeon-web.vercel.app/
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## NexAeon Navigator
 
-## React Compiler
+The public knowledge agent is **NexAeon Navigator** at:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```text
+/identity/nexaeon-navigator
+```
 
-## Expanding the ESLint configuration
+Navigator only reads the seven public API modules:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `/api/identity/profiles`
+- `/api/research/literature`
+- `/api/teaching/courses`
+- `/api/knowledge/resources`
+- `/api/modules/demos`
+- `/api/action/projects`
+- `/api/collaboration/options`
 
-## NexAeon Integration Roadmap
+It does not use Web Search, does not add write actions, does not create accounts, and does not save chat history. The browser keeps the conversation only in React memory.
 
-- 目前資料來源為本地靜態資料（Local Static Content）。
-- 未來將逐步接入 Notion / Airtable（以及後續 n8n 自動化流程）。
-- API Key 必須放在 `.env.local`。
-- 不可將任何真實密鑰提交到 GitHub。
+## Runtime Model
+
+Production uses a fixed default model version:
+
+```text
+gpt-5.4-mini-2026-03-17
+```
+
+`OPENAI_MODEL` may still override the default on the server. Client requests cannot select or override the model, and public responses do not expose the model name.
+
+## Safety Boundaries
+
+Navigator keeps the Stage 5 runtime controls:
+
+- 1 input moderation call
+- 1 Responses API call
+- 1 output moderation call
+- strict structured output
+- server-created citation cards
+- Sources-only fallback
+- safe URL validation for external source links
+- no query, answer, history, source content, prompts, API keys, Authorization, Cookie, full IP, or full User Agent in logs
+
+## Stage 5-2 Quality
+
+Stage 5-2 improves multilingual query normalization, module intent detection, deterministic source ranking, source de-duplication, citation marker validation, suggested question validation, safe Markdown rendering, mobile chat layout, duplicate-submit guards, and IME Enter behavior.
+
+Offline Navigator evals live in:
+
+```text
+tests/fixtures/navigator-evals.json
+scripts/eval-navigator.mjs
+```
+
+The dataset includes 54 cases across Traditional Chinese, Korean, and English, including core module questions, synonyms, vague/no-source prompts, partial source failures, citation validation, suggested question validation, and safety constraints.
+
+## Local Commands
+
+```text
+npm install
+npm run lint
+npm test
+npm run eval:navigator
+npm run build
+npm run test:e2e
+npm run verify
+npm run check:navigator
+```
+
+Do not commit real API keys or private source data.

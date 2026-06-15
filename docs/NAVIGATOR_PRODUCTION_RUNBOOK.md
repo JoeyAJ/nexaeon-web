@@ -32,6 +32,8 @@ NEXAEON_AGENT_MAX_OUTPUT_TOKENS
 NEXAEON_AGENT_TIMEOUT_MS
 ```
 
+`OPENAI_MODEL` 未設定時，server 使用固定預設版本 `gpt-5.4-mini-2026-03-17`。不要改回不可存取的 alias `gpt-5.4-mini`。Client request 不能覆蓋模型，Health API 與前端不公開完整模型版本。
+
 `NEXAEON_AGENT_MAX_OUTPUT_TOKENS` 的程式上限是 800，允許範圍是 200 到 800。`NEXAEON_AGENT_TIMEOUT_MS` 的程式上限是 25000，允許範圍是 10000 到 25000。
 
 ## 健康檢查
@@ -103,6 +105,24 @@ Model output invalid / citation validation failed：
 2. 系統不得重試模型。
 3. Demo catalog query 會顯示 deterministic sources-only list。
 
+Suggested Questions invalid：
+
+1. Server 會過濾不安全、重複、空白、跨語言或與來源無關的 suggested questions。
+2. 不重新呼叫模型。
+3. 使用 deterministic fallback，且不允許 Web Search、Email、Calendar、Files、Notion/Airtable 私有資料或寫入承諾。
+
+Partial source failure：
+
+1. 若至少一個公開 API 失敗但仍有可用來源，API 回 `partialSources: true`。
+2. 前端顯示簡短三語提示。
+3. Log 只看 `failedSourceCount`，不記錄來源內容或 raw upstream error。
+
+No source vs all sources unavailable：
+
+1. `no_sources` 表示公開資料中找不到足夠相關內容。
+2. `sources_unavailable` 表示七個公開來源暫時都不可讀。
+3. 兩者都不應觸發 OpenAI 回答。
+
 ## 緊急處理順序
 
 ```text
@@ -169,3 +189,13 @@ Codex 不操作 OpenAI Dashboard。請人工確認：
 程式中的 token ceiling、timeout、forced sources-only 與 request guard 是應用層防線，不能取代 OpenAI Project Spend Limit。
 
 OpenAI project spend limit requires manual configuration.
+
+## Stage 5-2 驗收重點
+
+- 三語核心問題應返回同一組核心公開模塊。
+- Citation marker `[S#]` 必須和 citation card 一對一。
+- `[S1]` 可鍵盤操作並平滑定位到 S1 citation card。
+- Safe Markdown 可顯示粗體、斜體、列表與 inline code，但不執行 HTML。
+- 手機版不可橫向溢出，input、送出、停止與清除按鈕不可重疊。
+- IME 中文／韓文 composition 狀態下 Enter 不送出。
+- 正常 AI request 仍維持 1 次 input moderation、1 次 Responses API、1 次 output moderation。

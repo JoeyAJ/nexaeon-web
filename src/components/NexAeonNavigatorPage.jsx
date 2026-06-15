@@ -23,13 +23,14 @@ const ASSISTANT_UI = {
     noSources: '目前公開知識中沒有足夠資料回答這個問題。',
     moderated: '這個問題目前無法處理，請調整內容後再試一次。',
     groundedNote: '回答僅根據 NexAeon 目前公開的知識來源生成，內容可能不完整。',
-    partial: '部分知識來源暫時無法使用，其餘內容仍可正常查詢。',
+    partial: '部分公開來源暫時無法讀取，回答已根據目前可用來源生成。',
     sourcesOnly: '以下仍提供最相關的公開來源。',
     source: '來源',
     type: '類型',
     updatedAt: '更新時間',
     viewSource: '查看來源',
     openExternal: '開啟外部來源',
+    citationLabel: (sourceId) => `跳到來源 ${sourceId}`,
     userLabel: '你',
     assistantLabel: NAVIGATOR_AGENT.answerLabel,
   },
@@ -50,13 +51,14 @@ const ASSISTANT_UI = {
     noSources: '현재 공개된 지식만으로는 이 질문에 답할 충분한 정보가 없습니다.',
     moderated: '이 질문은 현재 처리할 수 없습니다. 내용을 수정한 후 다시 시도해 주세요.',
     groundedNote: '답변은 현재 공개된 NexAeon 지식 소스를 기반으로 생성되며 일부 내용이 불완전할 수 있습니다.',
-    partial: '일부 지식 소스를 현재 사용할 수 없지만 나머지 콘텐츠는 계속 검색할 수 있습니다.',
+    partial: '일부 공개 소스를 일시적으로 불러오지 못해, 현재 이용 가능한 소스를 기준으로 답변했습니다.',
     sourcesOnly: '아래에서 가장 관련 있는 공개 소스를 확인할 수 있습니다.',
     source: '출처',
     type: '유형',
     updatedAt: '업데이트',
     viewSource: '출처 보기',
     openExternal: '외부 출처 열기',
+    citationLabel: (sourceId) => `${sourceId} 출처로 이동`,
     userLabel: '나',
     assistantLabel: NAVIGATOR_AGENT.answerLabel,
   },
@@ -77,13 +79,14 @@ const ASSISTANT_UI = {
     noSources: 'The current public knowledge does not contain enough information to answer this question.',
     moderated: 'This request cannot be processed. Please revise it and try again.',
     groundedNote: 'Answers are generated from NexAeon’s currently public knowledge sources and may be incomplete.',
-    partial: 'Some knowledge sources are temporarily unavailable. The remaining sources can still be searched.',
+    partial: 'Some public sources are temporarily unavailable. This answer uses the sources currently available.',
     sourcesOnly: 'The most relevant public sources are still shown below.',
     source: 'Source',
     type: 'Type',
     updatedAt: 'Updated At',
     viewSource: 'View source',
     openExternal: 'Open external source',
+    citationLabel: (sourceId) => `Jump to source ${sourceId}`,
     userLabel: 'You',
     assistantLabel: NAVIGATOR_AGENT.answerLabel,
   },
@@ -123,31 +126,97 @@ function scrollToCitation(sourceId) {
   if (!target) return;
   target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   target.focus({ preventScroll: true });
+  target.classList.add('agent-result-card-highlight');
+  window.setTimeout(() => target.classList.remove('agent-result-card-highlight'), 1600);
 }
 
-function AnswerText({ text }) {
-  const paragraphs = String(text || '').split(/\n{2,}/).map((paragraph) => paragraph.trim()).filter(Boolean);
+function renderInlineMarkdown(text, ui) {
+  const parts = String(text || '').split(/(\[S\d+\]|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean);
+  return parts.map((part, index) => {
+    const marker = part.match(/^\[(S\d+)\]$/);
+    if (marker) {
+      return (
+        <button
+          key={`${part}-${index}`}
+          className="agent-citation-marker"
+          type="button"
+          aria-label={ui.citationLabel(marker[1])}
+          onClick={() => scrollToCitation(marker[1])}
+        >
+          {part}
+        </button>
+      );
+    }
+    if (/^`[^`]+`$/.test(part)) return <code key={`${part}-${index}`}>{part.slice(1, -1)}</code>;
+    if (/^\*\*[^*]+\*\*$/.test(part)) return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+    if (/^\*[^*]+\*$/.test(part)) return <em key={`${part}-${index}`}>{part.slice(1, -1)}</em>;
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
+}
+
+function parseMarkdownBlocks(text) {
+  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let paragraph = [];
+  let list = null;
+
+  function flushParagraph() {
+    if (!paragraph.length) return;
+    blocks.push({ type: 'paragraph', text: paragraph.join(' ') });
+    paragraph = [];
+  }
+
+  function flushList() {
+    if (!list) return;
+    blocks.push(list);
+    list = null;
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
+    const unordered = line.match(/^[-*]\s+(.+)$/);
+    if (ordered || unordered) {
+      flushParagraph();
+      const type = ordered ? 'ordered' : 'unordered';
+      if (!list || list.type !== type) {
+        flushList();
+        list = { type, items: [] };
+      }
+      list.items.push(ordered?.[1] || unordered?.[1]);
+      continue;
+    }
+    flushList();
+    paragraph.push(line);
+  }
+  flushParagraph();
+  flushList();
+  return blocks;
+}
+
+function AnswerText({ text, ui }) {
+  const blocks = parseMarkdownBlocks(text);
 
   return (
     <div className="agent-answer-text">
-      {paragraphs.map((paragraph) => (
-        <p key={paragraph}>
-          {paragraph.split(/(\[S\d+\])/g).filter(Boolean).map((part, index) => {
-            const match = part.match(/^\[(S\d+)\]$/);
-            if (!match) return <span key={`${part}-${index}`}>{part}</span>;
-            return (
-              <button
-                key={`${part}-${index}`}
-                className="agent-citation-marker"
-                type="button"
-                onClick={() => scrollToCitation(match[1])}
-              >
-                {part}
-              </button>
-            );
-          })}
-        </p>
-      ))}
+      {blocks.map((block, blockIndex) => {
+        if (block.type === 'ordered' || block.type === 'unordered') {
+          const ListTag = block.type === 'ordered' ? 'ol' : 'ul';
+          return (
+            <ListTag key={`${block.type}-${blockIndex}`}>
+              {block.items.map((item, itemIndex) => (
+                <li key={`${item}-${itemIndex}`}>{renderInlineMarkdown(item, ui)}</li>
+              ))}
+            </ListTag>
+          );
+        }
+        return <p key={`${block.text}-${blockIndex}`}>{renderInlineMarkdown(block.text, ui)}</p>;
+      })}
     </div>
   );
 }
@@ -190,7 +259,7 @@ function AssistantMessage({ message, lang, navigate, ui }) {
   return (
     <section className="agent-message agent-message-assistant">
       <div className="agent-message-label">{ui.assistantLabel}</div>
-      {message.content ? <AnswerText text={message.content} /> : null}
+      {message.content ? <AnswerText text={message.content} ui={ui} /> : null}
       {showFallback ? (
         <p className="agent-state-message" data-state={message.reason || 'sources-only'}>
           {getFallbackMessage(message.reason, ui)}
@@ -225,6 +294,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
   const submissionLockRef = useRef(false);
   const requestSequenceRef = useRef(0);
   const lastSubmissionRef = useRef({ query: '', at: 0 });
+  const isComposingRef = useRef(false);
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) return undefined;
@@ -385,6 +455,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
         className="agent-search-panel"
         onSubmit={(event) => {
           event.preventDefault();
+          if (isComposingRef.current || event.nativeEvent?.isComposing) return;
           submitQuery();
         }}
       >
@@ -396,6 +467,17 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
             value={query}
             maxLength={500}
             onChange={(event) => setQuery(event.target.value)}
+            onCompositionStart={() => {
+              isComposingRef.current = true;
+            }}
+            onCompositionEnd={() => {
+              isComposingRef.current = false;
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && (isComposingRef.current || event.nativeEvent.isComposing)) {
+                event.preventDefault();
+              }
+            }}
             placeholder={ui.placeholder}
             disabled={isSubmitBlocked}
           />

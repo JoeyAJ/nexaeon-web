@@ -159,6 +159,8 @@ test('production config safely parses enabled flags, force mode, token, and time
   assert.equal(getNavigatorProductionConfig({ NEXAEON_AGENT_TIMEOUT_MS: '25001' }).timeoutMs, 25_000);
   assert.equal(getNavigatorProductionConfig({ NEXAEON_AGENT_TIMEOUT_MS: '9999' }).timeoutMs, 25_000);
   assert.equal(getNavigatorProductionConfig({ NEXAEON_AGENT_TIMEOUT_MS: '10000' }).timeoutMs, 10_000);
+  assert.equal(getNavigatorProductionConfig({}).model, 'gpt-5.4-mini-2026-03-17');
+  assert.equal(getNavigatorProductionConfig({ OPENAI_MODEL: 'server-model' }).model, 'server-model');
 });
 
 test('client cannot override production config values', () => {

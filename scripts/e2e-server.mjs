@@ -489,6 +489,20 @@ function createAgentChatResponse(body) {
       reason: 'moderated',
     };
   }
+  if (query.includes('markdown')) {
+    return {
+      ok: true,
+      mode: 'ai',
+      answer: '**NexAeon AI Tutoring MVP**\n\n1. Supports `AI Tutor` prototype reading. [S1]\n2. Keeps <script>alert(1)</script> as plain text. [S1]\n\n- Related to *Learning Coaching*. [S1]',
+      citations: [citation],
+      suggestedQuestions: lang === 'ko'
+        ? ['현재 공개된 데모는 무엇인가요?']
+        : lang === 'zh'
+          ? ['目前有哪些公開 Demo？']
+          : ['What public demos are currently available?'],
+      partialSources: false,
+    };
+  }
 
   return {
     ok: true,

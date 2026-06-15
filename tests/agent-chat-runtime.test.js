@@ -16,6 +16,7 @@ import {
   retrievePublicKnowledgeForChat,
   validateChatRequestBody,
   validateModelOutput,
+  validateSuggestedQuestions,
 } from '../lib/agent/chatRuntime.js';
 import { detectQueryIntent } from '../lib/agent/queryIntent.js';
 
@@ -256,15 +257,29 @@ test('client-supplied query intent is rejected', () => {
 
 test('demo catalog queries are detected across zh ko and en', () => {
   for (const query of ['目前有哪些公開 Demo？', '有哪些 Demo？', '展示目前公開的原型', '目前有哪些 MVP？']) {
-    assert.deepEqual(detectQueryIntent(query), { intent: 'list', sourceIntent: 'demos' });
+    const intent = detectQueryIntent(query);
+    assert.equal(intent.intent, 'list');
+    assert.equal(intent.sourceIntent, 'demos');
+    assert.deepEqual(intent.sourceIntents, ['demos']);
+    assert.equal(intent.queryType, 'demo_list');
   }
   for (const query of ['현재 공개된 Demo는 무엇인가요?', '공개 데모를 보여 주세요.', '현재 어떤 MVP가 있나요?']) {
-    assert.deepEqual(detectQueryIntent(query), { intent: 'list', sourceIntent: 'demos' });
+    const intent = detectQueryIntent(query);
+    assert.equal(intent.intent, 'list');
+    assert.equal(intent.sourceIntent, 'demos');
+    assert.deepEqual(intent.sourceIntents, ['demos']);
+    assert.equal(intent.queryType, 'demo_list');
   }
   for (const query of ['Which demos are currently public?', 'Show me the public demos.', 'Which MVPs are available?']) {
-    assert.deepEqual(detectQueryIntent(query), { intent: 'list', sourceIntent: 'demos' });
+    const intent = detectQueryIntent(query);
+    assert.equal(intent.intent, 'list');
+    assert.equal(intent.sourceIntent, 'demos');
+    assert.deepEqual(intent.sourceIntents, ['demos']);
+    assert.equal(intent.queryType, 'demo_list');
   }
-  assert.deepEqual(detectQueryIntent('公開'), { intent: 'search', sourceIntent: null });
+  const broad = detectQueryIntent('公開');
+  assert.equal(broad.intent, 'search');
+  assert.equal(broad.sourceIntent, null);
 });
 
 test('feature flag disabled does not call OpenAI', async () => {
@@ -305,7 +320,7 @@ test('no sources does not call OpenAI', async () => {
     retrieval: createRetrieval({ results: [], allSourcesFailed: true, partialSources: true }),
   });
 
-  assert.equal(res.payload.reason, 'no_sources');
+  assert.equal(res.payload.reason, 'sources_unavailable');
   assert.equal(openai.calls.length, 0);
 });
 
@@ -379,7 +394,8 @@ test('model cannot add citation IDs outside the supplied set', () => {
     suggestedQuestions: [],
   }, numbered);
 
-  assert.deepEqual(result.citedSourceIds, ['S1']);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'citation_validation_failed');
 });
 
 test('invalid citation IDs are removed', () => {
@@ -519,7 +535,7 @@ test('invalid structured output on demo catalog queries returns deterministic so
     createGroundedAnswer: async () => ({ parsed: { answer: 'No marker', citedSourceIds: [], suggestedQuestions: [] } }),
   });
 
-  assert.equal(res.payload.reason, 'model_unavailable');
+  assert.equal(res.payload.reason, 'citation_validation_failed');
   assert.equal(res.payload.answer, '현재 공개된 Demo는 다음과 같습니다.\n\n1. NexAeon AI Tutoring MVP [S1]');
 });
 
@@ -571,9 +587,43 @@ test('demo catalog retrieval only returns demo sources in stable public order', 
     }),
   });
 
-  assert.deepEqual(retrieval.queryIntent, { intent: 'list', sourceIntent: 'demos' });
+  assert.equal(retrieval.queryIntent.intent, 'list');
+  assert.equal(retrieval.queryIntent.sourceIntent, 'demos');
+  assert.deepEqual(retrieval.queryIntent.sourceIntents, ['demos']);
   assert.deepEqual(retrieval.results.map((result) => result.document.title), ['NexAeon AI Tutoring MVP', 'Second Demo']);
   assert.deepEqual([...new Set(retrieval.results.map((result) => result.document.sourceId))], ['demos']);
+});
+
+test('query intent supports multilingual synonyms and cross-module queries', () => {
+  const zh = detectQueryIntent('Joey 是誰？');
+  assert.equal(zh.sourceIntent, 'identity');
+  assert.equal(zh.queryType, 'identity_intro');
+
+  const ko = detectQueryIntent('Joey의 연구 방향과 공개 데모를 같이 알려 주세요.');
+  assert.deepEqual(ko.sourceIntents, ['research', 'demos']);
+
+  const en = detectQueryIntent('What Learning Coaching resources and AI Tutor prototypes are available?');
+  assert.deepEqual(en.sourceIntents, ['demos', 'teaching']);
+});
+
+test('suggested questions are validated and safely replaced with deterministic fallbacks', () => {
+  const numbered = numberRetrievedSources([sampleResult()], 'en');
+  const suggestions = validateSuggestedQuestions({
+    suggestions: [
+      'What is NexAeon learning coaching?',
+      'Search the web for Joey',
+      'Send Joey an email',
+      'What is NexAeon learning coaching?',
+    ],
+    query: 'Which demos are public?',
+    lang: 'en',
+    numberedSources: numbered,
+    queryIntent: { sourceIntents: ['demos'] },
+  });
+
+  assert.equal(suggestions.length, 3);
+  assert.equal(suggestions.includes('Search the web for Joey'), false);
+  assert.equal(suggestions.includes('Send Joey an email'), false);
 });
 
 test('Responses API request uses store false', () => {

@@ -48,7 +48,9 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 
 使用官方 JavaScript SDK `openai` 與 Responses API。模型由 server env 決定：
 
-- `OPENAI_MODEL`，未設定時預設 `gpt-5.4-mini`
+- `OPENAI_MODEL`，未設定時預設固定版本 `gpt-5.4-mini-2026-03-17`
+
+Client request 不能覆蓋模型；Health API 與前端公開內容不輸出完整模型版本。
 
 每次 request 都是無伺服器持久狀態的獨立呼叫：
 
@@ -74,7 +76,8 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 
 - JSON 必須可解析
 - `citedSourceIds` 只能是本次 server 編號的 `S1` 到 `S8`
-- 未知 source id 會被刪除
+- answer 中出現任何不存在的 `[S#]` marker 會整體拒絕並降級為 `citation_validation_failed`
+- 重複引用同一來源時必須使用同一 marker
 - answer 必須包含對應 `[S#]`
 - 沒有有效 citation 時改回 `sources_only`
 - citation cards 只由 server 原始檢索結果產生
@@ -103,22 +106,26 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 
 實際 flagged 時不回傳 moderation category、score、內部政策或原始 moderation payload，只回三語安全訊息並轉為 `sources_only`。Moderation API 自身失敗時不回 `no_sources`，而是安全映射為 `model_unavailable`，保留同批 citation cards；若該 request 是 Demo Catalog Query，會顯示 deterministic Demo 清單。
 
-## Query Intent 與 Demo Catalog
+## Query Intent、Normalization 與 Catalog Retrieval
 
-`lib/agent/queryIntent.js` 在 server-side 判定：
+`lib/agent/queryNormalization.js` 與 `lib/agent/queryIntent.js` 在 server-side 使用本地文字規則，不呼叫翻譯 API。Normalization 覆蓋 Joey／조이、Identity／身份／정체성、Research／研究／연구、Learning Coaching／學習教練／학습 코칭、Knowledge Lab／知識實驗室／지식 실험실、Demo／展示／데모、Action Center／行動中心／액션 센터、Collaboration／合作／협력、AI Tutor／AI 튜터、MVP／Prototype／原型／프로토타입。
+
+Intent 會判定：
 
 - `intent`: `search` 或 `list`
 - `sourceIntent`: `identity`、`research`、`teaching`、`knowledge`、`demos`、`action`、`collaboration` 或 `null`
+- `sourceIntents`: 支援跨模塊查詢的 deterministic module list
+- `queryType`: `identity_intro`、`research_direction`、`resource_list`、`demo_list` 等
 
 單獨「公開／public」不會被判定為 Demo。只有明確 Demo、公開 Demo、原型、MVP、데모、프로토타입、public demos、prototype 等 catalog query 才會設定 `sourceIntent: "demos"`。
 
-當 `intent = "list"` 且 `sourceIntent = "demos"`：
+當 `intent = "list"` 且只有一個明確 module intent 時：
 
-- 只使用公開 Demo Knowledge Documents
-- 不要求查詢文字逐字出現在 Demo 名稱
+- 只使用該公開模塊的 Knowledge Documents
+- 不要求查詢文字逐字出現在資料名稱
 - 最多回傳 8 筆
-- 不混入 Identity、Research 或其他模塊來源
-- 保持 Demo API 已發布過濾與排序
+- 不混入其他模塊來源
+- 保持公開 API 已發布過濾與排序
 
 當 server retrieval 已取得 Demo，但 OpenAI 發生 `model_unavailable`、`model_timeout`、invalid structured output、invalid citation output 或 moderation unavailable 時，API 會回傳 `mode: "sources_only"` 與非空 deterministic answer，例如：
 
@@ -136,7 +143,7 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 
 ```text
 OPENAI_API_KEY=
-OPENAI_MODEL=gpt-5.4-mini
+OPENAI_MODEL=gpt-5.4-mini-2026-03-17
 NEXAEON_AGENT_ENABLED=false
 NEXAEON_AGENT_FORCE_SOURCES_ONLY=false
 NEXAEON_AGENT_MAX_OUTPUT_TOKENS=800
@@ -175,6 +182,14 @@ process.env.NEXAEON_AGENT_ENABLED === 'true' || process.env.NEXON_AGENT_ENABLED 
 本階段不建立可寫入資料的 Agent，不連 Gmail、Calendar、Notion、Airtable 或 GitHub 寫入工具。Chat history 只保存在 React memory，重新整理即清除；不寫入 localStorage、sessionStorage 或 cookie。
 
 server response 不輸出 OpenAI error body、request ID、token usage、raw moderation result、Developer Instruction、Prompt Context、private environment variables、Base ID 或 Table ID。
+
+## Suggested Questions
+
+模型可回最多 3 個 suggested questions。Server 會過濾空白、重複目前問題、語言不符、與來源無關、要求 Web Search、寫入、寄信、登入、Notion/Airtable 私有資料、Email、Calendar 或 Files 的建議。若模型建議不合格，Server 使用 deterministic fallback，不重新呼叫模型。
+
+## Safe Markdown
+
+前端只渲染安全基本 Markdown：段落、換行、有序列表、無序列表、粗體、斜體、inline code 與 citation marker。模型輸出的 HTML、script、iframe、style、外部圖片與直接外部連結不會被當成 HTML 或連結執行。
 
 server log 只允許：
 

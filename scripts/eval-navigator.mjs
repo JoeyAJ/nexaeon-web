@@ -5,6 +5,8 @@ import {
   createSourcesListAnswer,
   numberRetrievedSources,
   retrievePublicKnowledgeForChat,
+  validateModelOutput,
+  validateSuggestedQuestions,
 } from '../lib/agent/chatRuntime.js';
 import { buildDeveloperInstruction } from '../lib/agent/chatRuntime.js';
 
@@ -118,7 +120,13 @@ const MOCK_PAYLOADS = {
   },
 };
 
-async function mockFetch(url) {
+async function mockFetch(url, failEndpoints = []) {
+  if (failEndpoints.includes(new URL(url).pathname)) {
+    return {
+      ok: false,
+      json: async () => ({}),
+    };
+  }
   const payload = MOCK_PAYLOADS[new URL(url).pathname];
   return {
     ok: Boolean(payload),
@@ -136,22 +144,33 @@ async function runCase(entry) {
   const intent = detectQueryIntent(entry.query);
   assertEqual(intent.intent, entry.expectedIntent, `${entry.id} intent`);
   assertEqual(intent.sourceIntent, entry.expectedSourceIntent, `${entry.id} sourceIntent`);
+  if (entry.expectedQueryType) assertEqual(intent.queryType, entry.expectedQueryType, `${entry.id} queryType`);
+  if (entry.expectedSourceIntents) assertEqual(intent.sourceIntents, entry.expectedSourceIntents, `${entry.id} sourceIntents`);
 
   const retrieval = await retrievePublicKnowledgeForChat({
     req: { headers: { host: 'localhost:4173' } },
     query: entry.query,
     lang: entry.lang,
     baseUrl: 'https://eval.local',
-    fetchImpl: mockFetch,
+    fetchImpl: (url) => mockFetch(url, entry.failEndpoints || []),
   });
+  if (entry.allowPartialSources === false && retrieval.partialSources) {
+    throw new Error(`${entry.id} unexpected partial sources`);
+  }
+  if (entry.expectPartialSources && !retrieval.partialSources) {
+    throw new Error(`${entry.id} expected partial sources`);
+  }
   const sourceIds = [...new Set(retrieval.results.map((result) => result.document.sourceId))];
   for (const expectedSourceId of entry.expectedSourceIds) {
     if (!sourceIds.includes(expectedSourceId)) {
       throw new Error(`${entry.id} missing expected source ${expectedSourceId}`);
     }
   }
-  if (entry.expectedSourceIntent === 'demos') {
+  if (entry.expectedSourceIntent === 'demos' && entry.expectedSourceIds.length === 1) {
     assertEqual(sourceIds, ['demos'], `${entry.id} demo catalog sourceIds`);
+  }
+  for (const forbiddenSourceId of entry.forbiddenSourceIds || []) {
+    if (sourceIds.includes(forbiddenSourceId)) throw new Error(`${entry.id} contains forbidden source ${forbiddenSourceId}`);
   }
 
   const numberedSources = numberRetrievedSources(retrieval.results, entry.lang);
@@ -172,6 +191,36 @@ async function runCase(entry) {
   }
   if (entry.expectNoSources && entry.expectedSourceIds.length === 0 && retrieval.results.length !== 0) {
     throw new Error(`${entry.id} expected no sources`);
+  }
+
+  if (entry.validateCitationMarkers && numberedSources.length) {
+    const valid = validateModelOutput({
+      answer: `${numberedSources[0].title} [S1]`,
+      citedSourceIds: ['S1'],
+      suggestedQuestions: ['What public demos are currently available?'],
+    }, numberedSources, { query: entry.query, lang: entry.lang, queryIntent: retrieval.queryIntent });
+    if (!valid.ok || valid.citedSourceIds[0] !== 'S1') throw new Error(`${entry.id} citation validation failed`);
+    const invalid = validateModelOutput({
+      answer: `${numberedSources[0].title} [S99]`,
+      citedSourceIds: ['S99'],
+      suggestedQuestions: [],
+    }, numberedSources, { query: entry.query, lang: entry.lang, queryIntent: retrieval.queryIntent });
+    if (invalid.ok) throw new Error(`${entry.id} invalid citation marker accepted`);
+  }
+
+  if (entry.validateSuggestedQuestions) {
+    const suggestions = validateSuggestedQuestions({
+      suggestions: entry.mockSuggestedQuestions || [],
+      query: entry.query,
+      lang: entry.lang,
+      numberedSources,
+      queryIntent: retrieval.queryIntent,
+    });
+    if (!suggestions.length || suggestions.length > 3) throw new Error(`${entry.id} invalid suggestion count`);
+    const serializedSuggestions = suggestions.join('\n').toLowerCase();
+    for (const forbidden of ['web search', 'search the web', 'email', 'calendar', 'notion', 'airtable', 'api key']) {
+      if (serializedSuggestions.includes(forbidden)) throw new Error(`${entry.id} unsafe suggestion survived`);
+    }
   }
 
   const instruction = buildDeveloperInstruction(entry.lang);

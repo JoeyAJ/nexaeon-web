@@ -378,7 +378,7 @@ test('navigator searches public knowledge with grounded source cards', async ({ 
   await page.getByRole('button', { name: 'Which demos are currently public?' }).click();
   await expect(page.locator('.agent-message-assistant .agent-message-label').filter({ hasText: /^NAVIGATOR$/ })).toBeVisible();
   await expect(page.getByText('The currently public demos include Learning Demo.')).toBeVisible();
-  await expect(page.getByRole('button', { name: '[S1]' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Jump to source S1' })).toBeVisible();
 
   const demoResult = page.locator('.agent-result-card').filter({ hasText: 'Learning Demo' });
   await expect(demoResult).toBeVisible();
@@ -405,7 +405,7 @@ test('navigator handles sources-only fallback states', async ({ page }) => {
   await gotoAndSetEnglish(page, '/identity/nexaeon-navigator');
   await page.locator('#navigator-agent-query').fill('partial status');
   await page.getByRole('button', { name: 'Send' }).click();
-  await expect(page.getByText('Some knowledge sources are temporarily unavailable. The remaining sources can still be searched.')).toBeVisible();
+  await expect(page.getByText('Some public sources are temporarily unavailable. This answer uses the sources currently available.')).toBeVisible();
 
   await page.locator('#navigator-agent-query').fill('disabled status');
   await page.getByRole('button', { name: 'Send' }).click();
@@ -429,6 +429,27 @@ test('navigator handles sources-only fallback states', async ({ page }) => {
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.getByText('Relevant public sources include:')).toBeVisible();
   await expect(page.getByText('Results are currently provided in public-source navigation mode.')).toBeVisible();
+});
+
+test('navigator renders safe markdown and clickable citation markers', async ({ page }) => {
+  await gotoAndSetEnglish(page, '/identity/nexaeon-navigator');
+  await page.locator('#navigator-agent-query').fill('markdown status');
+  await page.getByRole('button', { name: 'Send' }).click();
+
+  const answer = page.locator('.agent-answer-text').last();
+  await expect(answer.locator('strong', { hasText: 'NexAeon AI Tutoring MVP' })).toBeVisible();
+  await expect(answer.locator('code', { hasText: 'AI Tutor' })).toBeVisible();
+  await expect(answer.locator('ol li')).toHaveCount(2);
+  await expect(answer.locator('ul li')).toHaveCount(1);
+  await expect(page.locator('body')).not.toContainText('**NexAeon AI Tutoring MVP**');
+  const scriptCount = await page.locator('script', { hasText: 'alert(1)' }).count();
+  expect(scriptCount).toBe(0);
+
+  const marker = page.getByRole('button', { name: 'Jump to source S1' }).first();
+  await marker.click();
+  const card = page.locator('#citation-S1');
+  await expect(card).toBeFocused();
+  await expect(card).toHaveClass(/agent-result-card-highlight/);
 });
 
 test('navigator handles 429 countdown and duplicate submit guards', async ({ page }) => {
@@ -497,6 +518,9 @@ test('navigator localizes, redirects legacy route, supports no-result, mobile, r
   await page.reload();
   await expect(page).toHaveURL(/\/identity\/nexaeon-navigator$/);
   await expect(page.getByTestId('navigator-agent-page')).toBeVisible();
+  await expect(page.locator('#navigator-agent-query')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Send|送出|보내기/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Clear chat|清除對話|대화 지우기/ })).toBeVisible();
   const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(hasHorizontalOverflow).toBe(false);
 
@@ -504,6 +528,24 @@ test('navigator localizes, redirects legacy route, supports no-result, mobile, r
   await expect(page).toHaveURL(/\/#identity$/);
   const introSeen = await page.evaluate(() => window.sessionStorage.getItem('nexaeon_intro_seen'));
   expect(introSeen).toBe('true');
+});
+
+test('navigator does not submit while IME composition is active', async ({ page }) => {
+  let chatPostCount = 0;
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().includes('/api/agent/chat')) chatPostCount += 1;
+  });
+
+  await gotoAndSetEnglish(page, '/identity/nexaeon-navigator');
+  const input = page.locator('#navigator-agent-query');
+  await input.fill('Joey');
+  await input.dispatchEvent('compositionstart');
+  await input.press('Enter');
+  expect(chatPostCount).toBe(0);
+  await input.dispatchEvent('compositionend');
+  await input.press('Enter');
+  await expect(page.locator('.agent-message-assistant')).toHaveCount(1);
+  expect(chatPostCount).toBe(1);
 });
 
 test('demo showcase shows localized empty states for zero public demos', async ({ page }) => {
