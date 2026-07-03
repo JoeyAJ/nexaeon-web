@@ -48,8 +48,8 @@ export const AGENT_ACTION_CHAIN = Object.freeze({
 export const AGENT_LANDING_COPY = Object.freeze({
   zh: {
     eyebrow: 'NexAeon Agent System',
-    title: '七個 Agent 的公開系統入口',
-    intro: 'Navigator 已啟用公開知識問答；其他 Agent 目前是安全路由骨架，會逐步接入共用 runtime。',
+    title: 'NexAeon Agent System Map',
+    intro: '這裡是七個 Agent 的全局總覽；各 Agent 也會出現在對應的網站模塊中。',
     active: 'Active',
     scaffold: 'Scaffold',
     comingSoon: 'Coming Soon',
@@ -57,8 +57,8 @@ export const AGENT_LANDING_COPY = Object.freeze({
   },
   ko: {
     eyebrow: 'NexAeon Agent System',
-    title: '일곱 Agent를 위한 공개 시스템 입구',
-    intro: 'Navigator는 공개 지식 답변을 제공하며, 나머지 Agent는 공유 runtime에 연결되기 전 안전한 라우트 골격으로 제공됩니다.',
+    title: 'NexAeon Agent System Map',
+    intro: '이 영역은 일곱 Agent의 전체 지도를 보여주며, 각 Agent는 연결된 웹사이트 모듈 안에서도 표시됩니다.',
     active: 'Active',
     scaffold: 'Scaffold',
     comingSoon: 'Coming Soon',
@@ -66,8 +66,8 @@ export const AGENT_LANDING_COPY = Object.freeze({
   },
   en: {
     eyebrow: 'NexAeon Agent System',
-    title: 'A public system entry for seven agents',
-    intro: 'Navigator is the active public knowledge chat. The other agents are safe route scaffolds prepared for the shared runtime.',
+    title: 'NexAeon Agent System Map',
+    intro: 'This is the global overview for seven agents. Each agent also appears inside its aligned website module.',
     active: 'Active',
     scaffold: 'Scaffold',
     comingSoon: 'Coming Soon',

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
+import ModuleAgentEntry, { ModuleAgentIndicator } from './ModuleAgentEntry.jsx';
 import NeuralBackground from './NeuralBackground.jsx';
 import { getLocalizedSite } from '../lib/contentSource.js';
 import { toDetailPath } from '../utils/router.js';
@@ -274,6 +275,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
             <div className="module-card-kicker">{module.label}</div>
             <h3>{module.title}</h3>
             <p>{module.summary}</p>
+            <ModuleAgentIndicator moduleId={module.id} lang={lang} />
             <div className="module-card-footer">
               <span className="content-tag">
                 {formatEntryCount(module.items.length, lang)}
@@ -294,6 +296,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
               <h3>{activeModule.title}</h3>
               <p>{activeModule.position}</p>
             </div>
+            <ModuleAgentEntry moduleId={activeModule.id} lang={lang} navigate={navigate} />
             <div className="module-entry-grid">
               {activeModule.items.map((item) => (
                 <a

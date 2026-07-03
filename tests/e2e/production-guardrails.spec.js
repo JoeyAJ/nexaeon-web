@@ -12,6 +12,15 @@ const EXPECTED_MODULE_LABELS = [
   'Field Experiment',
 ];
 
+const EXPECTED_MODULE_AGENTS = {
+  identity: ['NexAeon Navigator'],
+  research: ['NexAeon Explorer'],
+  teaching: ['NexAeon Xchange'],
+  'knowledge-lab': ['NexAeon Archivist'],
+  projects: ['NexAeon Engineer'],
+  'field-lab': ['NexAeon Orchestrator', 'NexAeon Networker'],
+};
+
 const DATA_PAGE_ROUTES = [
   { name: 'Identity', path: '/identity/identity-profiles', cardSelector: '.identity-profile-card', search: 'input[type="search"]' },
   { name: 'Research', path: '/research/research-literature-database', cardSelector: '.literature-compact-card', search: 'input[type="search"]' },
@@ -163,6 +172,11 @@ test('home loads, localizes, toggles theme, and keeps module order', async ({ pa
 
 test('module navigation, browser back, direct refresh, and intro replay guard', async ({ page }) => {
   const watcher = getRuntimeWatcher(page);
+  let chatPostCount = 0;
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && request.url().includes('/api/agent/chat')) chatPostCount += 1;
+  });
+
   await gotoAndSetEnglish(page);
 
   for (const label of EXPECTED_MODULE_LABELS) {
@@ -170,8 +184,45 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
     await page.getByTestId(`module-card-${module.id}`).getByRole('button').click();
     await expect(page).toHaveURL(new RegExp(`#${module.id}$`));
     await expect(page.getByTestId(`module-entry-${module.items[0].id}`)).toBeVisible();
+    await expect(page.getByTestId(`module-agent-section-${module.id}`)).toBeVisible();
+    for (const agentName of EXPECTED_MODULE_AGENTS[module.id]) {
+      await expect(page.getByTestId(`module-agent-section-${module.id}`).getByText(agentName)).toBeVisible();
+    }
+    if (module.id === 'identity') {
+      await expect(page.getByTestId('module-agent-entry-navigator')).toContainText('Active');
+    } else {
+      const agentKeys = {
+        research: ['explorer'],
+        teaching: ['xchange'],
+        'knowledge-lab': ['archivist'],
+        projects: ['engineer'],
+        'field-lab': ['orchestrator', 'networker'],
+      }[module.id];
+      for (const key of agentKeys) {
+        await expect(page.getByTestId(`module-agent-entry-${key}`)).toContainText('Scaffold / Coming Soon');
+      }
+    }
   }
 
+  await page.getByTestId('module-card-identity').getByRole('button').click();
+  await expect(page.getByTestId('module-agent-entry-navigator')).toContainText('Active');
+
+  await page.getByTestId('module-card-research').getByRole('button').click();
+  await page.getByTestId('module-agent-entry-explorer').getByRole('button', { name: 'View Prep Page' }).click();
+  await expect(page).toHaveURL(/\/research\/nexaeon-explorer$/);
+  await expect(page.getByTestId('agent-scaffold-explorer')).toBeVisible();
+  await expect(page.locator('#navigator-agent-query')).toHaveCount(0);
+  expect(chatPostCount).toBe(0);
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByTestId('module-card-projects').getByRole('button').click();
+  await expect(page.getByTestId('module-agent-entry-engineer')).toBeVisible();
+  const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  expect(hasHorizontalOverflow).toBe(false);
+
+  await page.getByTestId('module-card-field-lab').getByRole('button').click();
   await page.getByTestId('module-entry-action-projects').click();
   await expect(page).toHaveURL(/\/field-lab\/action-projects$/);
   await expect(page.getByRole('heading', { name: 'Field Lab', level: 1 })).toBeVisible();
@@ -373,6 +424,10 @@ test('navigator searches public knowledge with grounded source cards', async ({ 
 
   await expect(page.getByTestId('navigator-agent-page')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'NexAeon Navigator', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'NexAeon Agent System Map', level: 2 })).toBeVisible();
+  for (const agentName of Object.values(EXPECTED_MODULE_AGENTS).flat()) {
+    await expect(page.locator('.agent-landing-section').getByText(agentName)).toBeVisible();
+  }
   await expect(page.locator('body')).not.toContainText(new RegExp('Nex\\u014dn'));
 
   await page.getByRole('button', { name: 'Which demos are currently public?' }).click();

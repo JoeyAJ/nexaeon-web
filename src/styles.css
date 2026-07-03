@@ -2746,7 +2746,7 @@ body {
   border: 1px solid var(--line-1);
   background: var(--bg-1);
   color: inherit;
-  padding: 22px;
+  padding: 22px 22px 88px;
   text-align: left;
 }
 
@@ -2779,6 +2779,38 @@ body {
   margin: 14px 0 0;
   color: var(--fg-2);
   line-height: 1.68;
+}
+
+.module-card-agent-line {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 24%, var(--line-1));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-2) 46%, transparent);
+  padding: 10px;
+}
+
+.module-card-agent-line span,
+.module-card-agent-line em {
+  color: var(--accent-fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.module-card-agent-line strong {
+  color: var(--fg-1);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.module-card-agent-line em {
+  color: var(--fg-3);
 }
 
 .module-card-footer {
@@ -2822,6 +2854,128 @@ body {
   margin: 10px 0 0;
   color: var(--fg-2);
   line-height: 1.72;
+}
+
+.module-agent-entry-section {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+  min-width: 0;
+  border: 1px solid var(--line-1);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-2) 44%, transparent);
+  padding: 16px;
+}
+
+.module-agent-entry-heading {
+  display: grid;
+  gap: 7px;
+}
+
+.module-agent-entry-heading h4 {
+  color: var(--fg-1);
+  font-size: 17px;
+  letter-spacing: 0;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.module-agent-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.module-agent-entry-card {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--line-1);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--bg-2) 68%, transparent), color-mix(in srgb, var(--bg-1) 42%, transparent)),
+    color-mix(in srgb, var(--bg-2) 52%, transparent);
+  padding: 14px;
+}
+
+.module-agent-entry-card[data-status="active"] {
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, var(--line-1));
+}
+
+.module-agent-entry-top,
+.module-agent-entry-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.module-agent-entry-top {
+  justify-content: space-between;
+}
+
+.module-agent-entry-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 34%, var(--line-1));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-blue) 14%, transparent);
+  color: var(--fg-1);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.module-agent-entry-status,
+.module-agent-entry-meta span {
+  max-width: 100%;
+  border: 1px solid var(--line-1);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-2) 50%, transparent);
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  padding: 6px 9px;
+}
+
+.module-agent-entry-card[data-status="active"] .module-agent-entry-status {
+  border-color: color-mix(in srgb, var(--accent-cyan) 54%, var(--line-1));
+  color: var(--accent-fg);
+}
+
+.module-agent-entry-card h5 {
+  color: var(--fg-1);
+  font-size: 20px;
+  letter-spacing: 0;
+  line-height: 1.2;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.module-agent-entry-card p {
+  color: var(--fg-2);
+  line-height: 1.55;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.module-agent-entry-card .module-agent-entry-role {
+  margin-top: 5px;
+  color: var(--accent-fg);
+  font-size: 13px;
+}
+
+.module-agent-entry-card .mvp-action-button {
+  justify-self: start;
+  margin-top: 2px;
 }
 
 .module-entry-grid {
@@ -6368,6 +6522,11 @@ body {
   }
 
   .agent-landing-card .mvp-action-button {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .module-agent-entry-card .mvp-action-button {
     justify-self: stretch;
     width: 100%;
   }
