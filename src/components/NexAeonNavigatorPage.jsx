@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AGENT_SOURCES } from '../../lib/agent/sourceRegistry.js';
 import { NAVIGATOR_AGENT } from '../data/agentBrands.js';
+import {
+  AGENT_LANDING_COPY,
+  AGENT_STATUS,
+  getAgentLocale,
+  getPublicAgents,
+} from '../data/agentRegistry.js';
 
 const MAX_HISTORY_ITEMS = 4;
 const MAX_HISTORY_ITEM_CHARS = 1000;
@@ -257,6 +263,61 @@ function CitationCard({ citation, lang, navigate, ui }) {
   );
 }
 
+function getAgentLandingStatus(agent, copy) {
+  const isActiveNavigator = agent.status === AGENT_STATUS.active && agent.chatEnabled;
+  if (isActiveNavigator) {
+    return {
+      label: copy.active,
+      tone: 'active',
+    };
+  }
+
+  return {
+    label: `${copy.scaffold} / ${copy.comingSoon}`,
+    tone: 'scaffold',
+  };
+}
+
+function AgentLandingSection({ lang, navigate }) {
+  const copy = AGENT_LANDING_COPY[lang] || AGENT_LANDING_COPY.en;
+  const agents = getPublicAgents();
+
+  return (
+    <section className="agent-landing-section" aria-labelledby="agent-landing-title">
+      <div className="agent-landing-heading">
+        <span className="detail-module-label">{copy.eyebrow}</span>
+        <h2 id="agent-landing-title">{copy.title}</h2>
+        <p>{copy.intro}</p>
+      </div>
+
+      <div className="agent-landing-grid">
+        {agents.map((agent) => {
+          const localized = getAgentLocale(agent, lang);
+          const status = getAgentLandingStatus(agent, copy);
+
+          return (
+            <article className="agent-landing-card" data-status={status.tone} key={agent.key}>
+              <div className="agent-landing-card-top">
+                <span className="agent-landing-initial" aria-hidden="true">{agent.initial}</span>
+                <span className="agent-landing-status">{status.label}</span>
+              </div>
+              <h3>{agent.name}</h3>
+              <p>{localized.subtitle}</p>
+              <div className="agent-landing-meta">
+                <span>{localized.moduleLabel}</span>
+                <span>{agent.chatEnabled ? copy.active : copy.comingSoon}</span>
+              </div>
+              <button className="mvp-action-button" type="button" onClick={() => navigate(agent.route)}>
+                {copy.open}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function AssistantMessage({ message, lang, navigate, ui }) {
   const isSourcesOnly = message.mode === 'sources_only';
   const showFallback = isSourcesOnly && !message.content;
@@ -507,6 +568,8 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
           </button>
         ))}
       </section>
+
+      <AgentLandingSection lang={lang} navigate={navigate} />
     </article>
   );
 }
