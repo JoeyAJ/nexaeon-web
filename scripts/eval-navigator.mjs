@@ -140,6 +140,40 @@ function assertEqual(actual, expected, label) {
   }
 }
 
+function mockLocalizedAnswer(lang, sourceId = 'S1') {
+  if (lang === 'ko') return `이 공개 출처는 NexAeon의 정체성과 연구 인터페이스를 설명합니다. [${sourceId}]`;
+  if (lang === 'zh') return `這個公開來源說明 NexAeon 的身份與研究介面。 [${sourceId}]`;
+  return `This public source describes NexAeon identity and its research interface. [${sourceId}]`;
+}
+
+function mockLocalizedCitation(lang, source) {
+  if (lang === 'ko') {
+    return {
+      sourceId: source.sourceId,
+      title: 'NexAeon 아이덴티티',
+      summary: 'NexAeon의 정체성과 연구 인터페이스를 설명하는 공개 출처입니다.',
+      typeLabel: source.itemType || 'Source',
+      moduleLabel: source.moduleLabel || 'Identity',
+    };
+  }
+  if (lang === 'zh') {
+    return {
+      sourceId: source.sourceId,
+      title: 'NexAeon 身份',
+      summary: '說明 NexAeon 身份與研究介面的公開來源。',
+      typeLabel: source.itemType || 'Source',
+      moduleLabel: source.moduleLabel || 'Identity',
+    };
+  }
+  return {
+    sourceId: source.sourceId,
+    title: 'NexAeon Identity',
+    summary: 'A public source describing NexAeon identity and its research interface.',
+    typeLabel: source.itemType || 'Source',
+    moduleLabel: source.moduleLabel || 'Identity',
+  };
+}
+
 async function runCase(entry) {
   const intent = detectQueryIntent(entry.query);
   assertEqual(intent.intent, entry.expectedIntent, `${entry.id} intent`);
@@ -195,17 +229,29 @@ async function runCase(entry) {
 
   if (entry.validateCitationMarkers && numberedSources.length) {
     const valid = validateModelOutput({
-      answer: `${numberedSources[0].title} [S1]`,
+      answer: mockLocalizedAnswer(entry.lang),
       citedSourceIds: ['S1'],
       suggestedQuestions: ['What public demos are currently available?'],
+      localizedCitations: [mockLocalizedCitation(entry.lang, numberedSources[0])],
     }, numberedSources, { query: entry.query, lang: entry.lang, queryIntent: retrieval.queryIntent });
     if (!valid.ok || valid.citedSourceIds[0] !== 'S1') throw new Error(`${entry.id} citation validation failed`);
     const invalid = validateModelOutput({
-      answer: `${numberedSources[0].title} [S99]`,
+      answer: mockLocalizedAnswer(entry.lang, 'S99'),
       citedSourceIds: ['S99'],
       suggestedQuestions: [],
+      localizedCitations: [],
     }, numberedSources, { query: entry.query, lang: entry.lang, queryIntent: retrieval.queryIntent });
     if (invalid.ok) throw new Error(`${entry.id} invalid citation marker accepted`);
+  }
+
+  if (entry.validateLocalizedCitations && numberedSources.length) {
+    const valid = validateModelOutput({
+      answer: mockLocalizedAnswer(entry.lang),
+      citedSourceIds: ['S1'],
+      suggestedQuestions: [],
+      localizedCitations: [mockLocalizedCitation(entry.lang, numberedSources[0])],
+    }, numberedSources, { query: entry.query, lang: entry.lang, queryIntent: retrieval.queryIntent });
+    if (!valid.ok || valid.localizedCitations?.[0]?.sourceId !== 'S1') throw new Error(`${entry.id} localized citation validation failed`);
   }
 
   if (entry.validateSuggestedQuestions) {

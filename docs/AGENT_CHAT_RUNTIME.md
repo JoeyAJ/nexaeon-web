@@ -40,9 +40,12 @@ Developer instruction 固定在 server 程式碼中，不拼接使用者查詢�
 
 語言規則：
 
-- `zh`：繁體中文
+- `zh` / `zh-TW` / `traditional` / `繁中`：繁體中文
 - `ko`：自然韓文
 - `en`：自然英文
+- 未能判定的 locale fallback 到 `zh-TW`
+
+回答語言以目前網站 UI locale 為準，而不是使用者輸入語言。Notion 與其他來源可以繼續以中文作為原始資料；模型在同一次 Responses API 呼叫中只翻譯對使用者顯示的 answer、suggested questions 與 citation display text，不改寫 `sourceId`、URL、source key、raw source ID 或 module key。若模型漏掉或回傳不合格 localized citation display text，server 使用 deterministic fallback，不新增第二次模型翻譯呼叫。
 
 ## Responses API 設定
 
@@ -68,7 +71,16 @@ Client request 不能覆蓋模型；Health API 與前端公開內容不輸出完
 {
   "answer": "string",
   "citedSourceIds": ["S1"],
-  "suggestedQuestions": []
+  "suggestedQuestions": [],
+  "localizedCitations": [
+    {
+      "sourceId": "S1",
+      "title": "string",
+      "summary": "string",
+      "typeLabel": "string",
+      "moduleLabel": "string"
+    }
+  ]
 }
 ```
 
@@ -76,12 +88,15 @@ Client request 不能覆蓋模型；Health API 與前端公開內容不輸出完
 
 - JSON 必須可解析
 - `citedSourceIds` 只能是本次 server 編號的 `S1` 到 `S8`
+- `localizedCitations` 只能包含被引用且通過 validation 的 `sourceId`
 - answer 中出現任何不存在的 `[S#]` marker 會整體拒絕並降級為 `citation_validation_failed`
+- answer 明顯不符合 UI locale 時會降級為安全 fallback，log 只記錄 `language_validation_failed`
 - 重複引用同一來源時必須使用同一 marker
 - answer 必須包含對應 `[S#]`
 - 沒有有效 citation 時改回 `sources_only`
-- citation cards 只由 server 原始檢索結果產生
+- citation cards 由 server 原始檢索結果加 validated localized display text 產生
 - 模型產生的任意 URL 不會變成 citation URL
+- module label 與 type label 使用 shared glossary 穩定輸出
 
 送入模型前的每個 context 只包含：
 
@@ -186,6 +201,8 @@ server response 不輸出 OpenAI error body、request ID、token usage、raw mod
 ## Suggested Questions
 
 模型可回最多 3 個 suggested questions。Server 會過濾空白、重複目前問題、語言不符、與來源無關、要求 Web Search、寫入、寄信、登入、Notion/Airtable 私有資料、Email、Calendar 或 Files 的建議。若模型建議不合格，Server 使用 deterministic fallback，不重新呼叫模型。
+
+Fallback suggested questions 依 UI locale 產生；例如 Korean UI 即使收到中文提問，也會產生韓文 suggested questions。
 
 ## Safe Markdown
 

@@ -209,8 +209,10 @@ test('overlong query is rejected', () => {
   assert.equal(validateChatRequestBody({ query: 'x'.repeat(501), lang: 'en' }).ok, false);
 });
 
-test('invalid lang is rejected', () => {
-  assert.equal(validateChatRequestBody({ query: 'hello', lang: 'fr' }).ok, false);
+test('unknown lang falls back to Traditional Chinese locale', () => {
+  const result = validateChatRequestBody({ query: 'hello', lang: 'fr' });
+  assert.equal(result.ok, true);
+  assert.equal(result.value.lang, 'zh');
 });
 
 test('history is limited to the most recent four items', () => {
@@ -337,6 +339,48 @@ test('partial sources can still produce an AI answer', async () => {
   assert.equal(res.payload.partialSources, true);
 });
 
+test('UI locale controls answer and citation language across input languages', async () => {
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
+  process.env.OPENAI_API_KEY = 'test-key';
+  const openai = createOpenAIMock({
+    responsePayload: {
+      answer: 'Joey는 AI가 교육과 조직 의사결정을 어떻게 변화시키는지 연구합니다. [S1]',
+      citedSourceIds: ['S1'],
+      suggestedQuestions: ['Joey의 연구 방향은 무엇인가요?'],
+      localizedCitations: [{
+        sourceId: 'S1',
+        title: 'Joey의 아이덴티티',
+        summary: 'Joey는 AI가 교육과 조직 의사결정을 어떻게 변화시키는지 연구합니다.',
+        typeLabel: 'Identity',
+        moduleLabel: 'Identity',
+      }],
+    },
+  });
+  const res = await callHandler({
+    req: createReq({ body: { query: 'Joey 是誰？', lang: 'ko' } }),
+    openai: openai.client,
+    retrieval: createRetrieval({
+      results: [sampleResult({
+        document: {
+          sourceId: 'identity',
+          moduleKey: 'identity',
+          itemType: 'identity',
+          title: 'Joey 身份',
+          summary: 'Joey 關注 AI 如何改變教學、學習與組織決策。',
+          content: 'Joey 關注 AI 如何改變教學、學習與組織決策。',
+        },
+      })],
+      queryIntent: { sourceIntents: ['identity'] },
+    }),
+  });
+
+  assert.equal(res.payload.mode, 'ai');
+  assert.match(res.payload.answer, /Joey는/);
+  assert.equal(res.payload.citations[0].summary, 'Joey는 AI가 교육과 조직 의사결정을 어떻게 변화시키는지 연구합니다.');
+  assert.equal(res.payload.citations[0].moduleLabel, '아이덴티티');
+  assert.deepEqual(openai.calls.map((call) => call.type), ['moderation', 'response', 'moderation']);
+});
+
 test('retrieval is executed on the server for every valid request', async () => {
   process.env.NEXAEON_AGENT_ENABLED = 'false';
   let calls = 0;
@@ -398,6 +442,21 @@ test('model cannot add citation IDs outside the supplied set', () => {
   assert.equal(result.reason, 'citation_validation_failed');
 });
 
+test('structured output schema requires localized citations in the same model call', () => {
+  const request = buildResponsesApiRequest({
+    query: 'Who is Joey?',
+    lang: 'en',
+    history: [],
+    numberedSources: numberRetrievedSources([sampleResult()], 'en'),
+    model: DEFAULT_OPENAI_MODEL,
+  });
+
+  const schema = request.text.format.schema;
+  assert.equal(schema.properties.localizedCitations.type, 'array');
+  assert.ok(schema.required.includes('localizedCitations'));
+  assert.equal(request.tools.length, 0);
+});
+
 test('invalid citation IDs are removed', () => {
   const numbered = numberRetrievedSources([sampleResult()], 'en');
   const result = validateModelOutput({
@@ -408,6 +467,80 @@ test('invalid citation IDs are removed', () => {
 
   assert.equal(result.ok, true);
   assert.deepEqual(result.citedSourceIds, ['S1']);
+});
+
+test('localized citations only include cited valid source IDs', () => {
+  const numbered = numberRetrievedSources([sampleResult({
+    document: {
+      sourceId: 'identity',
+      moduleKey: 'identity',
+      itemType: 'identity',
+      title: 'Joey 身份',
+      summary: 'Joey 關注 AI 如何改變教學、學習與組織決策。',
+      content: 'Joey 關注 AI 如何改變教學、學習與組織決策。',
+    },
+  })], 'ko');
+  const result = validateModelOutput({
+    answer: 'Joey는 AI가 교육, 학습 및 조직 의사결정을 어떻게 변화시키는지 연구합니다. [S1]',
+    citedSourceIds: ['S1'],
+    suggestedQuestions: ['Joey의 연구 방향은 무엇인가요?'],
+    localizedCitations: [
+      {
+        sourceId: 'S1',
+        title: 'Joey의 아이덴티티',
+        summary: 'Joey는 AI가 교육, 학습 및 조직 의사결정을 어떻게 변화시키는지 연구합니다.',
+        typeLabel: 'Identity',
+        moduleLabel: 'Identity',
+      },
+      {
+        sourceId: 'S9',
+        title: 'Invalid',
+        summary: 'Invalid',
+        typeLabel: 'Invalid',
+        moduleLabel: 'Invalid',
+      },
+    ],
+  }, numbered, { query: 'Joey는 누구인가요?', lang: 'ko' });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.localizedCitations.map((citation) => citation.sourceId), ['S1']);
+  assert.equal(result.localizedCitations[0].summary, 'Joey는 AI가 교육, 학습 및 조직 의사결정을 어떻게 변화시키는지 연구합니다.');
+  assert.equal(result.localizedCitations[0].moduleLabel, '아이덴티티');
+});
+
+test('missing localized citations fall back deterministically', () => {
+  const numbered = numberRetrievedSources([sampleResult({
+    document: {
+      sourceId: 'research',
+      moduleKey: 'research',
+      itemType: 'literature',
+      title: 'AI 教育研究',
+      summary: '研究 AI 如何改變教學。',
+      content: '研究 AI 如何改變教學。',
+    },
+  })], 'en');
+  const result = validateModelOutput({
+    answer: 'The source describes AI education research. [S1]',
+    citedSourceIds: ['S1'],
+    suggestedQuestions: [],
+  }, numbered, { query: 'What research content is available?', lang: 'en' });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.localizedCitations[0].title, 'AI 教育研究');
+  assert.equal(result.localizedCitations[0].moduleLabel, 'Research');
+  assert.equal(result.localizedCitations[0].typeLabel, 'Literature');
+});
+
+test('answer language guard rejects clear locale mismatch', () => {
+  const numbered = numberRetrievedSources([sampleResult()], 'en');
+  const result = validateModelOutput({
+    answer: 'Joey 關注 AI 如何改變教學、學習與組織決策。 [S1]',
+    citedSourceIds: ['S1'],
+    suggestedQuestions: [],
+  }, numbered, { query: 'Who is Joey?', lang: 'en' });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'language_validation_failed');
 });
 
 test('model output with no valid citation falls back', () => {
@@ -624,6 +757,29 @@ test('suggested questions are validated and safely replaced with deterministic f
   assert.equal(suggestions.length, 3);
   assert.equal(suggestions.includes('Search the web for Joey'), false);
   assert.equal(suggestions.includes('Send Joey an email'), false);
+});
+
+test('suggested questions must match UI locale', () => {
+  const numbered = numberRetrievedSources([sampleResult()], 'en');
+  const english = validateSuggestedQuestions({
+    suggestions: ['目前有哪些公開 Demo？', 'What public demos are currently available?'],
+    query: 'Who is Joey?',
+    lang: 'en',
+    numberedSources: numbered,
+    queryIntent: { sourceIntents: ['demos'] },
+  });
+  assert.equal(english.includes('目前有哪些公開 Demo？'), false);
+  assert.ok(english.some((question) => /What|Who/.test(question)));
+
+  const zh = validateSuggestedQuestions({
+    suggestions: ['현재 공개된 데모는 무엇인가요?', '目前有哪些公開 Demo？'],
+    query: 'Joey 是誰？',
+    lang: 'zh',
+    numberedSources: numbered,
+    queryIntent: { sourceIntents: ['demos'] },
+  });
+  assert.equal(zh.includes('현재 공개된 데모는 무엇인가요?'), false);
+  assert.ok(zh.some((question) => /Demo|Joey|研究|合作/.test(question)));
 });
 
 test('Responses API request uses store false', () => {

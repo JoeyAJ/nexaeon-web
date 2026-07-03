@@ -7,7 +7,7 @@ tests/fixtures/navigator-evals.json
 scripts/eval-navigator.mjs
 ```
 
-The dataset currently contains 54 cases across Traditional Chinese, Korean, and English.
+The dataset currently contains 66 cases across Traditional Chinese, Korean, and English.
 
 ## Coverage
 
@@ -18,6 +18,8 @@ The dataset currently contains 54 cases across Traditional Chinese, Korean, and 
 - Partial source failure with mock endpoint failure.
 - Citation marker validation with valid `[S1]` and rejected invalid `[S99]`.
 - Suggested question validation for unsafe Web Search, email, Airtable/Notion, and write-like suggestions.
+- Shared localization validation for answer language, suggested questions, and localized citation display fields.
+- Cross-language stress cases where the UI locale differs from the user's input language.
 - Brand safety checks against the old Nexon spelling.
 
 The eval uses fixtures and mock fetch responses only. It does not require a real Production API key and does not call OpenAI.
@@ -32,5 +34,5 @@ Passing output should look like:
 
 ```text
 Navigator Offline Eval
-54/54 passed
+66/66 passed
 ```

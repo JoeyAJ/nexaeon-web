@@ -105,11 +105,25 @@ Model output invalid / citation validation failed：
 2. 系統不得重試模型。
 3. Demo catalog query 會顯示 deterministic sources-only list。
 
+Localization validation failed：
+
+1. 檢查 log category `language_validation_failed`。
+2. 系統不得重新呼叫模型或記錄原始 answer。
+3. Response 會降級為安全 fallback，並保留 server 檢索出的來源卡片。
+4. 確認 request 的 UI locale 正確；回答語言以 UI locale 為準，不以使用者輸入語言為準。
+
 Suggested Questions invalid：
 
 1. Server 會過濾不安全、重複、空白、跨語言或與來源無關的 suggested questions。
 2. 不重新呼叫模型。
 3. 使用 deterministic fallback，且不允許 Web Search、Email、Calendar、Files、Notion/Airtable 私有資料或寫入承諾。
+
+Localized Citation display invalid：
+
+1. `localizedCitations` 只能使用本次 cited source IDs。
+2. 若模型漏回、跨語言或包含 unsafe display text，server 會使用 deterministic fallback。
+3. Fallback 不翻譯 URL、sourceId、raw source ID、source key 或 module key。
+4. Notion 可以繼續以中文作為原始資料，不需要回寫三語欄位。
 
 Partial source failure：
 
@@ -196,6 +210,7 @@ OpenAI project spend limit requires manual configuration.
 - Citation marker `[S#]` 必須和 citation card 一對一。
 - `[S1]` 可鍵盤操作並平滑定位到 S1 citation card。
 - Safe Markdown 可顯示粗體、斜體、列表與 inline code，但不執行 HTML。
+- Citation card 優先顯示 localized title、summary、typeLabel、moduleLabel；Source ID、URL、更新時間不翻譯。
 - 手機版不可橫向溢出，input、送出、停止與清除按鈕不可重疊。
 - IME 中文／韓文 composition 狀態下 Enter 不送出。
 - 正常 AI request 仍維持 1 次 input moderation、1 次 Responses API、1 次 output moderation。

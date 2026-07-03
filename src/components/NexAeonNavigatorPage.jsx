@@ -222,18 +222,23 @@ function AnswerText({ text, ui }) {
 }
 
 function CitationCard({ citation, lang, navigate, ui }) {
+  const title = citation.localizedTitle || citation.title;
+  const summary = citation.localizedSummary || citation.summary || citation.excerpt;
+  const moduleLabel = citation.localizedModuleLabel || citation.moduleLabel;
+  const typeLabel = citation.localizedTypeLabel || citation.typeLabel || citation.itemType;
+
   return (
     <article className="agent-result-card" id={`citation-${citation.sourceId}`} tabIndex={-1}>
       <div className="agent-result-topline">
         <span>{citation.sourceId}</span>
-        <span>{citation.moduleLabel}</span>
-        {citation.itemType ? <span>{citation.itemType}</span> : null}
+        <span>{moduleLabel}</span>
+        {typeLabel ? <span>{typeLabel}</span> : null}
       </div>
-      <h2>{citation.title}</h2>
-      <p>{citation.excerpt}</p>
+      <h2>{title}</h2>
+      <p>{summary}</p>
       <div className="agent-result-meta">
-        <span>{ui.source}: {citation.moduleLabel}</span>
-        {citation.itemType ? <span>{ui.type}: {citation.itemType}</span> : null}
+        <span>{ui.source}: {moduleLabel}</span>
+        {typeLabel ? <span>{ui.type}: {typeLabel}</span> : null}
         {citation.updatedAt ? <span>{ui.updatedAt}: {formatDate(citation.updatedAt, lang)}</span> : null}
       </div>
       <div className="mvp-actions">
