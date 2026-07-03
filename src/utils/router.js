@@ -1,4 +1,5 @@
 import { NAVIGATOR_AGENT } from '../data/agentBrands.js';
+import { getAgentByRoute } from '../data/agentRegistry.js';
 
 const DETAIL_ROUTE_PATTERN = /^\/(identity|research|teaching|knowledge-lab|projects|field-lab)\/([^/]+)$/;
 const DEMO_RUNTIME_ROUTE_PATTERN = /^\/projects\/module-demos\/([^/]+)$/;
@@ -15,6 +16,14 @@ export function parseRoute(pathname) {
       kind: 'redirect',
       to: NAVIGATOR_AGENT.route,
       replace: true,
+    };
+  }
+
+  const agentRoute = getAgentByRoute(normalizedPath);
+  if (agentRoute && agentRoute.key !== 'navigator') {
+    return {
+      kind: 'agentScaffold',
+      key: agentRoute.key,
     };
   }
 

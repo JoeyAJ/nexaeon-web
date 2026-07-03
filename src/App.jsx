@@ -5,6 +5,8 @@ import DemoRuntimePage from './components/DemoRuntimePage.jsx';
 import DetailPage from './components/DetailPage.jsx';
 import RoleDetailPage from './components/RoleDetailPage.jsx';
 import AppErrorBoundary, { getGuardrailCopy, GuardrailStatePage } from './components/AppErrorBoundary.jsx';
+import AgentScaffoldPage from './components/AgentScaffoldPage.jsx';
+import { getAgentByKey } from './data/agentRegistry.js';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
 const BACK_TO_TOP_TEXT = {
@@ -128,6 +130,16 @@ export default function App() {
           />
         ) : route.kind === 'role' ? (
           <RoleDetailPage role={route.role} navigate={navigate} navigateBack={navigateBack} lang={lang} setLang={setLang} />
+        ) : route.kind === 'agentScaffold' ? (
+          <AgentScaffoldPage
+            agent={getAgentByKey(route.key)}
+            navigate={navigate}
+            navigateBack={navigateBack}
+            lang={lang}
+            setLang={setLang}
+            theme={theme}
+            setTheme={setTheme}
+          />
         ) : route.kind === 'invalid' || route.kind === 'redirect' ? (
           <GuardrailStatePage
             lang={lang}
