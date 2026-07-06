@@ -6,6 +6,7 @@ import DetailPage from './components/DetailPage.jsx';
 import RoleDetailPage from './components/RoleDetailPage.jsx';
 import AppErrorBoundary, { getGuardrailCopy, GuardrailStatePage } from './components/AppErrorBoundary.jsx';
 import AgentScaffoldPage from './components/AgentScaffoldPage.jsx';
+import { Companion } from './components/Companion/index.js';
 import { getAgentByKey } from './data/agentRegistry.js';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
@@ -164,6 +165,7 @@ export default function App() {
           />
         )}
       </AppErrorBoundary>
+      <Companion lang={lang} />
       <BackToTopButton lang={lang} />
     </div>
   );
