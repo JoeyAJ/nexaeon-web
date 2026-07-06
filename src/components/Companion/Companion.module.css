@@ -1,12 +1,12 @@
 .root {
   --companion-x: 0px;
   --companion-y: 0px;
-  --companion-width: 132px;
-  --companion-height: 214px;
-  --companion-frame-width: 132px;
-  --companion-frame-height: 214px;
-  --companion-frame-x: -30px;
-  --companion-frame-y: -12px;
+  --companion-width: 114px;
+  --companion-height: 198px;
+  --companion-frame-width: 114px;
+  --companion-frame-height: 198px;
+  --companion-frame-x: -39px;
+  --companion-frame-y: -5px;
   --companion-sprite-url: url('/companion/princess/spritesheet.webp');
 
   position: fixed;
@@ -24,6 +24,7 @@
   user-select: none;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
   will-change: transform;
 }
 
@@ -70,7 +71,7 @@
   background-image: var(--companion-sprite-url);
   background-repeat: no-repeat;
   background-position: var(--companion-frame-x) var(--companion-frame-y);
-  background-size: auto;
+  background-size: 1536px 1872px;
   filter: drop-shadow(0 12px 16px rgba(0, 0, 0, 0.24));
 }
 

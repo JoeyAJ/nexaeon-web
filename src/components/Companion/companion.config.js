@@ -32,7 +32,7 @@ export const COMPANION_STATE_DURATION = Object.freeze({
 });
 
 export function getCompanionSize() {
-  return { width: 132, height: 214, edge: 24, bottomOffset: 96 };
+  return { width: 114, height: 198, edge: 24, bottomOffset: 96 };
 }
 
 export function getDefaultCompanionPosition(viewportWidth, viewportHeight, size) {
