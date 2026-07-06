@@ -31,16 +31,8 @@ export const COMPANION_STATE_DURATION = Object.freeze({
   tap: 1_250,
 });
 
-export function getCompanionSize(viewportWidth = window.innerWidth) {
-  if (viewportWidth <= 560) {
-    return { width: 86, height: 112, edge: 14, bottomOffset: 82 };
-  }
-
-  if (viewportWidth <= 900) {
-    return { width: 104, height: 136, edge: 18, bottomOffset: 92 };
-  }
-
-  return { width: 126, height: 164, edge: 24, bottomOffset: 96 };
+export function getCompanionSize() {
+  return { width: 132, height: 214, edge: 24, bottomOffset: 96 };
 }
 
 export function getDefaultCompanionPosition(viewportWidth, viewportHeight, size) {

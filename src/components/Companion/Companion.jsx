@@ -13,7 +13,6 @@ import {
   resolveSpritesheetUrl,
 } from './companion.config.js';
 import {
-  SPRITESHEET_SIZE,
   getCompanionFrame,
 } from './companionSprite.js';
 import { COMPANION_STATES } from './companion.types.js';
@@ -65,7 +64,7 @@ export default function Companion({ lang = 'zh' }) {
   });
 
   const spritesheetUrl = useMemo(() => resolveSpritesheetUrl(metadata), [metadata]);
-  const currentFrame = getCompanionFrame(COMPANION_STATES.idle, 0);
+  const currentFrame = getCompanionFrame();
   const label = COMPANION_LABELS[lang] || COMPANION_LABELS.en;
 
   useEffect(() => {
@@ -192,6 +191,11 @@ export default function Companion({ lang = 'zh' }) {
         '--companion-y': `${position.y}px`,
         '--companion-width': `${getCompanionSize(getViewport().width).width}px`,
         '--companion-height': `${getCompanionSize(getViewport().width).height}px`,
+        '--companion-sprite-url': `url("${spritesheetUrl}")`,
+        '--companion-frame-x': `-${currentFrame.x}px`,
+        '--companion-frame-y': `-${currentFrame.y}px`,
+        '--companion-frame-width': `${currentFrame.width}px`,
+        '--companion-frame-height': `${currentFrame.height}px`,
       }}
       aria-label={label}
       title={metadata.displayName}
@@ -203,20 +207,7 @@ export default function Companion({ lang = 'zh' }) {
     >
       <span className={styles.frameShell} aria-hidden="true">
         <span className={styles.floatMotion}>
-          <svg
-            className={styles.spriteSvg}
-            viewBox={`${currentFrame.x} ${currentFrame.y} ${currentFrame.width} ${currentFrame.height}`}
-            preserveAspectRatio="xMidYMid meet"
-            focusable="false"
-          >
-            <image
-              href={spritesheetUrl}
-              x="0"
-              y="0"
-              width={SPRITESHEET_SIZE.width}
-              height={SPRITESHEET_SIZE.height}
-            />
-          </svg>
+          <span className={styles.companionFrame} />
         </span>
       </span>
     </button>
