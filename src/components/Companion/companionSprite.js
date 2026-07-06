@@ -11,6 +11,24 @@ export const PRINCESS_FRAMES = Object.freeze({
     width: 114,
     height: 198,
   }),
+  tilt: Object.freeze({
+    x: 190,
+    y: 5,
+    width: 114,
+    height: 198,
+  }),
+  lookLeft: Object.freeze({
+    x: 190,
+    y: 5,
+    width: 114,
+    height: 198,
+  }),
+  lookRight: Object.freeze({
+    x: 493,
+    y: 5,
+    width: 114,
+    height: 198,
+  }),
 });
 
 export const IDLE_COMPANION_FRAME = PRINCESS_FRAMES.idle;

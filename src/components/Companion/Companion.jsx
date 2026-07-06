@@ -5,6 +5,8 @@ import {
   COMPANION_LABELS,
   COMPANION_PET_MANIFEST,
   COMPANION_POSITION_KEY,
+  COMPANION_STATE_DURATION,
+  COMPANION_TIMING,
   DEFAULT_PRINCESS_METADATA,
   clampCompanionPosition,
   getCompanionSize,
@@ -17,8 +19,36 @@ import {
 } from './companionSprite.js';
 import { COMPANION_STATES } from './companion.types.js';
 
-const BLINK_INTERVAL_MS = 20_000;
-const BLINK_DURATION_MS = 400;
+const LOOK_LEFT_FRAME = 'lookLeft';
+const LOOK_RIGHT_FRAME = 'lookRight';
+
+const ANIMATION_INTERVALS = Object.freeze({
+  [COMPANION_STATES.blink]: COMPANION_TIMING.blinkMs,
+  [COMPANION_STATES.tilt]: COMPANION_TIMING.tiltMs,
+  [COMPANION_STATES.lookAround]: COMPANION_TIMING.lookAroundMs,
+});
+
+const ANIMATION_PRIORITY = Object.freeze([
+  COMPANION_STATES.lookAround,
+  COMPANION_STATES.tilt,
+  COMPANION_STATES.blink,
+]);
+
+const ANIMATION_SEQUENCES = Object.freeze({
+  [COMPANION_STATES.blink]: Object.freeze([
+    Object.freeze({ frame: COMPANION_STATES.blink, duration: COMPANION_STATE_DURATION.blink }),
+    Object.freeze({ frame: COMPANION_STATES.idle, duration: COMPANION_STATE_DURATION.blinkGap }),
+    Object.freeze({ frame: COMPANION_STATES.blink, duration: COMPANION_STATE_DURATION.blink }),
+  ]),
+  [COMPANION_STATES.tilt]: Object.freeze([
+    Object.freeze({ frame: COMPANION_STATES.tilt, duration: COMPANION_STATE_DURATION.tilt }),
+  ]),
+  [COMPANION_STATES.lookAround]: Object.freeze([
+    Object.freeze({ frame: LOOK_LEFT_FRAME, duration: COMPANION_STATE_DURATION.lookAroundFrame }),
+    Object.freeze({ frame: COMPANION_STATES.idle, duration: COMPANION_STATE_DURATION.lookAroundIdleGap }),
+    Object.freeze({ frame: LOOK_RIGHT_FRAME, duration: COMPANION_STATE_DURATION.lookAroundFrame }),
+  ]),
+});
 
 function readStoredPosition() {
   try {
@@ -58,6 +88,9 @@ export default function Companion({ lang = 'zh' }) {
   const [isDragging, setIsDragging] = useState(false);
   const [currentFrameName, setCurrentFrameName] = useState(COMPANION_STATES.idle);
 
+  const animationRef = useRef({
+    isDragging: false,
+  });
   const dragRef = useRef({
     active: false,
     pointerId: null,
@@ -91,19 +124,66 @@ export default function Companion({ lang = 'zh' }) {
   }, []);
 
   useEffect(() => {
-    let blinkTimeoutId = null;
-    const blinkIntervalId = window.setInterval(() => {
-      setCurrentFrameName(COMPANION_STATES.blink);
-      blinkTimeoutId = window.setTimeout(() => {
+    let isCancelled = false;
+    const timeoutIds = new Set();
+
+    const wait = (duration) => new Promise((resolve) => {
+      const timeoutId = window.setTimeout(() => {
+        timeoutIds.delete(timeoutId);
+        resolve();
+      }, duration);
+      timeoutIds.add(timeoutId);
+    });
+
+    const nextDueAt = new Map(ANIMATION_PRIORITY.map((animationName) => [
+      animationName,
+      Date.now() + ANIMATION_INTERVALS[animationName],
+    ]));
+
+    const playAnimation = async (animationName) => {
+      const sequence = ANIMATION_SEQUENCES[animationName] || [];
+
+      for (const step of sequence) {
+        if (isCancelled || animationRef.current.isDragging) break;
+        setCurrentFrameName(step.frame);
+        await wait(step.duration);
+      }
+
+      if (!isCancelled) {
         setCurrentFrameName(COMPANION_STATES.idle);
-      }, BLINK_DURATION_MS);
-    }, BLINK_INTERVAL_MS);
+      }
+    };
+
+    const runAnimationScheduler = async () => {
+      while (!isCancelled) {
+        if (animationRef.current.isDragging) {
+          await wait(250);
+          continue;
+        }
+
+        const now = Date.now();
+        const nextAnimationName = ANIMATION_PRIORITY.find(
+          (animationName) => nextDueAt.get(animationName) <= now,
+        );
+
+        if (!nextAnimationName) {
+          const nextDelay = Math.min(
+            ...Array.from(nextDueAt.values()).map((dueAt) => dueAt - now),
+          );
+          await wait(Math.max(100, nextDelay));
+          continue;
+        }
+
+        await playAnimation(nextAnimationName);
+        nextDueAt.set(nextAnimationName, Date.now() + ANIMATION_INTERVALS[nextAnimationName]);
+      }
+    };
+
+    runAnimationScheduler();
 
     return () => {
-      window.clearInterval(blinkIntervalId);
-      if (blinkTimeoutId !== null) {
-        window.clearTimeout(blinkTimeoutId);
-      }
+      isCancelled = true;
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
   }, []);
 
@@ -148,7 +228,9 @@ export default function Companion({ lang = 'zh' }) {
     };
 
     event.currentTarget.setPointerCapture?.(event.pointerId);
+    animationRef.current.isDragging = true;
     setIsDragging(true);
+    setCurrentFrameName(COMPANION_STATES.idle);
     event.preventDefault();
   }, [getSafePosition]);
 
@@ -184,6 +266,7 @@ export default function Companion({ lang = 'zh' }) {
 
     event.currentTarget.releasePointerCapture?.(event.pointerId);
     dragRef.current.active = false;
+    animationRef.current.isDragging = false;
     setIsDragging(false);
 
     if (position) {
@@ -196,7 +279,9 @@ export default function Companion({ lang = 'zh' }) {
   const handlePointerCancel = useCallback((event) => {
     if (dragRef.current.pointerId === event.pointerId) {
       dragRef.current.active = false;
+      animationRef.current.isDragging = false;
       setIsDragging(false);
+      setCurrentFrameName(COMPANION_STATES.idle);
     }
   }, []);
 

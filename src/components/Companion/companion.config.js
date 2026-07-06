@@ -24,9 +24,11 @@ export const COMPANION_TIMING = Object.freeze({
 });
 
 export const COMPANION_STATE_DURATION = Object.freeze({
-  blink: 900,
-  tilt: 1_250,
-  lookAround: 1_650,
+  blink: 800,
+  blinkGap: 150,
+  tilt: 1_000,
+  lookAroundFrame: 700,
+  lookAroundIdleGap: 150,
   wake: 900,
   tap: 1_250,
 });

@@ -1,5 +1,5 @@
 /**
- * @typedef {'idle' | 'blink' | 'tilt' | 'lookAround' | 'walk' | 'sleep' | 'wake' | 'tap'} CompanionState
+ * @typedef {'idle' | 'blink' | 'tilt' | 'lookAround' | 'lookLeft' | 'lookRight' | 'walk' | 'sleep' | 'wake' | 'tap'} CompanionState
  */
 
 /**
