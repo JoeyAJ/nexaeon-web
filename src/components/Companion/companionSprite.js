@@ -10,7 +10,6 @@ export const SPRITESHEET_SIZE = Object.freeze({
 export const COMPANION_FRAME_SETS = Object.freeze({
   [COMPANION_STATES.idle]: [
     { x: 30, y: 12, width: 132, height: 214 },
-    { x: 218, y: 12, width: 134, height: 214 },
   ],
   [COMPANION_STATES.blink]: [
     { x: 218, y: 12, width: 134, height: 214 },

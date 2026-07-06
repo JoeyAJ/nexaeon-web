@@ -42,17 +42,9 @@
   outline-offset: 5px;
 }
 
-.ready {
-  animation: companionArrive 420ms var(--ease-out, ease-out);
-}
-
 .dragging {
   cursor: grabbing;
   transition: none;
-}
-
-.sleeping {
-  opacity: 0.88;
 }
 
 .frameShell {
@@ -75,12 +67,6 @@
   width: 100%;
   height: 100%;
   transform-origin: 50% 92%;
-  animation: princessFloat 5.5s ease-in-out infinite;
-}
-
-.dragging .floatMotion,
-.sleeping .floatMotion {
-  animation-play-state: paused;
 }
 
 [data-theme="light"] .root::before {
@@ -107,35 +93,5 @@
   .root::before {
     inset: 14% 0 4%;
     backdrop-filter: blur(8px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ready,
-  .floatMotion {
-    animation: none;
-  }
-}
-
-@keyframes princessFloat {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-
-  50% {
-    transform: translate3d(0, -3px, 0);
-  }
-}
-
-@keyframes companionArrive {
-  from {
-    opacity: 0;
-    transform: translate3d(var(--companion-x), calc(var(--companion-y) + 8px), 0) scale(0.96);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate3d(var(--companion-x), var(--companion-y), 0) scale(1);
   }
 }
