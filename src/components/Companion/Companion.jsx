@@ -17,6 +17,9 @@ import {
 } from './companionSprite.js';
 import { COMPANION_STATES } from './companion.types.js';
 
+const BLINK_INTERVAL_MS = 20_000;
+const BLINK_DURATION_MS = 400;
+
 function readStoredPosition() {
   try {
     return parseSavedCompanionPosition(window.localStorage.getItem(COMPANION_POSITION_KEY));
@@ -53,6 +56,7 @@ export default function Companion({ lang = 'zh' }) {
   const [metadata, setMetadata] = useState(DEFAULT_PRINCESS_METADATA);
   const [position, setPosition] = useState(() => getInitialPosition());
   const [isDragging, setIsDragging] = useState(false);
+  const [currentFrameName, setCurrentFrameName] = useState(COMPANION_STATES.idle);
 
   const dragRef = useRef({
     active: false,
@@ -64,7 +68,7 @@ export default function Companion({ lang = 'zh' }) {
   });
 
   const spritesheetUrl = useMemo(() => resolveSpritesheetUrl(metadata), [metadata]);
-  const currentFrame = getCompanionFrame();
+  const currentFrame = getCompanionFrame(currentFrameName);
   const label = COMPANION_LABELS[lang] || COMPANION_LABELS.en;
 
   useEffect(() => {
@@ -83,6 +87,23 @@ export default function Companion({ lang = 'zh' }) {
 
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let blinkTimeoutId = null;
+    const blinkIntervalId = window.setInterval(() => {
+      setCurrentFrameName(COMPANION_STATES.blink);
+      blinkTimeoutId = window.setTimeout(() => {
+        setCurrentFrameName(COMPANION_STATES.idle);
+      }, BLINK_DURATION_MS);
+    }, BLINK_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(blinkIntervalId);
+      if (blinkTimeoutId !== null) {
+        window.clearTimeout(blinkTimeoutId);
+      }
     };
   }, []);
 
@@ -199,7 +220,7 @@ export default function Companion({ lang = 'zh' }) {
       }}
       aria-label={label}
       title={metadata.displayName}
-      data-companion-state={COMPANION_STATES.idle}
+      data-companion-state={currentFrameName}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
