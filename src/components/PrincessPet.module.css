@@ -45,8 +45,29 @@
     princess-sit-breathe 6.8s ease-in-out infinite alternate;
 }
 
+.waveAlive {
+  animation:
+    princess-wave-bob 1.4s ease-in-out;
+}
+
 .frameLayer {
   min-width: 0;
+}
+
+.interactiveLayer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  transform-origin: 50% 100%;
+  overflow: visible;
 }
 
 .aliveLayer[data-state="walkLeft"] .frameLayer,
@@ -104,6 +125,24 @@
   }
 }
 
+@keyframes princess-wave-bob {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  35% {
+    transform: translateY(-3px) rotate(-1deg);
+  }
+
+  70% {
+    transform: translateY(-1px) rotate(1deg);
+  }
+
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
 .debugLabel {
   position: absolute;
   left: 50%;
@@ -131,6 +170,7 @@
   .motionLayer,
   .aliveLayer,
   .frameLayer,
+  .interactiveLayer,
   .image {
     animation: none !important;
     transition: none !important;

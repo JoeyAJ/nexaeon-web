@@ -49,4 +49,17 @@ export const princessAnimations = {
       '/pet/princess/frames/frame-051.png',
     ],
   },
+  wave: {
+    name: 'wave',
+    label: 'Paw / Wave / 抬手打招呼',
+    fps: 3,
+    loop: false,
+    frames: [
+      '/pet/princess/frames/frame-023.png',
+      '/pet/princess/frames/frame-024.png',
+      '/pet/princess/frames/frame-025.png',
+      '/pet/princess/frames/frame-024.png',
+      '/pet/princess/frames/frame-023.png',
+    ],
+  },
 } as const;
