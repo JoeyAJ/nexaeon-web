@@ -5,50 +5,13 @@ import {
   COMPANION_LABELS,
   COMPANION_PET_MANIFEST,
   COMPANION_POSITION_KEY,
-  COMPANION_STATE_DURATION,
-  COMPANION_TIMING,
   DEFAULT_PRINCESS_METADATA,
   clampCompanionPosition,
   getCompanionSize,
   getDefaultCompanionPosition,
   parseSavedCompanionPosition,
-  resolveSpritesheetUrl,
+  resolveCompanionImageUrl,
 } from './companion.config.js';
-import {
-  getCompanionFrame,
-} from './companionSprite.js';
-import { COMPANION_STATES } from './companion.types.js';
-
-const LOOK_LEFT_FRAME = 'lookLeft';
-const LOOK_RIGHT_FRAME = 'lookRight';
-
-const ANIMATION_INTERVALS = Object.freeze({
-  [COMPANION_STATES.blink]: COMPANION_TIMING.blinkMs,
-  [COMPANION_STATES.tilt]: COMPANION_TIMING.tiltMs,
-  [COMPANION_STATES.lookAround]: COMPANION_TIMING.lookAroundMs,
-});
-
-const ANIMATION_PRIORITY = Object.freeze([
-  COMPANION_STATES.lookAround,
-  COMPANION_STATES.tilt,
-  COMPANION_STATES.blink,
-]);
-
-const ANIMATION_SEQUENCES = Object.freeze({
-  [COMPANION_STATES.blink]: Object.freeze([
-    Object.freeze({ frame: COMPANION_STATES.blink, duration: COMPANION_STATE_DURATION.blink }),
-    Object.freeze({ frame: COMPANION_STATES.idle, duration: COMPANION_STATE_DURATION.blinkGap }),
-    Object.freeze({ frame: COMPANION_STATES.blink, duration: COMPANION_STATE_DURATION.blink }),
-  ]),
-  [COMPANION_STATES.tilt]: Object.freeze([
-    Object.freeze({ frame: COMPANION_STATES.tilt, duration: COMPANION_STATE_DURATION.tilt }),
-  ]),
-  [COMPANION_STATES.lookAround]: Object.freeze([
-    Object.freeze({ frame: LOOK_LEFT_FRAME, duration: COMPANION_STATE_DURATION.lookAroundFrame }),
-    Object.freeze({ frame: COMPANION_STATES.idle, duration: COMPANION_STATE_DURATION.lookAroundIdleGap }),
-    Object.freeze({ frame: LOOK_RIGHT_FRAME, duration: COMPANION_STATE_DURATION.lookAroundFrame }),
-  ]),
-});
 
 function readStoredPosition() {
   try {
@@ -86,7 +49,6 @@ export default function Companion({ lang = 'zh' }) {
   const [metadata, setMetadata] = useState(DEFAULT_PRINCESS_METADATA);
   const [position, setPosition] = useState(() => getInitialPosition());
   const [isDragging, setIsDragging] = useState(false);
-  const [currentFrameName, setCurrentFrameName] = useState(COMPANION_STATES.idle);
 
   const animationRef = useRef({
     isDragging: false,
@@ -100,8 +62,7 @@ export default function Companion({ lang = 'zh' }) {
     moved: false,
   });
 
-  const spritesheetUrl = useMemo(() => resolveSpritesheetUrl(metadata), [metadata]);
-  const currentFrame = getCompanionFrame(currentFrameName);
+  const imageUrl = useMemo(() => resolveCompanionImageUrl(metadata), [metadata]);
   const label = COMPANION_LABELS[lang] || COMPANION_LABELS.en;
 
   useEffect(() => {
@@ -120,70 +81,6 @@ export default function Companion({ lang = 'zh' }) {
 
     return () => {
       isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isCancelled = false;
-    const timeoutIds = new Set();
-
-    const wait = (duration) => new Promise((resolve) => {
-      const timeoutId = window.setTimeout(() => {
-        timeoutIds.delete(timeoutId);
-        resolve();
-      }, duration);
-      timeoutIds.add(timeoutId);
-    });
-
-    const nextDueAt = new Map(ANIMATION_PRIORITY.map((animationName) => [
-      animationName,
-      Date.now() + ANIMATION_INTERVALS[animationName],
-    ]));
-
-    const playAnimation = async (animationName) => {
-      const sequence = ANIMATION_SEQUENCES[animationName] || [];
-
-      for (const step of sequence) {
-        if (isCancelled || animationRef.current.isDragging) break;
-        setCurrentFrameName(step.frame);
-        await wait(step.duration);
-      }
-
-      if (!isCancelled) {
-        setCurrentFrameName(COMPANION_STATES.idle);
-      }
-    };
-
-    const runAnimationScheduler = async () => {
-      while (!isCancelled) {
-        if (animationRef.current.isDragging) {
-          await wait(250);
-          continue;
-        }
-
-        const now = Date.now();
-        const nextAnimationName = ANIMATION_PRIORITY.find(
-          (animationName) => nextDueAt.get(animationName) <= now,
-        );
-
-        if (!nextAnimationName) {
-          const nextDelay = Math.min(
-            ...Array.from(nextDueAt.values()).map((dueAt) => dueAt - now),
-          );
-          await wait(Math.max(100, nextDelay));
-          continue;
-        }
-
-        await playAnimation(nextAnimationName);
-        nextDueAt.set(nextAnimationName, Date.now() + ANIMATION_INTERVALS[nextAnimationName]);
-      }
-    };
-
-    runAnimationScheduler();
-
-    return () => {
-      isCancelled = true;
-      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
   }, []);
 
@@ -230,7 +127,6 @@ export default function Companion({ lang = 'zh' }) {
     event.currentTarget.setPointerCapture?.(event.pointerId);
     animationRef.current.isDragging = true;
     setIsDragging(true);
-    setCurrentFrameName(COMPANION_STATES.idle);
     event.preventDefault();
   }, [getSafePosition]);
 
@@ -281,7 +177,6 @@ export default function Companion({ lang = 'zh' }) {
       dragRef.current.active = false;
       animationRef.current.isDragging = false;
       setIsDragging(false);
-      setCurrentFrameName(COMPANION_STATES.idle);
     }
   }, []);
 
@@ -297,23 +192,28 @@ export default function Companion({ lang = 'zh' }) {
         '--companion-y': `${position.y}px`,
         '--companion-width': `${getCompanionSize(getViewport().width).width}px`,
         '--companion-height': `${getCompanionSize(getViewport().width).height}px`,
-        '--companion-sprite-url': `url("${spritesheetUrl}")`,
-        '--companion-frame-x': `-${currentFrame.x}px`,
-        '--companion-frame-y': `-${currentFrame.y}px`,
-        '--companion-frame-width': `${currentFrame.width}px`,
-        '--companion-frame-height': `${currentFrame.height}px`,
       }}
       aria-label={label}
       title={metadata.displayName}
-      data-companion-state={currentFrameName}
+      data-companion-state={isDragging ? 'dragging' : 'idle'}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
       <span className={styles.frameShell} aria-hidden="true">
-        <span className={styles.floatMotion}>
-          <span className={styles.companionFrame} />
+        <span className={styles.attentionMotion}>
+          <span className={styles.swayMotion}>
+            <span className={styles.breathMotion}>
+              <img
+                className={styles.companionImage}
+                src={imageUrl}
+                alt=""
+                draggable="false"
+                decoding="async"
+              />
+            </span>
+          </span>
         </span>
       </span>
     </button>

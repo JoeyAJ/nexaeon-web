@@ -6,7 +6,7 @@ export const DEFAULT_PRINCESS_METADATA = Object.freeze({
   id: 'princess-nexon',
   displayName: 'Princess Nexon',
   description: 'Princess companion',
-  spritesheetPath: 'spritesheet.webp',
+  imagePath: 'princess-full.webp',
 });
 
 export const COMPANION_LABELS = Object.freeze({
@@ -15,26 +15,19 @@ export const COMPANION_LABELS = Object.freeze({
   en: 'Princess Companion. Click to interact and drag to move her position.',
 });
 
-export const COMPANION_TIMING = Object.freeze({
-  blinkMs: 20_000,
-  tiltMs: 40_000,
-  lookAroundMs: 60_000,
-  sleepAfterMs: 300_000,
-  reducedMotionIdlePulseMs: 90_000,
-});
+const PRINCESS_IMAGE_RATIO = 242 / 170;
 
-export const COMPANION_STATE_DURATION = Object.freeze({
-  blink: 800,
-  blinkGap: 150,
-  tilt: 1_000,
-  lookAroundFrame: 700,
-  lookAroundIdleGap: 150,
-  wake: 900,
-  tap: 1_250,
-});
+export function getCompanionSize(viewportWidth = 1280) {
+  const width = viewportWidth < 480
+    ? Math.min(Math.max(viewportWidth * 0.21, 72), 96)
+    : Math.min(Math.max(viewportWidth * 0.12, 96), 160);
 
-export function getCompanionSize() {
-  return { width: 114, height: 198, edge: 24, bottomOffset: 96 };
+  return {
+    width: Math.round(width),
+    height: Math.round(width * PRINCESS_IMAGE_RATIO),
+    edge: viewportWidth < 480 ? 18 : 24,
+    bottomOffset: viewportWidth < 480 ? 86 : 96,
+  };
 }
 
 export function getDefaultCompanionPosition(viewportWidth, viewportHeight, size) {
@@ -66,8 +59,8 @@ export function parseSavedCompanionPosition(rawValue) {
   }
 }
 
-export function resolveSpritesheetUrl(metadata) {
-  const path = metadata?.spritesheetPath || DEFAULT_PRINCESS_METADATA.spritesheetPath;
+export function resolveCompanionImageUrl(metadata) {
+  const path = metadata?.imagePath || DEFAULT_PRINCESS_METADATA.imagePath;
 
   if (/^https?:\/\//i.test(path) || path.startsWith('/')) {
     return path;
