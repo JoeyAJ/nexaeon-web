@@ -3,6 +3,7 @@ import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
 import ModuleAgentEntry, { ModuleAgentIndicator } from './ModuleAgentEntry.jsx';
 import NeuralBackground from './NeuralBackground.jsx';
 import { getLocalizedSite } from '../lib/contentSource.js';
+import { dispatchPetHappy } from '../lib/petEvents.js';
 import { toDetailPath } from '../utils/router.js';
 
 const INTRO_SEEN_KEY = 'nexaeon_intro_seen';
@@ -110,6 +111,7 @@ function Nav({
     setActiveModuleId(moduleId);
     navigate(`/#${moduleId}`, { scroll: false });
     setIsMobileMenuOpen(false);
+    dispatchPetHappy();
   };
 
   return (
@@ -258,6 +260,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
     setActiveModuleId(moduleId);
     navigate(`/#${moduleId}`, { scroll: false });
     requestAnimationFrame(() => scrollToSection('module-entries'));
+    dispatchPetHappy();
   };
 
   return (

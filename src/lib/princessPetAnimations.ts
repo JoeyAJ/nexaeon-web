@@ -71,4 +71,16 @@ export const princessAnimations = {
       '/pet/princess/frames/frame-035.png',
     ],
   },
+  happy: {
+    name: 'happy',
+    label: 'Happy / Excited / 開心',
+    fps: 4,
+    loop: false,
+    frames: [
+      '/pet/princess/frames/frame-052.png',
+      '/pet/princess/frames/frame-053.png',
+      '/pet/princess/frames/frame-056.png',
+      '/pet/princess/frames/frame-057.png',
+    ],
+  },
 } as const;
