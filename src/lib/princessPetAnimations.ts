@@ -83,4 +83,13 @@ export const princessAnimations = {
       '/pet/princess/frames/frame-057.png',
     ],
   },
+  quiet: {
+    name: 'quiet',
+    label: 'Quiet / Lonely / 安靜低落',
+    fps: 1,
+    loop: true,
+    frames: [
+      '/pet/princess/frames/frame-039.png',
+    ],
+  },
 } as const;
