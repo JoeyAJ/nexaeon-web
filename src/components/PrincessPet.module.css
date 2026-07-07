@@ -1,0 +1,77 @@
+.root {
+  position: fixed;
+  right: clamp(18px, 4vw, 52px);
+  bottom: clamp(18px, 4vw, 48px);
+  z-index: 50;
+  width: clamp(88px, 11vw, 148px);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.breathMotion,
+.swayMotion {
+  display: block;
+  width: 100%;
+  transform-origin: 50% 100%;
+  overflow: visible;
+}
+
+.breathMotion {
+  animation:
+    princess-breathe 5.8s ease-in-out infinite alternate;
+}
+
+.swayMotion {
+  animation:
+    princess-sway 7.2s ease-in-out infinite alternate;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  object-position: center bottom;
+  user-select: none;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 1;
+  transition: opacity 120ms ease;
+}
+
+@keyframes princess-breathe {
+  0% {
+    transform: translateY(0) scale(0.992);
+  }
+
+  100% {
+    transform: translateY(-4px) scale(1.012);
+  }
+}
+
+@keyframes princess-sway {
+  0% {
+    rotate: -0.8deg;
+  }
+
+  100% {
+    rotate: 0.8deg;
+  }
+}
+
+@media (max-width: 520px) {
+  .root {
+    right: clamp(14px, 4vw, 22px);
+    bottom: clamp(68px, 12vh, 92px);
+    width: clamp(76px, 22vw, 98px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathMotion,
+  .swayMotion,
+  .image {
+    animation: none !important;
+    transition: none !important;
+  }
+}

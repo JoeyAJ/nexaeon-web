@@ -1,0 +1,346 @@
+{
+  "frames": [
+    {
+      "id": "frame-001",
+      "src": "/pet/princess/frames/frame-001.png",
+      "width": 138,
+      "height": 215
+    },
+    {
+      "id": "frame-002",
+      "src": "/pet/princess/frames/frame-002.png",
+      "width": 141,
+      "height": 215
+    },
+    {
+      "id": "frame-003",
+      "src": "/pet/princess/frames/frame-003.png",
+      "width": 143,
+      "height": 215
+    },
+    {
+      "id": "frame-004",
+      "src": "/pet/princess/frames/frame-004.png",
+      "width": 141,
+      "height": 215
+    },
+    {
+      "id": "frame-005",
+      "src": "/pet/princess/frames/frame-005.png",
+      "width": 144,
+      "height": 215
+    },
+    {
+      "id": "frame-006",
+      "src": "/pet/princess/frames/frame-006.png",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "id": "frame-007",
+      "src": "/pet/princess/frames/frame-007.png",
+      "width": 198,
+      "height": 222
+    },
+    {
+      "id": "frame-008",
+      "src": "/pet/princess/frames/frame-008.png",
+      "width": 188,
+      "height": 222
+    },
+    {
+      "id": "frame-009",
+      "src": "/pet/princess/frames/frame-009.png",
+      "width": 206,
+      "height": 204
+    },
+    {
+      "id": "frame-010",
+      "src": "/pet/princess/frames/frame-010.png",
+      "width": 201,
+      "height": 222
+    },
+    {
+      "id": "frame-011",
+      "src": "/pet/princess/frames/frame-011.png",
+      "width": 203,
+      "height": 222
+    },
+    {
+      "id": "frame-012",
+      "src": "/pet/princess/frames/frame-012.png",
+      "width": 191,
+      "height": 222
+    },
+    {
+      "id": "frame-013",
+      "src": "/pet/princess/frames/frame-013.png",
+      "width": 199,
+      "height": 222
+    },
+    {
+      "id": "frame-014",
+      "src": "/pet/princess/frames/frame-014.png",
+      "width": 194,
+      "height": 222
+    },
+    {
+      "id": "frame-015",
+      "src": "/pet/princess/frames/frame-015.png",
+      "width": 184,
+      "height": 222
+    },
+    {
+      "id": "frame-016",
+      "src": "/pet/princess/frames/frame-016.png",
+      "width": 174,
+      "height": 222
+    },
+    {
+      "id": "frame-017",
+      "src": "/pet/princess/frames/frame-017.png",
+      "width": 206,
+      "height": 205
+    },
+    {
+      "id": "frame-018",
+      "src": "/pet/princess/frames/frame-018.png",
+      "width": 206,
+      "height": 211
+    },
+    {
+      "id": "frame-019",
+      "src": "/pet/princess/frames/frame-019.png",
+      "width": 204,
+      "height": 222
+    },
+    {
+      "id": "frame-020",
+      "src": "/pet/princess/frames/frame-020.png",
+      "width": 191,
+      "height": 222
+    },
+    {
+      "id": "frame-021",
+      "src": "/pet/princess/frames/frame-021.png",
+      "width": 203,
+      "height": 222
+    },
+    {
+      "id": "frame-022",
+      "src": "/pet/princess/frames/frame-022.png",
+      "width": 187,
+      "height": 222
+    },
+    {
+      "id": "frame-023",
+      "src": "/pet/princess/frames/frame-023.png",
+      "width": 149,
+      "height": 222
+    },
+    {
+      "id": "frame-024",
+      "src": "/pet/princess/frames/frame-024.png",
+      "width": 153,
+      "height": 222
+    },
+    {
+      "id": "frame-025",
+      "src": "/pet/princess/frames/frame-025.png",
+      "width": 158,
+      "height": 222
+    },
+    {
+      "id": "frame-026",
+      "src": "/pet/princess/frames/frame-026.png",
+      "width": 147,
+      "height": 222
+    },
+    {
+      "id": "frame-027",
+      "src": "/pet/princess/frames/frame-027.png",
+      "width": 198,
+      "height": 222
+    },
+    {
+      "id": "frame-028",
+      "src": "/pet/princess/frames/frame-028.png",
+      "width": 157,
+      "height": 222
+    },
+    {
+      "id": "frame-029",
+      "src": "/pet/princess/frames/frame-029.png",
+      "width": 161,
+      "height": 222
+    },
+    {
+      "id": "frame-030",
+      "src": "/pet/princess/frames/frame-030.png",
+      "width": 183,
+      "height": 222
+    },
+    {
+      "id": "frame-031",
+      "src": "/pet/princess/frames/frame-031.png",
+      "width": 182,
+      "height": 222
+    },
+    {
+      "id": "frame-032",
+      "src": "/pet/princess/frames/frame-032.png",
+      "width": 158,
+      "height": 222
+    },
+    {
+      "id": "frame-033",
+      "src": "/pet/princess/frames/frame-033.png",
+      "width": 166,
+      "height": 222
+    },
+    {
+      "id": "frame-034",
+      "src": "/pet/princess/frames/frame-034.png",
+      "width": 165,
+      "height": 222
+    },
+    {
+      "id": "frame-035",
+      "src": "/pet/princess/frames/frame-035.png",
+      "width": 206,
+      "height": 184
+    },
+    {
+      "id": "frame-036",
+      "src": "/pet/princess/frames/frame-036.png",
+      "width": 167,
+      "height": 222
+    },
+    {
+      "id": "frame-037",
+      "src": "/pet/princess/frames/frame-037.png",
+      "width": 172,
+      "height": 222
+    },
+    {
+      "id": "frame-038",
+      "src": "/pet/princess/frames/frame-038.png",
+      "width": 160,
+      "height": 222
+    },
+    {
+      "id": "frame-039",
+      "src": "/pet/princess/frames/frame-039.png",
+      "width": 165,
+      "height": 222
+    },
+    {
+      "id": "frame-040",
+      "src": "/pet/princess/frames/frame-040.png",
+      "width": 139,
+      "height": 222
+    },
+    {
+      "id": "frame-041",
+      "src": "/pet/princess/frames/frame-041.png",
+      "width": 135,
+      "height": 222
+    },
+    {
+      "id": "frame-042",
+      "src": "/pet/princess/frames/frame-042.png",
+      "width": 129,
+      "height": 222
+    },
+    {
+      "id": "frame-043",
+      "src": "/pet/princess/frames/frame-043.png",
+      "width": 139,
+      "height": 222
+    },
+    {
+      "id": "frame-044",
+      "src": "/pet/princess/frames/frame-044.png",
+      "width": 135,
+      "height": 222
+    },
+    {
+      "id": "frame-045",
+      "src": "/pet/princess/frames/frame-045.png",
+      "width": 133,
+      "height": 222
+    },
+    {
+      "id": "frame-046",
+      "src": "/pet/princess/frames/frame-046.png",
+      "width": 141,
+      "height": 222
+    },
+    {
+      "id": "frame-047",
+      "src": "/pet/princess/frames/frame-047.png",
+      "width": 140,
+      "height": 222
+    },
+    {
+      "id": "frame-048",
+      "src": "/pet/princess/frames/frame-048.png",
+      "width": 143,
+      "height": 222
+    },
+    {
+      "id": "frame-049",
+      "src": "/pet/princess/frames/frame-049.png",
+      "width": 148,
+      "height": 222
+    },
+    {
+      "id": "frame-050",
+      "src": "/pet/princess/frames/frame-050.png",
+      "width": 141,
+      "height": 222
+    },
+    {
+      "id": "frame-051",
+      "src": "/pet/princess/frames/frame-051.png",
+      "width": 140,
+      "height": 222
+    },
+    {
+      "id": "frame-052",
+      "src": "/pet/princess/frames/frame-052.png",
+      "width": 147,
+      "height": 215
+    },
+    {
+      "id": "frame-053",
+      "src": "/pet/princess/frames/frame-053.png",
+      "width": 145,
+      "height": 215
+    },
+    {
+      "id": "frame-054",
+      "src": "/pet/princess/frames/frame-054.png",
+      "width": 166,
+      "height": 215
+    },
+    {
+      "id": "frame-055",
+      "src": "/pet/princess/frames/frame-055.png",
+      "width": 167,
+      "height": 215
+    },
+    {
+      "id": "frame-056",
+      "src": "/pet/princess/frames/frame-056.png",
+      "width": 148,
+      "height": 215
+    },
+    {
+      "id": "frame-057",
+      "src": "/pet/princess/frames/frame-057.png",
+      "width": 143,
+      "height": 215
+    }
+  ]
+}
