@@ -14,11 +14,18 @@ const NEXT_ACTION_DELAY = [10_000, 18_000] as const;
 const POST_WALK_SIT_DELAY = [3_000, 5_000] as const;
 const SIT_DURATION = [6_000, 14_000] as const;
 const SIT_COOLDOWN = [18_000, 28_000] as const;
+const REST_INITIAL_DELAY = [45_000, 75_000] as const;
+const REST_DURATION = [10_000, 24_000] as const;
+const REST_COOLDOWN = 60_000;
+const REST_TO_WAVE_DELAY = [300, 600] as const;
 const WAVE_COOLDOWN = 12_000;
 const NATURAL_WAVE_IDLE_DELAY = [20_000, 35_000] as const;
 const NATURAL_WAVE_PROBABILITY = 0.15;
 const SIT_ACTION_PROBABILITY = 0.35;
 const IDLE_PAUSE_PROBABILITY = 0.2;
+const REST_READY_PROBABILITY = 0.2;
+const REST_READY_SIT_PROBABILITY = 0.4;
+const REST_READY_WALK_PROBABILITY = 0.25;
 const DESKTOP_WALK_DISTANCE = [24, 56] as const;
 const MOBILE_WALK_DISTANCE = [12, 28] as const;
 const WALK_DURATION = [1_200, 2_200] as const;
@@ -57,7 +64,7 @@ function getViewportWidth() {
 }
 
 function getEdgeMargin(viewportWidth: number) {
-  return viewportWidth <= MOBILE_BREAKPOINT ? 12 : 18;
+  return viewportWidth <= MOBILE_BREAKPOINT ? 20 : 32;
 }
 
 export default function PrincessPet() {
@@ -79,11 +86,14 @@ export default function PrincessPet() {
   const behaviorTimeoutRef = useRef<number | null>(null);
   const walkEndTimeoutRef = useRef<number | null>(null);
   const sitEndTimeoutRef = useRef<number | null>(null);
+  const restEndTimeoutRef = useRef<number | null>(null);
+  const restInteractionTimeoutRef = useRef<number | null>(null);
   const waveEndTimeoutRef = useRef<number | null>(null);
   const initialWaveTimeoutRef = useRef<number | null>(null);
   const naturalWaveTimeoutRef = useRef<number | null>(null);
   const waveAllowedAtRef = useRef(0);
   const sitAllowedAtRef = useRef(0);
+  const restAllowedAtRef = useRef(Date.now() + getRandomBetween(REST_INITIAL_DELAY));
   const pendingInteractionRef = useRef<PendingInteraction>(null);
   const scheduleBehaviorRef = useRef<((delayRange: readonly [number, number]) => void) | null>(null);
 
@@ -100,26 +110,42 @@ export default function PrincessPet() {
     stateRef.current = petState;
   }, [petState]);
 
-  const clearBehaviorTimeout = useCallback(() => {
-    if (behaviorTimeoutRef.current !== null) {
-      window.clearTimeout(behaviorTimeoutRef.current);
-      behaviorTimeoutRef.current = null;
+  const clearTimer = useCallback((timerRef: { current: number | null }) => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
   }, []);
+
+  const clearPetTimers = useCallback(() => {
+    if (intervalRef.current !== null) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    clearTimer(blinkTimeoutRef);
+    clearTimer(blinkResetRef);
+    clearTimer(behaviorTimeoutRef);
+    clearTimer(walkEndTimeoutRef);
+    clearTimer(sitEndTimeoutRef);
+    clearTimer(restEndTimeoutRef);
+    clearTimer(restInteractionTimeoutRef);
+    clearTimer(waveEndTimeoutRef);
+    clearTimer(initialWaveTimeoutRef);
+    clearTimer(naturalWaveTimeoutRef);
+  }, [clearTimer]);
 
   const playWave = useCallback(() => {
     if (prefersReducedMotion || stateRef.current !== 'idle') return false;
 
-    clearBehaviorTimeout();
+    clearTimer(behaviorTimeoutRef);
     setBlinkSrc(null);
     setMotionDuration(0);
     setFrameIndex(0);
     stateRef.current = 'wave';
     setPetState('wave');
 
-    if (waveEndTimeoutRef.current !== null) {
-      window.clearTimeout(waveEndTimeoutRef.current);
-    }
+    clearTimer(waveEndTimeoutRef);
 
     waveEndTimeoutRef.current = window.setTimeout(() => {
       stateRef.current = 'idle';
@@ -129,7 +155,7 @@ export default function PrincessPet() {
     }, WAVE_DURATION);
 
     return true;
-  }, [clearBehaviorTimeout, prefersReducedMotion]);
+  }, [clearTimer, prefersReducedMotion]);
 
   const playPendingWave = useCallback(() => {
     if (pendingInteractionRef.current !== 'wave') return false;
@@ -162,6 +188,33 @@ export default function PrincessPet() {
 
     return false;
   }, [playWave, prefersReducedMotion]);
+
+  const finishRest = useCallback((queueInteractionWave = false) => {
+    clearTimer(restEndTimeoutRef);
+    clearTimer(restInteractionTimeoutRef);
+
+    stateRef.current = 'idle';
+    setPetState('idle');
+    setFrameIndex(0);
+    restAllowedAtRef.current = Math.max(restAllowedAtRef.current, Date.now() + REST_COOLDOWN);
+
+    if (queueInteractionWave) {
+      const now = Date.now();
+
+      if (now >= waveAllowedAtRef.current) {
+        waveAllowedAtRef.current = now + WAVE_COOLDOWN;
+        restInteractionTimeoutRef.current = window.setTimeout(() => {
+          restInteractionTimeoutRef.current = null;
+
+          if (stateRef.current === 'idle' && playWave()) return;
+          scheduleBehaviorRef.current?.(NEXT_ACTION_DELAY);
+        }, getRandomBetween(REST_TO_WAVE_DELAY));
+        return;
+      }
+    }
+
+    scheduleBehaviorRef.current?.(NEXT_ACTION_DELAY);
+  }, [clearTimer, playWave]);
 
   useEffect(() => {
     const frames = Object.values(princessAnimations).flatMap((item) => [
@@ -266,28 +319,28 @@ export default function PrincessPet() {
     };
 
     const scheduleBehavior = (delayRange: readonly [number, number]) => {
-      clearBehaviorTimeout();
+      clearTimer(behaviorTimeoutRef);
       behaviorTimeoutRef.current = window.setTimeout(() => {
         const root = rootRef.current;
-        if (!root || stateRef.current !== 'idle') {
+        if (!root || document.hidden || stateRef.current !== 'idle') {
           scheduleBehavior(NEXT_ACTION_DELAY);
           return;
         }
 
         const now = Date.now();
         const canSit = now >= sitAllowedAtRef.current;
+        const canRest = now >= restAllowedAtRef.current;
 
-        if (canSit && Math.random() < SIT_ACTION_PROBABILITY) {
+        const startSit = () => {
           const duration = Math.round(getRandomBetween(SIT_DURATION));
 
           setBlinkSrc(null);
           setMotionDuration(0);
+          stateRef.current = 'sit';
           setPetState('sit');
           setFrameIndex(0);
 
-          if (sitEndTimeoutRef.current !== null) {
-            window.clearTimeout(sitEndTimeoutRef.current);
-          }
+          clearTimer(sitEndTimeoutRef);
 
           sitEndTimeoutRef.current = window.setTimeout(() => {
             stateRef.current = 'idle';
@@ -298,6 +351,105 @@ export default function PrincessPet() {
 
             scheduleBehavior(NEXT_ACTION_DELAY);
           }, duration);
+        };
+
+        const startRest = () => {
+          const duration = Math.round(getRandomBetween(REST_DURATION));
+
+          setBlinkSrc(null);
+          setMotionDuration(0);
+          stateRef.current = 'rest';
+          setPetState('rest');
+          setFrameIndex(0);
+
+          clearTimer(restEndTimeoutRef);
+
+          restEndTimeoutRef.current = window.setTimeout(() => {
+            finishRest(false);
+          }, duration);
+        };
+
+        const startWalk = () => {
+          const viewportWidth = getViewportWidth();
+          const isMobile = viewportWidth <= MOBILE_BREAKPOINT;
+          const margin = getEdgeMargin(viewportWidth);
+          const [minDistance, maxDistance] = isMobile ? MOBILE_WALK_DISTANCE : DESKTOP_WALK_DISTANCE;
+          const rect = root.getBoundingClientRect();
+          const availableLeft = Math.max(0, rect.left - margin);
+          const availableRight = Math.max(0, viewportWidth - margin - rect.right);
+          const canWalkLeft = availableLeft >= minDistance;
+          const canWalkRight = availableRight >= minDistance;
+
+          if (!canWalkLeft && !canWalkRight) {
+            scheduleBehavior(NEXT_ACTION_DELAY);
+            return;
+          }
+
+          let nextWalkState: WalkState = Math.random() < 0.5 ? 'walkLeft' : 'walkRight';
+
+          if (!canWalkLeft) nextWalkState = 'walkRight';
+          if (!canWalkRight) nextWalkState = 'walkLeft';
+
+          const availableDistance = nextWalkState === 'walkLeft' ? availableLeft : availableRight;
+          const distance = Math.min(getRandomBetween([minDistance, maxDistance]), availableDistance);
+          const signedDistance = nextWalkState === 'walkLeft' ? -distance : distance;
+          const duration = Math.round(getRandomBetween(WALK_DURATION));
+
+          setBlinkSrc(null);
+          stateRef.current = nextWalkState;
+          setPetState(nextWalkState);
+          setMotionDuration(duration);
+          setOffsetX((current) => {
+            const nextOffset = current + signedDistance;
+            offsetXRef.current = nextOffset;
+            return nextOffset;
+          });
+
+          clearTimer(walkEndTimeoutRef);
+
+          walkEndTimeoutRef.current = window.setTimeout(() => {
+            stateRef.current = 'idle';
+            setPetState('idle');
+            setFrameIndex(0);
+            sitAllowedAtRef.current = Math.max(
+              sitAllowedAtRef.current,
+              Date.now() + getRandomBetween(POST_WALK_SIT_DELAY),
+            );
+            if (playPendingWave()) return;
+
+            scheduleBehavior(NEXT_ACTION_DELAY);
+          }, duration);
+        };
+
+        if (canRest) {
+          const roll = Math.random();
+
+          if (roll < REST_READY_PROBABILITY) {
+            startRest();
+            return;
+          }
+
+          if (roll < REST_READY_PROBABILITY + REST_READY_SIT_PROBABILITY && canSit) {
+            startSit();
+            return;
+          }
+
+          if (roll < REST_READY_PROBABILITY + REST_READY_SIT_PROBABILITY + REST_READY_WALK_PROBABILITY) {
+            startWalk();
+            return;
+          }
+
+          if (Math.random() < NATURAL_WAVE_PROBABILITY) {
+            requestWave('natural');
+            return;
+          }
+
+          scheduleBehavior(NEXT_ACTION_DELAY);
+          return;
+        }
+
+        if (canSit && Math.random() < SIT_ACTION_PROBABILITY) {
+          startSit();
           return;
         }
 
@@ -306,56 +458,7 @@ export default function PrincessPet() {
           return;
         }
 
-        const viewportWidth = getViewportWidth();
-        const isMobile = viewportWidth <= MOBILE_BREAKPOINT;
-        const margin = getEdgeMargin(viewportWidth);
-        const [minDistance, maxDistance] = isMobile ? MOBILE_WALK_DISTANCE : DESKTOP_WALK_DISTANCE;
-        const rect = root.getBoundingClientRect();
-        const availableLeft = Math.max(0, rect.left - margin);
-        const availableRight = Math.max(0, viewportWidth - margin - rect.right);
-        const canWalkLeft = availableLeft >= minDistance;
-        const canWalkRight = availableRight >= minDistance;
-
-        if (!canWalkLeft && !canWalkRight) {
-          scheduleBehavior(NEXT_ACTION_DELAY);
-          return;
-        }
-
-        let nextWalkState: WalkState = Math.random() < 0.5 ? 'walkLeft' : 'walkRight';
-
-        if (!canWalkLeft) nextWalkState = 'walkRight';
-        if (!canWalkRight) nextWalkState = 'walkLeft';
-
-        const availableDistance = nextWalkState === 'walkLeft' ? availableLeft : availableRight;
-        const distance = Math.min(getRandomBetween([minDistance, maxDistance]), availableDistance);
-        const signedDistance = nextWalkState === 'walkLeft' ? -distance : distance;
-        const duration = Math.round(getRandomBetween(WALK_DURATION));
-
-        setBlinkSrc(null);
-        setPetState(nextWalkState);
-        setMotionDuration(duration);
-        setOffsetX((current) => {
-          const nextOffset = current + signedDistance;
-          offsetXRef.current = nextOffset;
-          return nextOffset;
-        });
-
-        if (walkEndTimeoutRef.current !== null) {
-          window.clearTimeout(walkEndTimeoutRef.current);
-        }
-
-        walkEndTimeoutRef.current = window.setTimeout(() => {
-          stateRef.current = 'idle';
-          setPetState('idle');
-          setFrameIndex(0);
-          sitAllowedAtRef.current = Math.max(
-            sitAllowedAtRef.current,
-            Date.now() + getRandomBetween(POST_WALK_SIT_DELAY),
-          );
-          if (playPendingWave()) return;
-
-          scheduleBehavior(NEXT_ACTION_DELAY);
-        }, duration);
+        startWalk();
       }, getRandomBetween(delayRange));
     };
 
@@ -365,20 +468,14 @@ export default function PrincessPet() {
 
     return () => {
       scheduleBehaviorRef.current = null;
-      clearBehaviorTimeout();
+      clearTimer(behaviorTimeoutRef);
       window.removeEventListener('resize', clampOffsetToViewport);
-
-      if (walkEndTimeoutRef.current !== null) {
-        window.clearTimeout(walkEndTimeoutRef.current);
-        walkEndTimeoutRef.current = null;
-      }
-
-      if (sitEndTimeoutRef.current !== null) {
-        window.clearTimeout(sitEndTimeoutRef.current);
-        sitEndTimeoutRef.current = null;
-      }
+      clearTimer(walkEndTimeoutRef);
+      clearTimer(sitEndTimeoutRef);
+      clearTimer(restEndTimeoutRef);
+      clearTimer(restInteractionTimeoutRef);
     };
-  }, [clearBehaviorTimeout, playPendingWave, prefersReducedMotion]);
+  }, [clearTimer, finishRest, playPendingWave, prefersReducedMotion, requestWave]);
 
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
@@ -444,32 +541,32 @@ export default function PrincessPet() {
     if (!prefersReducedMotion) return;
 
     pendingInteractionRef.current = null;
-    clearBehaviorTimeout();
+    clearPetTimers();
     setOffsetX(0);
     setMotionDuration(0);
-
-    if (waveEndTimeoutRef.current !== null) {
-      window.clearTimeout(waveEndTimeoutRef.current);
-      waveEndTimeoutRef.current = null;
-    }
-
-    if (initialWaveTimeoutRef.current !== null) {
-      window.clearTimeout(initialWaveTimeoutRef.current);
-      initialWaveTimeoutRef.current = null;
-    }
-
-    if (naturalWaveTimeoutRef.current !== null) {
-      window.clearTimeout(naturalWaveTimeoutRef.current);
-      naturalWaveTimeoutRef.current = null;
-    }
-  }, [clearBehaviorTimeout, prefersReducedMotion]);
+  }, [clearPetTimers, prefersReducedMotion]);
 
   useEffect(() => () => {
-    if (waveEndTimeoutRef.current !== null) {
-      window.clearTimeout(waveEndTimeoutRef.current);
-      waveEndTimeoutRef.current = null;
+    scheduleBehaviorRef.current = null;
+    clearPetTimers();
+  }, [clearPetTimers]);
+
+  const handlePointerEnter = useCallback(() => {
+    if (stateRef.current === 'rest') return;
+
+    requestWave('interaction');
+  }, [requestWave]);
+
+  const handleClick = useCallback(() => {
+    if (prefersReducedMotion) return;
+
+    if (stateRef.current === 'rest') {
+      finishRest(true);
+      return;
     }
-  }, []);
+
+    requestWave('interaction');
+  }, [finishRest, prefersReducedMotion, requestWave]);
 
   const motionStyle = {
     '--princess-pet-motion-duration': `${motionDuration}ms`,
@@ -484,7 +581,9 @@ export default function PrincessPet() {
         ? styles.sitAlive
         : petState === 'wave'
           ? styles.waveAlive
-          : styles.walkAlive,
+          : petState === 'rest'
+            ? styles.restAlive
+            : styles.walkAlive,
   ].join(' ');
 
   const imageClassName = [
@@ -501,8 +600,8 @@ export default function PrincessPet() {
               type="button"
               className={styles.interactiveLayer}
               aria-label="Wave to the princess pet"
-              onPointerEnter={() => requestWave('interaction')}
-              onClick={() => requestWave('interaction')}
+              onPointerEnter={handlePointerEnter}
+              onClick={handleClick}
             >
               <img
                 className={imageClassName}

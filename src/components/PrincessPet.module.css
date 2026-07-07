@@ -45,6 +45,12 @@
     princess-sit-breathe 6.8s ease-in-out infinite alternate;
 }
 
+.restAlive {
+  animation:
+    princess-rest-breathe 7.8s ease-in-out infinite alternate;
+  transform-origin: 50% 100%;
+}
+
 .waveAlive {
   animation:
     princess-wave-bob 1.4s ease-in-out;
@@ -73,6 +79,10 @@
 .aliveLayer[data-state="walkLeft"] .frameLayer,
 .aliveLayer[data-state="walkRight"] .frameLayer {
   width: 142%;
+}
+
+.aliveLayer[data-state="rest"] .frameLayer {
+  width: 128%;
 }
 
 .image {
@@ -111,6 +121,16 @@
 
   100% {
     transform: translateY(-2px) scale(1.006);
+  }
+}
+
+@keyframes princess-rest-breathe {
+  0% {
+    transform: translateY(0) scale(0.998);
+  }
+
+  100% {
+    transform: translateY(-1.5px) scale(1.004);
   }
 }
 

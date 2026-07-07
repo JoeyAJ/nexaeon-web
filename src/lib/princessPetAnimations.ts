@@ -62,4 +62,13 @@ export const princessAnimations = {
       '/pet/princess/frames/frame-023.png',
     ],
   },
+  rest: {
+    name: 'rest',
+    label: 'Rest / Lie Down / 趴下休息',
+    fps: 1,
+    loop: true,
+    frames: [
+      '/pet/princess/frames/frame-035.png',
+    ],
+  },
 } as const;
