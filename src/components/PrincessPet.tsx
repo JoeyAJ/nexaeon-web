@@ -5,8 +5,14 @@ import styles from './PrincessPet.module.css';
 type PetState = keyof typeof princessAnimations;
 type WalkState = 'walkLeft' | 'walkRight';
 
-const INITIAL_WALK_DELAY = [8_000, 16_000] as const;
-const NEXT_WALK_DELAY = [10_000, 18_000] as const;
+const PET_DEBUG = false;
+const INITIAL_ACTION_DELAY = [8_000, 16_000] as const;
+const NEXT_ACTION_DELAY = [10_000, 18_000] as const;
+const POST_WALK_SIT_DELAY = [3_000, 5_000] as const;
+const SIT_DURATION = [6_000, 14_000] as const;
+const SIT_COOLDOWN = [18_000, 28_000] as const;
+const SIT_ACTION_PROBABILITY = 0.35;
+const IDLE_PAUSE_PROBABILITY = 0.2;
 const DESKTOP_WALK_DISTANCE = [24, 56] as const;
 const MOBILE_WALK_DISTANCE = [12, 28] as const;
 const WALK_DURATION = [1_200, 2_200] as const;
@@ -60,8 +66,10 @@ export default function PrincessPet() {
   const intervalRef = useRef<number | null>(null);
   const blinkTimeoutRef = useRef<number | null>(null);
   const blinkResetRef = useRef<number | null>(null);
-  const walkTimeoutRef = useRef<number | null>(null);
+  const behaviorTimeoutRef = useRef<number | null>(null);
   const walkEndTimeoutRef = useRef<number | null>(null);
+  const sitEndTimeoutRef = useRef<number | null>(null);
+  const sitAllowedAtRef = useRef(0);
 
   const currentFrame = useMemo(() => {
     if (prefersReducedMotion) return princessAnimations.idle.frames[0];
@@ -77,7 +85,10 @@ export default function PrincessPet() {
   }, [petState]);
 
   useEffect(() => {
-    const frames = Object.values(princessAnimations).flatMap((item) => item.frames);
+    const frames = Object.values(princessAnimations).flatMap((item) => [
+      ...item.frames,
+      ...('blinkFrames' in item ? item.blinkFrames || [] : []),
+    ]);
     const uniqueFrames = Array.from(new Set(frames));
     const preloadedFrames = uniqueFrames.map((src) => {
       const image = new Image();
@@ -147,10 +158,10 @@ export default function PrincessPet() {
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
 
-    const clearWalkTimeout = () => {
-      if (walkTimeoutRef.current !== null) {
-        window.clearTimeout(walkTimeoutRef.current);
-        walkTimeoutRef.current = null;
+    const clearBehaviorTimeout = () => {
+      if (behaviorTimeoutRef.current !== null) {
+        window.clearTimeout(behaviorTimeoutRef.current);
+        behaviorTimeoutRef.current = null;
       }
     };
 
@@ -178,12 +189,41 @@ export default function PrincessPet() {
       }
     };
 
-    const scheduleWalk = (delayRange: readonly [number, number]) => {
-      clearWalkTimeout();
-      walkTimeoutRef.current = window.setTimeout(() => {
+    const scheduleBehavior = (delayRange: readonly [number, number]) => {
+      clearBehaviorTimeout();
+      behaviorTimeoutRef.current = window.setTimeout(() => {
         const root = rootRef.current;
         if (!root || stateRef.current !== 'idle') {
-          scheduleWalk(NEXT_WALK_DELAY);
+          scheduleBehavior(NEXT_ACTION_DELAY);
+          return;
+        }
+
+        const now = Date.now();
+        const canSit = now >= sitAllowedAtRef.current;
+
+        if (canSit && Math.random() < SIT_ACTION_PROBABILITY) {
+          const duration = Math.round(getRandomBetween(SIT_DURATION));
+
+          setBlinkSrc(null);
+          setMotionDuration(0);
+          setPetState('sit');
+          setFrameIndex(0);
+
+          if (sitEndTimeoutRef.current !== null) {
+            window.clearTimeout(sitEndTimeoutRef.current);
+          }
+
+          sitEndTimeoutRef.current = window.setTimeout(() => {
+            setPetState('idle');
+            setFrameIndex(0);
+            sitAllowedAtRef.current = Date.now() + getRandomBetween(SIT_COOLDOWN);
+            scheduleBehavior(NEXT_ACTION_DELAY);
+          }, duration);
+          return;
+        }
+
+        if (Math.random() < IDLE_PAUSE_PROBABILITY) {
+          scheduleBehavior(NEXT_ACTION_DELAY);
           return;
         }
 
@@ -198,7 +238,7 @@ export default function PrincessPet() {
         const canWalkRight = availableRight >= minDistance;
 
         if (!canWalkLeft && !canWalkRight) {
-          scheduleWalk(NEXT_WALK_DELAY);
+          scheduleBehavior(NEXT_ACTION_DELAY);
           return;
         }
 
@@ -228,21 +268,30 @@ export default function PrincessPet() {
         walkEndTimeoutRef.current = window.setTimeout(() => {
           setPetState('idle');
           setFrameIndex(0);
-          scheduleWalk(NEXT_WALK_DELAY);
+          sitAllowedAtRef.current = Math.max(
+            sitAllowedAtRef.current,
+            Date.now() + getRandomBetween(POST_WALK_SIT_DELAY),
+          );
+          scheduleBehavior(NEXT_ACTION_DELAY);
         }, duration);
       }, getRandomBetween(delayRange));
     };
 
-    scheduleWalk(INITIAL_WALK_DELAY);
+    scheduleBehavior(INITIAL_ACTION_DELAY);
     window.addEventListener('resize', clampOffsetToViewport);
 
     return () => {
-      clearWalkTimeout();
+      clearBehaviorTimeout();
       window.removeEventListener('resize', clampOffsetToViewport);
 
       if (walkEndTimeoutRef.current !== null) {
         window.clearTimeout(walkEndTimeoutRef.current);
         walkEndTimeoutRef.current = null;
+      }
+
+      if (sitEndTimeoutRef.current !== null) {
+        window.clearTimeout(sitEndTimeoutRef.current);
+        sitEndTimeoutRef.current = null;
       }
     };
   }, [prefersReducedMotion]);
@@ -254,7 +303,11 @@ export default function PrincessPet() {
 
   const aliveClassName = [
     styles.aliveLayer,
-    petState === 'idle' ? styles.idleAlive : styles.walkAlive,
+    petState === 'idle'
+      ? styles.idleAlive
+      : petState === 'sit'
+        ? styles.sitAlive
+        : styles.walkAlive,
   ].join(' ');
 
   const imageClassName = [
@@ -265,16 +318,19 @@ export default function PrincessPet() {
   return (
     <div ref={rootRef} className={styles.root} aria-hidden="true" data-pet-state={petState}>
       <div className={styles.motionLayer} style={motionStyle}>
-        <div className={aliveClassName}>
-          <img
-            className={imageClassName}
-            src={currentFrame}
-            alt=""
-            draggable="false"
-            decoding="async"
-          />
+        <div className={aliveClassName} data-state={petState}>
+          <div className={styles.frameLayer}>
+            <img
+              className={imageClassName}
+              src={currentFrame}
+              alt=""
+              draggable="false"
+              decoding="async"
+            />
+          </div>
         </div>
       </div>
+      {PET_DEBUG ? <div className={styles.debugLabel}>{petState}</div> : null}
     </div>
   );
 }

@@ -13,7 +13,8 @@
 }
 
 .motionLayer,
-.aliveLayer {
+.aliveLayer,
+.frameLayer {
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -39,11 +40,25 @@
     princess-walk-bob 380ms ease-in-out infinite;
 }
 
+.sitAlive {
+  animation:
+    princess-sit-breathe 6.8s ease-in-out infinite alternate;
+}
+
+.frameLayer {
+  min-width: 0;
+}
+
+.aliveLayer[data-state="walkLeft"] .frameLayer,
+.aliveLayer[data-state="walkRight"] .frameLayer {
+  width: 142%;
+}
+
 .image {
   display: block;
-  width: auto;
-  height: 100%;
-  max-width: none;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
   object-fit: contain;
   object-position: center bottom;
   transform-origin: 50% 100%;
@@ -68,6 +83,16 @@
   }
 }
 
+@keyframes princess-sit-breathe {
+  0% {
+    transform: translateY(0) scale(0.996);
+  }
+
+  100% {
+    transform: translateY(-2px) scale(1.006);
+  }
+}
+
 @keyframes princess-walk-bob {
   0%,
   100% {
@@ -77,6 +102,20 @@
   50% {
     transform: translateY(-3px);
   }
+}
+
+.debugLabel {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 72%);
+  color: white;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 @media (max-width: 520px) {
@@ -91,6 +130,7 @@
 @media (prefers-reduced-motion: reduce) {
   .motionLayer,
   .aliveLayer,
+  .frameLayer,
   .image {
     animation: none !important;
     transition: none !important;

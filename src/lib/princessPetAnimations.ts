@@ -38,4 +38,15 @@ export const princessAnimations = {
       '/pet/princess/frames/frame-013.png',
     ],
   },
+  sit: {
+    name: 'sit',
+    label: 'Sit / 坐下等待',
+    fps: 1.5,
+    loop: true,
+    frames: [
+      '/pet/princess/frames/frame-046.png',
+      '/pet/princess/frames/frame-048.png',
+      '/pet/princess/frames/frame-051.png',
+    ],
+  },
 } as const;
