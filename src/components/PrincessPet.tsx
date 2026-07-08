@@ -25,12 +25,10 @@ type NaturalBehavior = 'idle' | 'walk' | 'sit' | 'curious' | 'wave' | 'happy' | 
 type LowPowerState = 'rest' | 'quiet' | 'sleep';
 
 const PET_DEBUG = false;
-const WAVE_GREETING_STORAGE_KEY = 'nexaeon-princess-wave-greeted';
 const POSITION_STORAGE_KEY = 'nexaeon-princess-pet-position';
 const SCALE_STORAGE_KEY = 'nexaeon-princess-pet-scale';
 
 const PET_BEHAVIOR_TIMING = {
-  initialGreetingDelay: [2_500, 4_500],
   idleNextBehaviorDelay: [12_000, 26_000],
   dragResumeDelay: [1_500, 3_000],
 
@@ -344,7 +342,6 @@ export default function PrincessPet() {
   const waveEndTimeoutRef = useRef<number | null>(null);
   const happyEndTimeoutRef = useRef<number | null>(null);
   const curiousEndTimeoutRef = useRef<number | null>(null);
-  const initialWaveTimeoutRef = useRef<number | null>(null);
   const dragResumeTimeoutRef = useRef<number | null>(null);
   const singleClickTimeoutRef = useRef<number | null>(null);
   const scaleSaveTimeoutRef = useRef<number | null>(null);
@@ -432,7 +429,6 @@ export default function PrincessPet() {
 
     clearTimer(blinkTimeoutRef);
     clearTimer(blinkResetRef);
-    clearTimer(initialWaveTimeoutRef);
     clearTimer(singleClickTimeoutRef);
     clearTimer(scaleSaveTimeoutRef);
     clearBehaviorTimers();
@@ -1123,34 +1119,6 @@ export default function PrincessPet() {
     requestWave,
     setIdleState,
   ]);
-
-  useEffect(() => {
-    if (prefersReducedMotion) return undefined;
-
-    let hasGreeted = false;
-
-    try {
-      hasGreeted = window.sessionStorage.getItem(WAVE_GREETING_STORAGE_KEY) === 'true';
-    } catch {
-      hasGreeted = false;
-    }
-
-    if (hasGreeted) return undefined;
-
-    initialWaveTimeoutRef.current = window.setTimeout(() => {
-      if (stateRef.current === 'idle' && requestWave('greeting')) {
-        try {
-          window.sessionStorage.setItem(WAVE_GREETING_STORAGE_KEY, 'true');
-        } catch {
-          // Greeting should still work when sessionStorage is unavailable.
-        }
-      }
-    }, getRandomBetween(PET_BEHAVIOR_TIMING.initialGreetingDelay));
-
-    return () => {
-      clearTimer(initialWaveTimeoutRef);
-    };
-  }, [clearTimer, prefersReducedMotion, requestWave]);
 
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
