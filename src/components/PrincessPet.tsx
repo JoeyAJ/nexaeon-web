@@ -19,6 +19,17 @@ const SIT_COOLDOWN = [18_000, 28_000] as const;
 const REST_INITIAL_DELAY = [45_000, 75_000] as const;
 const REST_DURATION = [10_000, 24_000] as const;
 const REST_COOLDOWN = 60_000;
+const SLEEP_MIN_PAGE_STAY = 120_000;
+const SLEEP_USER_INACTIVE_THRESHOLD = 90_000;
+const SLEEP_DURATION = [18_000, 38_000] as const;
+const SLEEP_COOLDOWN = 120_000;
+const SLEEP_PROBABILITY = 0.15;
+const POST_PLAYFUL_SLEEP_GAP = 60_000;
+const POST_REST_SLEEP_GAP = 45_000;
+const POST_QUIET_SLEEP_GAP = 45_000;
+const POST_SLEEP_REST_QUIET_GAP = 60_000;
+const SLEEP_HOVER_WAKE_DELAY = [800, 1_200] as const;
+const SLEEP_WAKE_INTERACTION_DELAY = 400;
 const QUIET_INITIAL_DELAY = 90_000;
 const QUIET_IDLE_THRESHOLD = [90_000, 150_000] as const;
 const QUIET_DURATION = [8_000, 18_000] as const;
@@ -102,6 +113,8 @@ export default function PrincessPet() {
   const sitEndTimeoutRef = useRef<number | null>(null);
   const restEndTimeoutRef = useRef<number | null>(null);
   const restInteractionTimeoutRef = useRef<number | null>(null);
+  const sleepEndTimeoutRef = useRef<number | null>(null);
+  const sleepInteractionTimeoutRef = useRef<number | null>(null);
   const quietEndTimeoutRef = useRef<number | null>(null);
   const quietInteractionTimeoutRef = useRef<number | null>(null);
   const interactionWakeTimeoutRef = useRef<number | null>(null);
@@ -114,9 +127,12 @@ export default function PrincessPet() {
   const customEventAllowedAtRef = useRef(0);
   const sitAllowedAtRef = useRef(0);
   const restAllowedAtRef = useRef(Date.now() + getRandomBetween(REST_INITIAL_DELAY));
+  const sleepAllowedAtRef = useRef(Date.now() + SLEEP_MIN_PAGE_STAY);
   const quietAllowedAtRef = useRef(Date.now() + QUIET_INITIAL_DELAY);
   const restEndedAtRef = useRef(0);
+  const sleepEndedAtRef = useRef(0);
   const quietEndedAtRef = useRef(0);
+  const lastPlayfulInteractionAtRef = useRef(0);
   const pageLoadedAtRef = useRef(Date.now());
   const lastUserInteractionAtRef = useRef(Date.now());
   const lastThrottledActivityAtRef = useRef(0);
@@ -158,6 +174,8 @@ export default function PrincessPet() {
     clearTimer(sitEndTimeoutRef);
     clearTimer(restEndTimeoutRef);
     clearTimer(restInteractionTimeoutRef);
+    clearTimer(sleepEndTimeoutRef);
+    clearTimer(sleepInteractionTimeoutRef);
     clearTimer(quietEndTimeoutRef);
     clearTimer(quietInteractionTimeoutRef);
     clearTimer(interactionWakeTimeoutRef);
@@ -188,6 +206,7 @@ export default function PrincessPet() {
     setFrameIndex(0);
     stateRef.current = 'wave';
     setPetState('wave');
+    lastPlayfulInteractionAtRef.current = Date.now();
 
     clearTimer(waveEndTimeoutRef);
 
@@ -210,6 +229,7 @@ export default function PrincessPet() {
     setFrameIndex(0);
     stateRef.current = 'happy';
     setPetState('happy');
+    lastPlayfulInteractionAtRef.current = Date.now();
 
     clearTimer(happyEndTimeoutRef);
 
@@ -231,6 +251,43 @@ export default function PrincessPet() {
     return pendingInteraction === 'wave' ? playWave() : playHappy();
   }, [playHappy, playWave]);
 
+  const finishSleep = useCallback((options: { schedule?: boolean; playPending?: boolean } = {}) => {
+    clearTimer(sleepEndTimeoutRef);
+    clearTimer(sleepInteractionTimeoutRef);
+
+    const now = Date.now();
+    stateRef.current = 'idle';
+    setPetState('idle');
+    setFrameIndex(0);
+    sleepEndedAtRef.current = now;
+    sleepAllowedAtRef.current = Math.max(sleepAllowedAtRef.current, now + SLEEP_COOLDOWN);
+    restAllowedAtRef.current = Math.max(restAllowedAtRef.current, now + POST_SLEEP_REST_QUIET_GAP);
+    quietAllowedAtRef.current = Math.max(quietAllowedAtRef.current, now + POST_SLEEP_REST_QUIET_GAP);
+
+    if (options.playPending !== false && playPendingInteraction()) return;
+
+    if (options.schedule !== false) {
+      scheduleBehaviorRef.current?.(NEXT_ACTION_DELAY);
+    }
+  }, [clearTimer, playPendingInteraction]);
+
+  const isPageStayedLongEnough = useCallback((now = Date.now()) => (
+    now - pageLoadedAtRef.current >= SLEEP_MIN_PAGE_STAY
+  ), []);
+
+  const isUserInactiveLongEnough = useCallback((now = Date.now()) => (
+    now - lastUserInteractionAtRef.current >= SLEEP_USER_INACTIVE_THRESHOLD
+  ), []);
+
+  const canConsiderSleep = useCallback((now = Date.now()) => (
+    isPageStayedLongEnough(now)
+    && isUserInactiveLongEnough(now)
+    && now >= sleepAllowedAtRef.current
+    && now - lastPlayfulInteractionAtRef.current >= POST_PLAYFUL_SLEEP_GAP
+    && now - restEndedAtRef.current >= POST_REST_SLEEP_GAP
+    && now - quietEndedAtRef.current >= POST_QUIET_SLEEP_GAP
+  ), [isPageStayedLongEnough, isUserInactiveLongEnough]);
+
   const isIdleTooLong = useCallback((now = Date.now()) => (
     now - pageLoadedAtRef.current >= QUIET_INITIAL_DELAY
     && now - lastUserInteractionAtRef.current >= quietIdleThresholdRef.current
@@ -247,6 +304,7 @@ export default function PrincessPet() {
     quietEndedAtRef.current = now;
     quietAllowedAtRef.current = Math.max(quietAllowedAtRef.current, now + QUIET_COOLDOWN);
     restAllowedAtRef.current = Math.max(restAllowedAtRef.current, now + REST_QUIET_GAP);
+    sleepAllowedAtRef.current = Math.max(sleepAllowedAtRef.current, now + POST_QUIET_SLEEP_GAP);
 
     if (options.playPending !== false && playPendingInteraction()) return;
 
@@ -318,6 +376,33 @@ export default function PrincessPet() {
       return true;
     }
 
+    if (currentState === 'sleep') {
+      finishSleep({ schedule: false, playPending: false });
+
+      if (isHappyCoolingDown || isCustomEventCoolingDown) {
+        scheduleBehaviorRef.current?.(NEXT_ACTION_DELAY);
+        return false;
+      }
+
+      happyAllowedAtRef.current = now + HAPPY_COOLDOWN;
+
+      if (source === 'customEvent') {
+        customEventAllowedAtRef.current = now + CUSTOM_EVENT_COOLDOWN;
+      }
+
+      clearTimer(interactionWakeTimeoutRef);
+      interactionWakeTimeoutRef.current = window.setTimeout(() => {
+        interactionWakeTimeoutRef.current = null;
+
+        if (stateRef.current === 'idle') {
+          playHappy();
+        } else {
+          pendingInteractionRef.current = 'happy';
+        }
+      }, SLEEP_WAKE_INTERACTION_DELAY);
+      return true;
+    }
+
     if (isHappyCoolingDown || isCustomEventCoolingDown) return false;
 
     happyAllowedAtRef.current = now + HAPPY_COOLDOWN;
@@ -334,7 +419,7 @@ export default function PrincessPet() {
 
     pendingInteractionRef.current = 'happy';
     return true;
-  }, [clearTimer, finishQuiet, playHappy, prefersReducedMotion]);
+  }, [clearTimer, finishQuiet, finishSleep, playHappy, prefersReducedMotion]);
 
   const finishRest = useCallback(() => {
     clearTimer(restEndTimeoutRef);
@@ -345,6 +430,7 @@ export default function PrincessPet() {
     setFrameIndex(0);
     restEndedAtRef.current = Date.now();
     restAllowedAtRef.current = Math.max(restAllowedAtRef.current, restEndedAtRef.current + REST_COOLDOWN);
+    sleepAllowedAtRef.current = Math.max(sleepAllowedAtRef.current, restEndedAtRef.current + POST_REST_SLEEP_GAP);
 
     if (playPendingInteraction()) return;
 
@@ -464,11 +550,14 @@ export default function PrincessPet() {
 
         const now = Date.now();
         const canSit = now >= sitAllowedAtRef.current;
+        const canSleep = canConsiderSleep(now);
         const quietReady = isIdleTooLong(now)
           && now >= quietAllowedAtRef.current
-          && now - restEndedAtRef.current >= REST_QUIET_GAP;
+          && now - restEndedAtRef.current >= REST_QUIET_GAP
+          && now - sleepEndedAtRef.current >= POST_SLEEP_REST_QUIET_GAP;
         const canRest = now >= restAllowedAtRef.current
-          && now - quietEndedAtRef.current >= REST_QUIET_GAP;
+          && now - quietEndedAtRef.current >= REST_QUIET_GAP
+          && now - sleepEndedAtRef.current >= POST_SLEEP_REST_QUIET_GAP;
 
         const startSit = () => {
           const duration = Math.round(getRandomBetween(SIT_DURATION));
@@ -524,6 +613,22 @@ export default function PrincessPet() {
           }, duration);
         };
 
+        const startSleep = () => {
+          const duration = Math.round(getRandomBetween(SLEEP_DURATION));
+
+          setBlinkSrc(null);
+          setMotionDuration(0);
+          stateRef.current = 'sleep';
+          setPetState('sleep');
+          setFrameIndex(0);
+
+          clearTimer(sleepEndTimeoutRef);
+
+          sleepEndTimeoutRef.current = window.setTimeout(() => {
+            finishSleep();
+          }, duration);
+        };
+
         const startWalk = () => {
           const viewportWidth = getViewportWidth();
           const isMobile = viewportWidth <= MOBILE_BREAKPOINT;
@@ -575,6 +680,13 @@ export default function PrincessPet() {
             scheduleBehavior(NEXT_ACTION_DELAY);
           }, duration);
         };
+
+        if (playPendingInteraction()) return;
+
+        if (canSleep && Math.random() < SLEEP_PROBABILITY) {
+          startSleep();
+          return;
+        }
 
         if (canRest) {
           const roll = Math.random();
@@ -634,10 +746,21 @@ export default function PrincessPet() {
       clearTimer(sitEndTimeoutRef);
       clearTimer(restEndTimeoutRef);
       clearTimer(restInteractionTimeoutRef);
+      clearTimer(sleepEndTimeoutRef);
+      clearTimer(sleepInteractionTimeoutRef);
       clearTimer(quietEndTimeoutRef);
       clearTimer(quietInteractionTimeoutRef);
     };
-  }, [clearTimer, finishQuiet, finishRest, isIdleTooLong, playPendingInteraction, prefersReducedMotion]);
+  }, [
+    canConsiderSleep,
+    clearTimer,
+    finishQuiet,
+    finishRest,
+    finishSleep,
+    isIdleTooLong,
+    playPendingInteraction,
+    prefersReducedMotion,
+  ]);
 
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
@@ -748,10 +871,20 @@ export default function PrincessPet() {
       return;
     }
 
+    if (stateRef.current === 'sleep') {
+      clearTimer(sleepInteractionTimeoutRef);
+      sleepInteractionTimeoutRef.current = window.setTimeout(() => {
+        if (stateRef.current === 'sleep') {
+          finishSleep();
+        }
+      }, getRandomBetween(SLEEP_HOVER_WAKE_DELAY));
+      return;
+    }
+
     if (stateRef.current === 'rest') return;
 
     requestWave('interaction');
-  }, [clearTimer, finishQuiet, noteUserInteraction, requestWave]);
+  }, [clearTimer, finishQuiet, finishSleep, noteUserInteraction, requestWave]);
 
   const handleClick = useCallback(() => {
     if (prefersReducedMotion) return;
@@ -770,6 +903,23 @@ export default function PrincessPet() {
       return;
     }
 
+    if (stateRef.current === 'sleep') {
+      finishSleep({ schedule: false, playPending: false });
+      clearTimer(interactionWakeTimeoutRef);
+      interactionWakeTimeoutRef.current = window.setTimeout(() => {
+        interactionWakeTimeoutRef.current = null;
+        const preferredInteraction = Math.random() < 0.7 ? 'happy' : 'wave';
+        const played = preferredInteraction === 'happy'
+          ? requestHappy('interaction') || requestWave('interaction')
+          : requestWave('interaction') || requestHappy('interaction');
+
+        if (!played) {
+          scheduleBehaviorRef.current?.(NEXT_ACTION_DELAY);
+        }
+      }, SLEEP_WAKE_INTERACTION_DELAY);
+      return;
+    }
+
     const preferredInteraction = nextClickInteractionRef.current;
     const alternateInteraction = preferredInteraction === 'wave' ? 'happy' : 'wave';
     const requestInteraction = (interaction: Exclude<PendingInteraction, null>) => (
@@ -784,7 +934,15 @@ export default function PrincessPet() {
     if (requestInteraction(alternateInteraction)) {
       nextClickInteractionRef.current = preferredInteraction;
     }
-  }, [clearTimer, finishQuiet, noteUserInteraction, prefersReducedMotion, requestHappy, requestWave]);
+  }, [
+    clearTimer,
+    finishQuiet,
+    finishSleep,
+    noteUserInteraction,
+    prefersReducedMotion,
+    requestHappy,
+    requestWave,
+  ]);
 
   const motionStyle = {
     '--princess-pet-motion-duration': `${motionDuration}ms`,
@@ -805,7 +963,9 @@ export default function PrincessPet() {
               ? styles.restAlive
               : petState === 'quiet'
                 ? styles.quietAlive
-                : styles.walkAlive,
+                : petState === 'sleep'
+                  ? styles.sleepAlive
+                  : styles.walkAlive,
   ].join(' ');
 
   const imageClassName = [
@@ -816,6 +976,8 @@ export default function PrincessPet() {
     ? [
       `state: ${petState}`,
       `pending: ${pendingInteractionRef.current || 'none'}`,
+      `pageStayedLongEnough: ${isPageStayedLongEnough() ? 'true' : 'false'}`,
+      `userInactiveLongEnough: ${isUserInactiveLongEnough() ? 'true' : 'false'}`,
       `idleTooLong: ${isIdleTooLong() ? 'true' : 'false'}`,
       `lastUserInteractionAt: ${new Date(lastUserInteractionAtRef.current).toISOString()}`,
       `frame: ${currentFrame.split('/').pop()?.replace('.png', '') || currentFrame}`,

@@ -58,6 +58,12 @@
   filter: saturate(0.96) brightness(0.98);
 }
 
+.sleepAlive {
+  animation:
+    princess-sleep-breathe 9.6s ease-in-out infinite alternate;
+  transform-origin: 50% 100%;
+}
+
 .waveAlive {
   animation:
     princess-wave-bob 1.4s ease-in-out;
@@ -158,6 +164,16 @@
 
   100% {
     transform: translateY(1px) scale(1.002) rotate(-0.4deg);
+  }
+}
+
+@keyframes princess-sleep-breathe {
+  0% {
+    transform: translateY(0) scale(0.998);
+  }
+
+  100% {
+    transform: translateY(-1px) scale(1.003);
   }
 }
 
