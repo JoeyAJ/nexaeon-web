@@ -40,8 +40,8 @@
 }
 
 .idleAlive {
-  animation:
-    princess-idle-alive 5.8s ease-in-out infinite alternate;
+  animation: none;
+  transform: none;
 }
 
 .walkAlive {
@@ -81,6 +81,12 @@
 .happyAlive {
   animation:
     princess-happy-bounce 1.6s ease-in-out;
+  transform-origin: 50% 100%;
+}
+
+.curiousAlive {
+  animation:
+    princess-curious-look 2.4s ease-in-out;
   transform-origin: 50% 100%;
 }
 
@@ -150,16 +156,6 @@
 
 .flipped {
   transform: scaleX(-1);
-}
-
-@keyframes princess-idle-alive {
-  0% {
-    transform: translateY(0) scale(0.992) rotate(-0.7deg);
-  }
-
-  100% {
-    transform: translateY(-4px) scale(1.012) rotate(0.7deg);
-  }
 }
 
 @keyframes princess-sit-breathe {
@@ -246,6 +242,32 @@
 
   100% {
     transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes princess-curious-look {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  35% {
+    transform: rotate(-1.5deg);
+  }
+
+  70% {
+    transform: rotate(1deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .idleAlive,
+  .curiousAlive {
+    animation: none;
+    transform: none;
   }
 }
 

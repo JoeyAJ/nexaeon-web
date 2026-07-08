@@ -8,19 +8,20 @@ import {
   useRef,
   useState,
 } from 'react';
-import { PET_HAPPY_EVENT } from '../lib/petEvents.js';
+import { PET_CURIOUS_EVENT, PET_HAPPY_EVENT } from '../lib/petEvents.js';
 import { princessAnimations } from '../lib/princessPetAnimations';
 import styles from './PrincessPet.module.css';
 
 type PetState = keyof typeof princessAnimations;
 type WalkState = 'walkLeft' | 'walkRight';
-type PendingInteraction = 'wave' | 'happy' | null;
+type PlayfulInteraction = 'wave' | 'happy';
+type PendingInteraction = PlayfulInteraction | 'curious' | null;
 type PetPosition = {
   x: number;
   y: number;
 };
 type PetScale = number;
-type NaturalBehavior = 'idle' | 'walk' | 'sit' | 'wave' | 'happy' | 'rest' | 'quiet' | 'sleep';
+type NaturalBehavior = 'idle' | 'walk' | 'sit' | 'curious' | 'wave' | 'happy' | 'rest' | 'quiet' | 'sleep';
 type LowPowerState = 'rest' | 'quiet' | 'sleep';
 
 const PET_DEBUG = false;
@@ -40,6 +41,7 @@ const PET_BEHAVIOR_TIMING = {
   sleepDuration: [30_000, 70_000],
   waveDuration: [1_200, 2_000],
   happyDuration: [1_400, 2_400],
+  curiousDuration: [1_800, 3_200],
 
   minTimeBeforeRest: 90_000,
   minTimeBeforeQuiet: 150_000,
@@ -52,6 +54,8 @@ const PET_BEHAVIOR_TIMING = {
   interactionCooldown: 10_000,
   waveCooldown: 12_000,
   happyCooldown: 10_000,
+  curiousCooldown: 35_000,
+  curiousPlayfulGap: 25_000,
 } as const;
 
 const PET_SCALE = {
@@ -65,38 +69,44 @@ const PET_SCALE = {
 
 const NATURAL_BEHAVIOR_WEIGHTS: Record<'base' | 'restReady' | 'quietReady' | 'sleepReady', { behavior: NaturalBehavior; weight: number }[]> = {
   base: [
-    { behavior: 'idle', weight: 55 },
-    { behavior: 'walk', weight: 20 },
-    { behavior: 'sit', weight: 15 },
-    { behavior: 'wave', weight: 7 },
-    { behavior: 'happy', weight: 3 },
+    { behavior: 'idle', weight: 60 },
+    { behavior: 'walk', weight: 16 },
+    { behavior: 'sit', weight: 12 },
+    { behavior: 'curious', weight: 8 },
+    { behavior: 'wave', weight: 3 },
+    { behavior: 'happy', weight: 1 },
   ],
   restReady: [
-    { behavior: 'idle', weight: 45 },
-    { behavior: 'walk', weight: 18 },
-    { behavior: 'sit', weight: 17 },
-    { behavior: 'rest', weight: 10 },
-    { behavior: 'wave', weight: 6 },
-    { behavior: 'happy', weight: 4 },
+    { behavior: 'idle', weight: 48 },
+    { behavior: 'walk', weight: 14 },
+    { behavior: 'sit', weight: 12 },
+    { behavior: 'curious', weight: 10 },
+    { behavior: 'rest', weight: 8 },
+    { behavior: 'quiet', weight: 4 },
+    { behavior: 'wave', weight: 2 },
+    { behavior: 'happy', weight: 2 },
   ],
   quietReady: [
-    { behavior: 'idle', weight: 40 },
-    { behavior: 'walk', weight: 15 },
-    { behavior: 'sit', weight: 15 },
-    { behavior: 'rest', weight: 12 },
-    { behavior: 'quiet', weight: 8 },
-    { behavior: 'wave', weight: 5 },
-    { behavior: 'happy', weight: 5 },
+    { behavior: 'idle', weight: 42 },
+    { behavior: 'walk', weight: 12 },
+    { behavior: 'sit', weight: 10 },
+    { behavior: 'curious', weight: 10 },
+    { behavior: 'rest', weight: 10 },
+    { behavior: 'quiet', weight: 7 },
+    { behavior: 'sleep', weight: 4 },
+    { behavior: 'wave', weight: 3 },
+    { behavior: 'happy', weight: 2 },
   ],
   sleepReady: [
-    { behavior: 'idle', weight: 35 },
-    { behavior: 'walk', weight: 13 },
-    { behavior: 'sit', weight: 12 },
-    { behavior: 'rest', weight: 12 },
-    { behavior: 'quiet', weight: 8 },
-    { behavior: 'sleep', weight: 6 },
-    { behavior: 'wave', weight: 7 },
-    { behavior: 'happy', weight: 7 },
+    { behavior: 'idle', weight: 42 },
+    { behavior: 'walk', weight: 12 },
+    { behavior: 'sit', weight: 10 },
+    { behavior: 'curious', weight: 10 },
+    { behavior: 'rest', weight: 10 },
+    { behavior: 'quiet', weight: 7 },
+    { behavior: 'sleep', weight: 4 },
+    { behavior: 'wave', weight: 3 },
+    { behavior: 'happy', weight: 2 },
   ],
 };
 
@@ -137,7 +147,7 @@ function clampNumber(value: number, min: number, max: number) {
 }
 
 function getRandomBlinkDelay() {
-  return 12_000 + Math.random() * 8_000;
+  return 14_000 + Math.random() * 14_000;
 }
 
 function getRandomBetween([min, max]: readonly [number, number]) {
@@ -333,6 +343,7 @@ export default function PrincessPet() {
   const interactionWakeTimeoutRef = useRef<number | null>(null);
   const waveEndTimeoutRef = useRef<number | null>(null);
   const happyEndTimeoutRef = useRef<number | null>(null);
+  const curiousEndTimeoutRef = useRef<number | null>(null);
   const initialWaveTimeoutRef = useRef<number | null>(null);
   const dragResumeTimeoutRef = useRef<number | null>(null);
   const singleClickTimeoutRef = useRef<number | null>(null);
@@ -343,6 +354,7 @@ export default function PrincessPet() {
   const lastPointerClickAtRef = useRef(0);
   const waveAllowedAtRef = useRef(0);
   const happyAllowedAtRef = useRef(0);
+  const curiousAllowedAtRef = useRef(0);
   const customEventAllowedAtRef = useRef(0);
   const restAllowedAtRef = useRef(Date.now() + PET_BEHAVIOR_TIMING.minTimeBeforeRest);
   const sleepAllowedAtRef = useRef(Date.now() + PET_BEHAVIOR_TIMING.minTimeBeforeSleep);
@@ -351,11 +363,12 @@ export default function PrincessPet() {
   const sleepEndedAtRef = useRef(0);
   const quietEndedAtRef = useRef(0);
   const lastPlayfulInteractionAtRef = useRef(0);
+  const lastCuriousAtRef = useRef(0);
   const pageLoadedAtRef = useRef(Date.now());
   const lastUserInteractionAtRef = useRef(Date.now());
   const lastThrottledActivityAtRef = useRef(0);
   const pendingInteractionRef = useRef<PendingInteraction>(null);
-  const nextClickInteractionRef = useRef<Exclude<PendingInteraction, null>>('wave');
+  const nextClickInteractionRef = useRef<PlayfulInteraction>('wave');
   const scheduleBehaviorRef = useRef<((delayRange: readonly [number, number]) => void) | null>(null);
   const dragSessionRef = useRef<{
     pointerId: number;
@@ -407,6 +420,7 @@ export default function PrincessPet() {
     clearTimer(interactionWakeTimeoutRef);
     clearTimer(waveEndTimeoutRef);
     clearTimer(happyEndTimeoutRef);
+    clearTimer(curiousEndTimeoutRef);
     clearTimer(dragResumeTimeoutRef);
   }, [clearTimer]);
 
@@ -531,13 +545,38 @@ export default function PrincessPet() {
     return true;
   }, [clearTimer, prefersReducedMotion, setIdleState]);
 
+  const playCurious = useCallback(() => {
+    if (prefersReducedMotion || isDraggingRef.current || stateRef.current !== 'idle') return false;
+
+    const now = Date.now();
+    clearTimer(behaviorTimeoutRef);
+    setBlinkSrc(null);
+    setMotionDuration(0);
+    setFrameIndex(0);
+    stateRef.current = 'curious';
+    setPetState('curious');
+    lastCuriousAtRef.current = now;
+    curiousAllowedAtRef.current = now + PET_BEHAVIOR_TIMING.curiousCooldown;
+
+    clearTimer(curiousEndTimeoutRef);
+
+    curiousEndTimeoutRef.current = window.setTimeout(() => {
+      setIdleState();
+      scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
+    }, getRandomBetween(PET_BEHAVIOR_TIMING.curiousDuration));
+
+    return true;
+  }, [clearTimer, prefersReducedMotion, setIdleState]);
+
   const playPendingInteraction = useCallback(() => {
     const pendingInteraction = pendingInteractionRef.current;
     if (!pendingInteraction) return false;
 
     pendingInteractionRef.current = null;
-    return pendingInteraction === 'wave' ? playWave() : playHappy();
-  }, [playHappy, playWave]);
+    if (pendingInteraction === 'wave') return playWave();
+    if (pendingInteraction === 'happy') return playHappy();
+    return playCurious();
+  }, [playCurious, playHappy, playWave]);
 
   const finishSleep = useCallback((options: { schedule?: boolean; playPending?: boolean } = {}) => {
     clearTimer(sleepEndTimeoutRef);
@@ -601,6 +640,7 @@ export default function PrincessPet() {
 
     const now = Date.now();
     if (source !== 'greeting') {
+      if (now - lastCuriousAtRef.current < PET_BEHAVIOR_TIMING.curiousPlayfulGap) return false;
       if (now < waveAllowedAtRef.current) return false;
       waveAllowedAtRef.current = now + PET_BEHAVIOR_TIMING.waveCooldown;
     }
@@ -627,13 +667,14 @@ export default function PrincessPet() {
     const now = Date.now();
     const isHappyCoolingDown = now < happyAllowedAtRef.current;
     const isCustomEventCoolingDown = source === 'customEvent' && now < customEventAllowedAtRef.current;
+    const isTooSoonAfterCurious = now - lastCuriousAtRef.current < PET_BEHAVIOR_TIMING.curiousPlayfulGap;
 
     if (currentState === 'quiet') {
       if (source === 'natural') return false;
 
       finishQuiet({ schedule: false, playPending: false });
 
-      if (isHappyCoolingDown || isCustomEventCoolingDown) {
+      if (isHappyCoolingDown || isCustomEventCoolingDown || isTooSoonAfterCurious) {
         scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
         return false;
       }
@@ -662,7 +703,7 @@ export default function PrincessPet() {
 
       finishSleep({ schedule: false, playPending: false });
 
-      if (isHappyCoolingDown || isCustomEventCoolingDown) {
+      if (isHappyCoolingDown || isCustomEventCoolingDown || isTooSoonAfterCurious) {
         scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
         return false;
       }
@@ -686,7 +727,7 @@ export default function PrincessPet() {
       return true;
     }
 
-    if (isHappyCoolingDown || isCustomEventCoolingDown) return false;
+    if (isHappyCoolingDown || isCustomEventCoolingDown || isTooSoonAfterCurious) return false;
 
     happyAllowedAtRef.current = now + PET_BEHAVIOR_TIMING.happyCooldown;
 
@@ -707,6 +748,37 @@ export default function PrincessPet() {
 
     return false;
   }, [clearTimer, finishQuiet, finishSleep, playHappy, prefersReducedMotion]);
+
+  const requestCurious = useCallback((source: 'customEvent' | 'drag' | 'natural') => {
+    if (prefersReducedMotion || isDraggingRef.current) return false;
+
+    const currentState = stateRef.current;
+    if (currentState === 'curious') return false;
+
+    const now = Date.now();
+    if (now < curiousAllowedAtRef.current) return false;
+    if (now - lastPlayfulInteractionAtRef.current < PET_BEHAVIOR_TIMING.curiousPlayfulGap) return false;
+    if (source === 'customEvent' && now < customEventAllowedAtRef.current) return false;
+
+    if (currentState === 'idle') {
+      if (source === 'customEvent') {
+        customEventAllowedAtRef.current = now + CUSTOM_EVENT_COOLDOWN;
+      }
+
+      return playCurious();
+    }
+
+    if (source !== 'natural') {
+      if (source === 'customEvent') {
+        customEventAllowedAtRef.current = now + CUSTOM_EVENT_COOLDOWN;
+      }
+
+      pendingInteractionRef.current = 'curious';
+      return true;
+    }
+
+    return false;
+  }, [playCurious, prefersReducedMotion]);
 
   const getNaturalBehaviorWeights = useCallback((now: number) => {
     const pageElapsed = now - pageLoadedAtRef.current;
@@ -1004,6 +1076,9 @@ export default function PrincessPet() {
           case 'sit':
             startSit();
             return;
+          case 'curious':
+            if (!requestCurious('natural')) scheduleBehavior(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
+            return;
           case 'wave':
             if (!requestWave('natural')) scheduleBehavior(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
             return;
@@ -1043,6 +1118,7 @@ export default function PrincessPet() {
     getNaturalBehaviorWeights,
     playPendingInteraction,
     prefersReducedMotion,
+    requestCurious,
     requestHappy,
     requestWave,
     setIdleState,
@@ -1090,6 +1166,21 @@ export default function PrincessPet() {
       window.removeEventListener(PET_HAPPY_EVENT, handlePetHappy);
     };
   }, [noteUserInteraction, prefersReducedMotion, requestHappy]);
+
+  useEffect(() => {
+    if (prefersReducedMotion) return undefined;
+
+    const handlePetCurious = () => {
+      noteUserInteraction({ immediate: true });
+      requestCurious('customEvent');
+    };
+
+    window.addEventListener(PET_CURIOUS_EVENT, handlePetCurious);
+
+    return () => {
+      window.removeEventListener(PET_CURIOUS_EVENT, handlePetCurious);
+    };
+  }, [noteUserInteraction, prefersReducedMotion, requestCurious]);
 
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
@@ -1188,7 +1279,7 @@ export default function PrincessPet() {
 
     const preferredInteraction = nextClickInteractionRef.current;
     const alternateInteraction = preferredInteraction === 'wave' ? 'happy' : 'wave';
-    const requestInteraction = (interaction: Exclude<PendingInteraction, null>) => (
+    const requestInteraction = (interaction: PlayfulInteraction) => (
       interaction === 'wave' ? requestWave('interaction') : requestHappy('interaction')
     );
 
@@ -1296,9 +1387,10 @@ export default function PrincessPet() {
 
     dragResumeTimeoutRef.current = window.setTimeout(() => {
       dragResumeTimeoutRef.current = null;
+      if (Math.random() < 0.3 && requestCurious('drag')) return;
       scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
     }, getRandomBetween(PET_BEHAVIOR_TIMING.dragResumeDelay));
-  }, [setIdleState]);
+  }, [requestCurious, setIdleState]);
 
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
@@ -1463,10 +1555,12 @@ export default function PrincessPet() {
               ? styles.happyAlive
               : petState === 'rest'
                 ? styles.restAlive
-                : petState === 'quiet'
-                  ? styles.quietAlive
-                  : petState === 'sleep'
-                    ? styles.sleepAlive
+              : petState === 'quiet'
+                ? styles.quietAlive
+                : petState === 'sleep'
+                  ? styles.sleepAlive
+                  : petState === 'curious'
+                    ? styles.curiousAlive
                     : styles.walkAlive,
   ].join(' ');
 

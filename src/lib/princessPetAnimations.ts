@@ -2,13 +2,10 @@ export const princessAnimations = {
   idle: {
     name: 'idle',
     label: 'Idle / 待機',
-    fps: 2,
+    fps: 0.6,
     loop: true,
     frames: [
       '/pet/princess/frames/frame-001.png',
-      '/pet/princess/frames/frame-002.png',
-      '/pet/princess/frames/frame-004.png',
-      '/pet/princess/frames/frame-005.png',
     ],
     blinkFrames: [
       '/pet/princess/frames/frame-003.png',
@@ -99,6 +96,18 @@ export const princessAnimations = {
     loop: true,
     frames: [
       '/pet/princess/frames/frame-033.png',
+    ],
+  },
+  curious: {
+    name: 'curious',
+    label: 'Curious / Look Around / 好奇觀察',
+    fps: 2,
+    loop: false,
+    frames: [
+      '/pet/princess/frames/frame-001.png',
+      '/pet/princess/frames/frame-040.png',
+      '/pet/princess/frames/frame-004.png',
+      '/pet/princess/frames/frame-001.png',
     ],
   },
 } as const;

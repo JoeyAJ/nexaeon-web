@@ -3,7 +3,7 @@ import { NexLogo, NexWordmark, LangSwitcher, ArrowIcon } from './Logo.jsx';
 import ModuleAgentEntry, { ModuleAgentIndicator } from './ModuleAgentEntry.jsx';
 import NeuralBackground from './NeuralBackground.jsx';
 import { getLocalizedSite } from '../lib/contentSource.js';
-import { dispatchPetHappy } from '../lib/petEvents.js';
+import { dispatchPetCurious } from '../lib/petEvents.js';
 import { toDetailPath } from '../utils/router.js';
 
 const INTRO_SEEN_KEY = 'nexaeon_intro_seen';
@@ -111,7 +111,7 @@ function Nav({
     setActiveModuleId(moduleId);
     navigate(`/#${moduleId}`, { scroll: false });
     setIsMobileMenuOpen(false);
-    dispatchPetHappy();
+    dispatchPetCurious();
   };
 
   return (
@@ -124,6 +124,7 @@ function Nav({
             scrollToSection('home');
             setActiveModuleId(null);
             setIsMobileMenuOpen(false);
+            dispatchPetCurious();
           }}
           aria-label="Back to home"
         >
@@ -260,7 +261,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
     setActiveModuleId(moduleId);
     navigate(`/#${moduleId}`, { scroll: false });
     requestAnimationFrame(() => scrollToSection('module-entries'));
-    dispatchPetHappy();
+    dispatchPetCurious();
   };
 
   return (
@@ -344,6 +345,7 @@ function Footer({ content, modules, setActiveModuleId, navigate }) {
                 setActiveModuleId(module.id);
                 navigate(`/#${module.id}`, { scroll: false });
                 scrollToSection('module-entries');
+                dispatchPetCurious();
               }}
               type="button"
             >
@@ -429,6 +431,7 @@ export default function DirectionB({ lang, setLang, theme, setTheme, navigate })
     setActiveModuleId('research');
     navigate('/#research', { scroll: false });
     requestAnimationFrame(() => scrollToSection('module-entries'));
+    dispatchPetCurious();
   };
 
   return (
