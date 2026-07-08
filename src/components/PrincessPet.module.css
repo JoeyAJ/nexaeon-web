@@ -3,16 +3,19 @@
   --princess-pet-motion-duration: 0ms;
 
   position: fixed;
-  right: clamp(18px, 4vw, 52px);
-  bottom: clamp(18px, 4vw, 48px);
+  top: 0;
+  left: 0;
   z-index: 50;
   width: var(--princess-pet-width);
   height: calc(var(--princess-pet-width) * 1.56);
   pointer-events: none;
   overflow: visible;
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
-.motionLayer,
+.walkOffsetLayer,
+.scaleLayer,
 .aliveLayer,
 .frameLayer {
   display: flex;
@@ -24,9 +27,15 @@
   overflow: visible;
 }
 
-.motionLayer {
+.walkOffsetLayer {
   transform: translateX(0);
   transition: transform var(--princess-pet-motion-duration) ease-in-out;
+  will-change: transform;
+}
+
+.scaleLayer {
+  transform: scale(1);
+  transition: transform 160ms ease;
   will-change: transform;
 }
 
@@ -75,6 +84,11 @@
   transform-origin: 50% 100%;
 }
 
+.draggingAlive {
+  animation: none;
+  transform: none;
+}
+
 .frameLayer {
   min-width: 0;
 }
@@ -89,10 +103,19 @@
   border: 0;
   background: transparent;
   color: inherit;
-  cursor: pointer;
+  cursor: grab;
   pointer-events: auto;
+  touch-action: none;
   transform-origin: 50% 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
   overflow: visible;
+}
+
+.interactiveLayer:active,
+.dragging .interactiveLayer {
+  cursor: grabbing;
 }
 
 .aliveLayer[data-state="walkLeft"] .frameLayer,
@@ -117,6 +140,8 @@
   object-position: center bottom;
   transform-origin: 50% 100%;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
   pointer-events: none;
   overflow: visible;
   opacity: 1;
@@ -241,14 +266,12 @@
 @media (max-width: 520px) {
   .root {
     --princess-pet-width: clamp(76px, 22vw, 98px);
-
-    right: clamp(14px, 4vw, 22px);
-    bottom: clamp(68px, 12vh, 92px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .motionLayer,
+  .walkOffsetLayer,
+  .scaleLayer,
   .aliveLayer,
   .frameLayer,
   .interactiveLayer,
