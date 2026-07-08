@@ -1,4 +1,4 @@
-import { getDataSourceStatuses } from '../../lib/dataSourceRegistry';
+import { getDataSourceStatuses } from '../../lib/dataSourceRegistry.js';
 
 export default function handler(req, res) {
   const statuses = getDataSourceStatuses();
