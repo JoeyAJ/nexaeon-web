@@ -99,6 +99,15 @@ export default function App() {
   };
 
   const invalidRouteCopy = getGuardrailCopy(lang);
+  const companionNavigationKey = [
+    route.kind,
+    route.type,
+    route.id,
+    route.role,
+    route.slug,
+    route.key,
+    route.hash,
+  ].filter(Boolean).join(':');
 
   return (
     <div className="app-shell">
@@ -165,7 +174,7 @@ export default function App() {
           />
         )}
       </AppErrorBoundary>
-      <Companion lang={lang} />
+      <Companion lang={lang} navigationKey={companionNavigationKey} />
       <BackToTopButton lang={lang} />
     </div>
   );

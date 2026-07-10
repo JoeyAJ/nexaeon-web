@@ -10,6 +10,16 @@ import {
   useState,
 } from 'react';
 import { PET_AFFECTION_EVENT, PET_CURIOUS_EVENT, PET_HAPPY_EVENT } from '../lib/petEvents.js';
+import {
+  clampPrincessPosition,
+  clearPrincessLayout,
+  getPrincessStorage,
+  readPrincessPosition,
+  readPrincessScale,
+  subscribePrincessViewportChanges,
+  writePrincessPosition,
+  writePrincessScale,
+} from '../lib/princessLayoutPersistence.js';
 import { princessAnimations } from '../lib/princessPetAnimations';
 import {
   PRINCESS_STATES,
@@ -31,8 +41,6 @@ type NaturalBehavior = 'idle' | 'walk' | 'sit' | 'curious' | 'wave' | 'happy' | 
 type LowPowerState = 'rest' | 'quiet' | 'sleep';
 
 const PET_DEBUG = false;
-const POSITION_STORAGE_KEY = 'nexaeon-princess-pet-position';
-const SCALE_STORAGE_KEY = 'nexaeon-princess-pet-scale';
 
 const PET_BEHAVIOR_TIMING = {
   idleNextBehaviorDelay: [12_000, 26_000],
@@ -225,18 +233,16 @@ function clampPetPosition(position: PetPosition, scale: PetScale, root: HTMLDivE
   const viewport = getViewportSize();
   const safeArea = getPetSafeArea(viewport.width);
   const size = getPetSize(root);
-  const visualWidth = size.width * PET_VISUAL_WIDTH_MULTIPLIER * scale;
-  const horizontalOverflow = Math.max(0, (visualWidth - size.width) / 2);
-  const topOverflow = Math.max(0, size.height * scale - size.height);
-  const minX = safeArea.left + horizontalOverflow;
-  const maxX = viewport.width - safeArea.right - size.width - horizontalOverflow;
-  const minY = safeArea.top + topOverflow;
-  const maxY = viewport.height - safeArea.bottom - size.height;
 
-  return {
-    x: maxX < minX ? Math.max(12, (viewport.width - size.width) / 2) : clampNumber(position.x, minX, maxX),
-    y: maxY < minY ? Math.max(12, (viewport.height - size.height) / 2) : clampNumber(position.y, minY, maxY),
-  };
+  return clampPrincessPosition({
+    position,
+    viewportWidth: viewport.width,
+    viewportHeight: viewport.height,
+    safeArea,
+    size,
+    scale,
+    visualWidthMultiplier: PET_VISUAL_WIDTH_MULTIPLIER,
+  });
 }
 
 function getDefaultPetPosition(root: HTMLDivElement | null, scale: PetScale): PetPosition {
@@ -252,55 +258,37 @@ function getDefaultPetPosition(root: HTMLDivElement | null, scale: PetScale): Pe
 
 function readStoredPosition() {
   if (typeof window === 'undefined') return null;
-
-  try {
-    const payload = window.localStorage.getItem(POSITION_STORAGE_KEY);
-    if (!payload) return null;
-    const parsed = JSON.parse(payload) as Partial<PetPosition>;
-    if (!Number.isFinite(parsed.x) || !Number.isFinite(parsed.y)) return null;
-    return { x: Number(parsed.x), y: Number(parsed.y) };
-  } catch {
-    return null;
-  }
+  return readPrincessPosition(getPrincessStorage(window)) as PetPosition | null;
 }
 
 function readStoredScale() {
   if (typeof window === 'undefined') return null;
-
-  try {
-    const payload = window.localStorage.getItem(SCALE_STORAGE_KEY);
-    if (!payload) return null;
-    const parsed = JSON.parse(payload) as Partial<{ scale: number }>;
-    if (!Number.isFinite(parsed.scale)) return null;
-    return Number(parsed.scale);
-  } catch {
-    return null;
-  }
+  return readPrincessScale(getPrincessStorage(window));
 }
 
 function writeStoredPosition(position: PetPosition) {
-  try {
-    window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(position));
-  } catch {
-    // Position memory is a convenience; the pet should keep working without storage.
-  }
+  if (typeof window === 'undefined') return;
+  writePrincessPosition(getPrincessStorage(window), position);
 }
 
 function writeStoredScale(scale: PetScale) {
-  try {
-    window.localStorage.setItem(SCALE_STORAGE_KEY, JSON.stringify({ scale }));
-  } catch {
-    // Scale memory is a convenience; the pet should keep working without storage.
-  }
+  if (typeof window === 'undefined') return;
+  writePrincessScale(getPrincessStorage(window), scale);
 }
 
 function clearStoredPetLayout() {
-  try {
-    window.localStorage.removeItem(POSITION_STORAGE_KEY);
-    window.localStorage.removeItem(SCALE_STORAGE_KEY);
-  } catch {
-    // Ignore storage failures.
-  }
+  if (typeof window === 'undefined') return;
+  clearPrincessLayout(getPrincessStorage(window));
+}
+
+function getInitialPetLayout() {
+  const restoredScale = clampPetScale(readStoredScale() ?? PET_SCALE.default);
+  const restoredPosition = readStoredPosition();
+  const position = restoredPosition
+    ? clampPetPosition(restoredPosition, restoredScale, null)
+    : getDefaultPetPosition(null, restoredScale);
+
+  return { position, scale: restoredScale };
 }
 
 function chooseWeightedBehavior(weights: { behavior: NaturalBehavior; weight: number }[]) {
@@ -315,8 +303,9 @@ function chooseWeightedBehavior(weights: { behavior: NaturalBehavior; weight: nu
   return 'idle';
 }
 
-export default function PrincessPet() {
+export default function PrincessPet({ navigationKey = '' }: { navigationKey?: string }) {
   const prefersReducedMotion = usePrefersReducedMotion();
+  const initialLayout = useMemo(getInitialPetLayout, []);
   const [petState, setPetState] = useState<PetState>('idle');
   const animation = princessAnimations[petState];
   const normalFrames = animation.frames;
@@ -325,8 +314,8 @@ export default function PrincessPet() {
   const [blinkSrc, setBlinkSrc] = useState<string | null>(null);
   const [offsetX, setOffsetX] = useState(0);
   const [motionDuration, setMotionDuration] = useState(0);
-  const [position, setPosition] = useState<PetPosition>(() => getDefaultPetPosition(null, PET_SCALE.default));
-  const [scale, setScale] = useState<PetScale>(PET_SCALE.default);
+  const [position, setPosition] = useState<PetPosition>(initialLayout.position);
+  const [scale, setScale] = useState<PetScale>(initialLayout.scale);
   const [isDragging, setIsDragging] = useState(false);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -371,6 +360,7 @@ export default function PrincessPet() {
   const nextClickInteractionRef = useRef<PlayfulInteraction>('wave');
   const lastPetClickAtRef = useRef(0);
   const longPressTriggeredRef = useRef(false);
+  const previousNavigationKeyRef = useRef(navigationKey);
   const scheduleBehaviorRef = useRef<((delayRange: readonly [number, number]) => void) | null>(null);
   const dragSessionRef = useRef<{
     pointerId: number;
@@ -905,20 +895,10 @@ export default function PrincessPet() {
   }, []);
 
   useEffect(() => {
-    const restoredScale = clampPetScale(readStoredScale() ?? PET_SCALE.default);
-    const restoredPosition = readStoredPosition();
-    const nextPosition = restoredPosition
-      ? clampPetPosition(restoredPosition, restoredScale, rootRef.current)
-      : getDefaultPetPosition(rootRef.current, restoredScale);
+    let resizeFrame: number | null = null;
 
-    scaleRef.current = restoredScale;
-    positionRef.current = nextPosition;
-    setScale(restoredScale);
-    setPosition(nextPosition);
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => {
+    const applyViewportBounds = () => {
+      resizeFrame = null;
       const clampedScale = clampPetScale(scaleRef.current);
       scaleRef.current = clampedScale;
       setScale(clampedScale);
@@ -928,8 +908,17 @@ export default function PrincessPet() {
       setPosition(nextPosition);
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const scheduleViewportBounds = () => {
+      if (resizeFrame !== null) return;
+      resizeFrame = window.requestAnimationFrame(applyViewportBounds);
+    };
+
+    const unsubscribe = subscribePrincessViewportChanges(window, scheduleViewportBounds);
+
+    return () => {
+      unsubscribe();
+      if (resizeFrame !== null) window.cancelAnimationFrame(resizeFrame);
+    };
   }, []);
 
   useEffect(() => {
@@ -1384,7 +1373,9 @@ export default function PrincessPet() {
     const sizes = PET_SCALE.doubleClickSizes;
     const currentScale = scaleRef.current;
     const nextPreset = sizes.find((size) => size > currentScale + 0.03) ?? sizes[0];
-    applyScale(nextPreset, { persist: true });
+    const nextScale = applyScale(nextPreset);
+    clearTimer(scaleSaveTimeoutRef);
+    writeStoredScale(nextScale);
   }, [
     applyScale,
     clearTimer,
@@ -1445,6 +1436,39 @@ export default function PrincessPet() {
       scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
     }, getRandomBetween(PET_BEHAVIOR_TIMING.dragResumeDelay));
   }, [clearTimer, prefersReducedMotion, requestAffection, requestCurious, setIdleState]);
+
+  useEffect(() => {
+    if (previousNavigationKeyRef.current === navigationKey) return;
+    previousNavigationKeyRef.current = navigationKey;
+
+    const dragSession = dragSessionRef.current;
+    if (!dragSession) return;
+
+    dragSessionRef.current = null;
+    suppressNativeClickRef.current = true;
+    clearTimer(longPressTimeoutRef);
+    clearTimer(singleClickTimeoutRef);
+
+    const interactiveNode = interactiveRef.current;
+    if (interactiveNode?.hasPointerCapture(dragSession.pointerId)) {
+      interactiveNode.releasePointerCapture(dragSession.pointerId);
+    }
+
+    if (dragAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragAnimationFrameRef.current);
+      dragAnimationFrameRef.current = null;
+    }
+
+    const safePosition = pendingDragPositionRef.current || positionRef.current;
+    pendingDragPositionRef.current = null;
+
+    if (dragSession.dragging || isDraggingRef.current) {
+      endDrag(safePosition, { resume: false });
+      return;
+    }
+
+    scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
+  }, [clearTimer, endDrag, navigationKey]);
 
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
@@ -1687,6 +1711,7 @@ export default function PrincessPet() {
       style={rootStyle}
       data-pet-state={petState}
       data-pet-dragging={isDragging ? 'true' : 'false'}
+      data-pet-scale={scale.toFixed(2)}
     >
       <div className={styles.walkOffsetLayer} style={walkStyle}>
         <div className={styles.scaleLayer} style={scaleStyle}>
