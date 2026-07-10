@@ -7,7 +7,15 @@ import RoleDetailPage from './components/RoleDetailPage.jsx';
 import AppErrorBoundary, { getGuardrailCopy, GuardrailStatePage } from './components/AppErrorBoundary.jsx';
 import AgentScaffoldPage from './components/AgentScaffoldPage.jsx';
 import { Companion } from './components/Companion/index.js';
+import PrincessCompanionControls from './components/PrincessCompanionControls.jsx';
 import { getAgentByKey } from './data/agentRegistry.js';
+import {
+  DEFAULT_PRINCESS_SETTINGS,
+  clearPrincessSettings,
+  getPrincessStorage,
+  readPrincessSettings,
+  writePrincessSettings,
+} from './lib/princessLayoutPersistence.js';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
 const BACK_TO_TOP_TEXT = {
@@ -45,6 +53,11 @@ function BackToTopButton({ lang }) {
 export default function App() {
   const [lang, setLang] = useState('zh');
   const [theme, setTheme] = useState('dark');
+  const [companionSettings, setCompanionSettings] = useState(() => (
+    readPrincessSettings(getPrincessStorage(window))
+  ));
+  const [resetPositionToken, setResetPositionToken] = useState(0);
+  const [resetSizeToken, setResetSizeToken] = useState(0);
   const [route, setRoute] = useState(() => ({
     ...parseRoute(window.location.pathname),
     hash: window.location.hash,
@@ -108,6 +121,24 @@ export default function App() {
     route.key,
     route.hash,
   ].filter(Boolean).join(':');
+
+  const updateCompanionSetting = (key, value) => {
+    if (!(key in DEFAULT_PRINCESS_SETTINGS)) return;
+
+    setCompanionSettings((current) => {
+      if (current[key] === value) return current;
+      const nextSettings = { ...current, [key]: value };
+      writePrincessSettings(getPrincessStorage(window), nextSettings);
+      return nextSettings;
+    });
+  };
+
+  const resetAllCompanionSettings = () => {
+    clearPrincessSettings(getPrincessStorage(window));
+    setCompanionSettings({ ...DEFAULT_PRINCESS_SETTINGS });
+    setResetPositionToken((current) => current + 1);
+    setResetSizeToken((current) => current + 1);
+  };
 
   return (
     <div className="app-shell">
@@ -174,7 +205,23 @@ export default function App() {
           />
         )}
       </AppErrorBoundary>
-      <Companion lang={lang} navigationKey={companionNavigationKey} />
+      <Companion
+        lang={lang}
+        navigationKey={companionNavigationKey}
+        visible={companionSettings.visible}
+        autoBehaviorEnabled={companionSettings.autoBehaviorEnabled}
+        interactionEnabled={companionSettings.interactionEnabled}
+        resetPositionToken={resetPositionToken}
+        resetSizeToken={resetSizeToken}
+      />
+      <PrincessCompanionControls
+        lang={lang}
+        settings={companionSettings}
+        onSettingChange={updateCompanionSetting}
+        onResetPosition={() => setResetPositionToken((current) => current + 1)}
+        onResetSize={() => setResetSizeToken((current) => current + 1)}
+        onResetAll={resetAllCompanionSettings}
+      />
       <BackToTopButton lang={lang} />
     </div>
   );

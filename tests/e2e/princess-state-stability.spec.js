@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const PET_ROOT = '[data-pet-state]';
-const PET_BUTTON = 'button[aria-label="Interact with the princess pet"]';
+const PET_BUTTON = '[data-testid="princess-interactive"]';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -204,5 +204,116 @@ test('route change safely ends an active Princess drag without remounting', asyn
     window.localStorage.getItem('nexaeon-princess-pet-position')
   )));
   expect(storedPosition.version).toBe(1);
+  assertRuntimeClean();
+});
+
+test('Companion controls persist visibility, automatic behavior, and interaction settings', async ({ page }) => {
+  const assertRuntimeClean = watchRuntimeErrors(page);
+  await page.goto('/');
+  await expectLoadedIdlePrincess(page);
+
+  const controls = page.getByTestId('princess-controls');
+  const root = page.locator(PET_ROOT);
+  await controls.getByRole('button', { name: '開啟 Companion 控制' }).click();
+  await expect(controls.getByRole('dialog', { name: 'Princess Companion' })).toBeVisible();
+
+  const autoSwitch = controls.getByRole('switch', { name: '自動行為' });
+  await autoSwitch.click();
+  await expect(autoSwitch).toHaveAttribute('aria-checked', 'false');
+  await expect(root).toHaveAttribute('data-pet-auto-behavior', 'false');
+  await expect(root).toHaveAttribute('data-pet-state', 'idle');
+  await page.getByTestId('princess-interactive').click();
+  await expect(root).toHaveAttribute('data-pet-state', /wave|happy/);
+  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+
+  const interactionSwitch = controls.getByRole('switch', { name: '互動' });
+  await interactionSwitch.click();
+  await expect(interactionSwitch).toHaveAttribute('aria-checked', 'false');
+  await expect(root).toHaveAttribute('data-pet-interaction', 'false');
+  await page.getByTestId('princess-interactive').click();
+  await expect(root).toHaveAttribute('data-pet-state', 'idle');
+
+  const visibleSwitch = controls.getByRole('switch', { name: '顯示 Princess' });
+  await visibleSwitch.click();
+  await expect(page.locator(PET_ROOT)).toHaveCount(0);
+  await expect(controls.getByRole('button', { name: '開啟 Companion 控制' })).toBeVisible();
+
+  const settingsRecord = JSON.parse(await page.evaluate(() => (
+    window.localStorage.getItem('nexaeon-princess-companion-settings')
+  )));
+  expect(settingsRecord).toMatchObject({
+    version: 1,
+    visible: false,
+    autoBehaviorEnabled: false,
+    interactionEnabled: false,
+  });
+
+  await page.reload();
+  await expect(page.locator(PET_ROOT)).toHaveCount(0);
+  await controls.getByRole('button', { name: '開啟 Companion 控制' }).click();
+  const restoredVisibleSwitch = controls.getByRole('switch', { name: '顯示 Princess' });
+  await expect(restoredVisibleSwitch).toHaveAttribute('aria-checked', 'false');
+  await restoredVisibleSwitch.click();
+  await expectLoadedIdlePrincess(page);
+  await expect(root).toHaveAttribute('data-pet-auto-behavior', 'false');
+  await expect(root).toHaveAttribute('data-pet-interaction', 'false');
+
+  await page.keyboard.press('Escape');
+  await expect(controls.getByRole('dialog', { name: 'Princess Companion' })).toHaveCount(0);
+  assertRuntimeClean();
+});
+
+test('Companion controls reset position, size, and only Princess settings', async ({ page }) => {
+  const assertRuntimeClean = watchRuntimeErrors(page);
+  await page.goto('/');
+  await expectLoadedIdlePrincess(page);
+
+  const root = page.locator(PET_ROOT);
+  const button = page.getByTestId('princess-interactive');
+  const controls = page.getByTestId('princess-controls');
+  const box = await button.boundingBox();
+  expect(box).not.toBeNull();
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 - 52, box.y + box.height / 2 - 28, { steps: 3 });
+  await page.mouse.up();
+  const draggedTransform = await root.getAttribute('style');
+  await button.dblclick();
+  await expect(root).toHaveAttribute('data-pet-scale', '1.18');
+
+  await controls.getByRole('button', { name: '開啟 Companion 控制' }).click();
+  await controls.getByRole('button', { name: '恢復大小' }).click();
+  await expect(root).toHaveAttribute('data-pet-scale', '1.00');
+  await controls.getByRole('button', { name: '恢復位置' }).click();
+  await expect(root).not.toHaveAttribute('style', draggedTransform);
+  expect(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-pet-position'))).toBeNull();
+  expect(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-pet-scale'))).toBeNull();
+  await expect(controls.getByRole('status')).toHaveText('已恢復預設');
+
+  await controls.getByRole('switch', { name: '互動' }).click();
+  await controls.getByRole('button', { name: '全部恢復預設' }).click();
+  await expect(root).toHaveAttribute('data-pet-interaction', 'true');
+  expect(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-companion-settings'))).toBeNull();
+  assertRuntimeClean();
+});
+
+test('Companion controls localize and remain readable across theme changes', async ({ page }) => {
+  const assertRuntimeClean = watchRuntimeErrors(page);
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  const controls = page.getByTestId('princess-controls');
+  await controls.getByRole('button', { name: 'Open Companion controls' }).click();
+  await expect(controls.getByText('Automatic behavior')).toBeVisible();
+  await expect(controls.getByText('Reset all defaults')).toBeVisible();
+  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: '한국어로 전환' }).click();
+  await controls.getByRole('button', { name: 'Companion 컨트롤 열기' }).click();
+  await expect(controls.getByText('자동 행동')).toBeVisible();
+  await expect(controls.getByText('모두 기본값으로')).toBeVisible();
   assertRuntimeClean();
 });

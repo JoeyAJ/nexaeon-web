@@ -1,0 +1,241 @@
+.controlsRoot {
+  position: fixed;
+  left: max(18px, env(safe-area-inset-left));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 140;
+  font-family: var(--font-sans);
+  color: var(--fg-1);
+}
+
+.trigger,
+.closeButton,
+.switchRow,
+.actions button {
+  font: inherit;
+}
+
+.trigger {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--line-3);
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--bg-1) 76%, transparent);
+  color: var(--fg-1);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), var(--shadow-2);
+  transition: transform 140ms var(--ease-out), border-color 140ms var(--ease-out);
+}
+
+.trigger:hover,
+.trigger:focus-visible {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-fg) 58%, var(--line-3));
+}
+
+.panel {
+  position: absolute;
+  left: 0;
+  bottom: 58px;
+  width: min(304px, calc(100vw - 36px));
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-indigo) 32%, var(--line-3));
+  border-radius: var(--r-lg);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--accent-violet) 13%, var(--bg-1)) 0%,
+    color-mix(in srgb, var(--accent-blue) 10%, var(--bg-2)) 100%
+  );
+  box-shadow: var(--shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(20px) saturate(155%);
+  -webkit-backdrop-filter: blur(20px) saturate(155%);
+  animation: panelIn 140ms var(--ease-out);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.header strong {
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+.closeButton {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--fg-2);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.closeButton:hover,
+.closeButton:focus-visible {
+  background: var(--line-2);
+  color: var(--fg-1);
+}
+
+.switches {
+  display: grid;
+  gap: 6px;
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 42px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--fg-1);
+  text-align: left;
+  cursor: pointer;
+}
+
+.switchRow:hover,
+.switchRow:focus-visible {
+  background: var(--line-1);
+}
+
+.switchValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--fg-3);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.switchValue[data-enabled="true"] {
+  color: var(--accent-fg);
+}
+
+.switchTrack {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border: 1px solid var(--line-3);
+  border-radius: var(--r-pill);
+  background: var(--bg-3);
+}
+
+.switchTrack span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--fg-3);
+  transition: transform 140ms var(--ease-out), background 140ms var(--ease-out);
+}
+
+.switchValue[data-enabled="true"] .switchTrack {
+  border-color: color-mix(in srgb, var(--accent-indigo) 72%, var(--line-3));
+  background: color-mix(in srgb, var(--accent-indigo) 35%, var(--bg-3));
+}
+
+.switchValue[data-enabled="true"] .switchTrack span {
+  transform: translateX(14px);
+  background: var(--accent-fg);
+}
+
+.note {
+  margin: 8px 8px 10px;
+  color: var(--fg-3);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.actions button {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bg-2) 82%, transparent);
+  color: var(--fg-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.actions button:hover,
+.actions button:focus-visible {
+  border-color: color-mix(in srgb, var(--accent-fg) 48%, var(--line-2));
+  color: var(--fg-1);
+}
+
+.actions .resetAll {
+  grid-column: 1 / -1;
+}
+
+.feedback {
+  min-height: 17px;
+  margin: 8px 2px 0;
+  color: var(--accent-fg);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 520px) {
+  .controlsRoot {
+    left: max(14px, env(safe-area-inset-left));
+    bottom: max(18px, env(safe-area-inset-bottom));
+  }
+
+  .trigger {
+    width: 48px;
+    height: 48px;
+  }
+
+  .panel {
+    bottom: 60px;
+    width: min(304px, calc(100vw - 28px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trigger,
+  .switchTrack span,
+  .panel {
+    animation: none;
+    transition: none;
+  }
+}

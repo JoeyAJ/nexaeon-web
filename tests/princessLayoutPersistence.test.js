@@ -1,17 +1,22 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  DEFAULT_PRINCESS_SETTINGS,
   PRINCESS_LAYOUT_STORAGE_VERSION,
   PRINCESS_POSITION_STORAGE_KEY,
   PRINCESS_SCALE_STORAGE_KEY,
+  PRINCESS_SETTINGS_STORAGE_KEY,
   clampPrincessPosition,
   getPrincessStorage,
   parseStoredPrincessPosition,
   parseStoredPrincessScale,
+  parseStoredPrincessSettings,
   readPrincessPosition,
+  readPrincessSettings,
   subscribePrincessViewportChanges,
   writePrincessPosition,
   writePrincessScale,
+  writePrincessSettings,
 } from '../src/lib/princessLayoutPersistence.js';
 
 function createMemoryStorage() {
@@ -19,6 +24,7 @@ function createMemoryStorage() {
   return {
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
   };
 }
 
@@ -47,6 +53,36 @@ test('versioned and legacy Princess layout records both restore safely', () => {
   assert.equal(parseStoredPrincessScale('{"version":1,"scale":1.1,"updatedAt":10}'), 1.1);
   assert.equal(parseStoredPrincessScale('{"scale":0.82}'), 0.82);
   assert.equal(parseStoredPrincessPosition('{"version":2,"x":12,"y":24}'), null);
+});
+
+test('Princess control settings use one versioned record and restore safely', () => {
+  const storage = createMemoryStorage();
+  const settings = {
+    visible: false,
+    autoBehaviorEnabled: false,
+    interactionEnabled: true,
+  };
+
+  assert.equal(writePrincessSettings(storage, settings, 789), true);
+  assert.deepEqual(JSON.parse(storage.getItem(PRINCESS_SETTINGS_STORAGE_KEY)), {
+    version: PRINCESS_LAYOUT_STORAGE_VERSION,
+    ...settings,
+    updatedAt: 789,
+  });
+  assert.deepEqual(readPrincessSettings(storage), settings);
+});
+
+test('invalid or future Princess settings fall back to safe visible defaults', () => {
+  assert.deepEqual(parseStoredPrincessSettings('not json'), DEFAULT_PRINCESS_SETTINGS);
+  assert.deepEqual(
+    parseStoredPrincessSettings('{"version":2,"visible":false}'),
+    DEFAULT_PRINCESS_SETTINGS,
+  );
+  assert.deepEqual(parseStoredPrincessSettings('{"version":1,"visible":false}'), {
+    visible: false,
+    autoBehaviorEnabled: true,
+    interactionEnabled: true,
+  });
 });
 
 test('saved positions outside a smaller viewport are clamped into the safe area', () => {

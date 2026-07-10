@@ -1,6 +1,12 @@
 export const PRINCESS_LAYOUT_STORAGE_VERSION = 1;
 export const PRINCESS_POSITION_STORAGE_KEY = 'nexaeon-princess-pet-position';
 export const PRINCESS_SCALE_STORAGE_KEY = 'nexaeon-princess-pet-scale';
+export const PRINCESS_SETTINGS_STORAGE_KEY = 'nexaeon-princess-companion-settings';
+export const DEFAULT_PRINCESS_SETTINGS = Object.freeze({
+  visible: true,
+  autoBehaviorEnabled: true,
+  interactionEnabled: true,
+});
 
 export function getPrincessStorage(windowTarget) {
   try {
@@ -35,6 +41,21 @@ export function parseStoredPrincessScale(rawValue) {
   return Number(parsed.scale);
 }
 
+export function parseStoredPrincessSettings(rawValue) {
+  const parsed = parseRecord(rawValue);
+  if (!parsed) return { ...DEFAULT_PRINCESS_SETTINGS };
+
+  return {
+    visible: typeof parsed.visible === 'boolean' ? parsed.visible : DEFAULT_PRINCESS_SETTINGS.visible,
+    autoBehaviorEnabled: typeof parsed.autoBehaviorEnabled === 'boolean'
+      ? parsed.autoBehaviorEnabled
+      : DEFAULT_PRINCESS_SETTINGS.autoBehaviorEnabled,
+    interactionEnabled: typeof parsed.interactionEnabled === 'boolean'
+      ? parsed.interactionEnabled
+      : DEFAULT_PRINCESS_SETTINGS.interactionEnabled,
+  };
+}
+
 export function createPrincessPositionRecord(position, updatedAt = Date.now()) {
   return {
     version: PRINCESS_LAYOUT_STORAGE_VERSION,
@@ -52,6 +73,16 @@ export function createPrincessScaleRecord(scale, updatedAt = Date.now()) {
   };
 }
 
+export function createPrincessSettingsRecord(settings, updatedAt = Date.now()) {
+  return {
+    version: PRINCESS_LAYOUT_STORAGE_VERSION,
+    visible: Boolean(settings.visible),
+    autoBehaviorEnabled: Boolean(settings.autoBehaviorEnabled),
+    interactionEnabled: Boolean(settings.interactionEnabled),
+    updatedAt,
+  };
+}
+
 export function readPrincessPosition(storage) {
   try {
     return parseStoredPrincessPosition(storage?.getItem(PRINCESS_POSITION_STORAGE_KEY));
@@ -65,6 +96,14 @@ export function readPrincessScale(storage) {
     return parseStoredPrincessScale(storage?.getItem(PRINCESS_SCALE_STORAGE_KEY));
   } catch {
     return null;
+  }
+}
+
+export function readPrincessSettings(storage) {
+  try {
+    return parseStoredPrincessSettings(storage?.getItem(PRINCESS_SETTINGS_STORAGE_KEY));
+  } catch {
+    return { ...DEFAULT_PRINCESS_SETTINGS };
   }
 }
 
@@ -86,6 +125,45 @@ export function writePrincessScale(storage, scale, updatedAt = Date.now()) {
       PRINCESS_SCALE_STORAGE_KEY,
       JSON.stringify(createPrincessScaleRecord(scale, updatedAt)),
     );
+    return Boolean(storage);
+  } catch {
+    return false;
+  }
+}
+
+export function writePrincessSettings(storage, settings, updatedAt = Date.now()) {
+  try {
+    storage?.setItem(
+      PRINCESS_SETTINGS_STORAGE_KEY,
+      JSON.stringify(createPrincessSettingsRecord(settings, updatedAt)),
+    );
+    return Boolean(storage);
+  } catch {
+    return false;
+  }
+}
+
+export function clearPrincessPosition(storage) {
+  try {
+    storage?.removeItem(PRINCESS_POSITION_STORAGE_KEY);
+    return Boolean(storage);
+  } catch {
+    return false;
+  }
+}
+
+export function clearPrincessScale(storage) {
+  try {
+    storage?.removeItem(PRINCESS_SCALE_STORAGE_KEY);
+    return Boolean(storage);
+  } catch {
+    return false;
+  }
+}
+
+export function clearPrincessSettings(storage) {
+  try {
+    storage?.removeItem(PRINCESS_SETTINGS_STORAGE_KEY);
     return Boolean(storage);
   } catch {
     return false;
