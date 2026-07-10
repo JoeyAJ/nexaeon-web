@@ -110,4 +110,17 @@ export const princessAnimations = {
       '/pet/princess/frames/frame-001.png',
     ],
   },
+  affection: {
+    name: 'affection',
+    label: 'Affection / Nuzzle / 親近撒嬌',
+    fps: 3,
+    loop: false,
+    frames: [
+      '/pet/princess/frames/frame-001.png',
+      '/pet/princess/frames/frame-054.png',
+      '/pet/princess/frames/frame-055.png',
+      '/pet/princess/frames/frame-054.png',
+      '/pet/princess/frames/frame-001.png',
+    ],
+  },
 } as const;

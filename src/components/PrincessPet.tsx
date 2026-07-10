@@ -8,14 +8,14 @@ import {
   useRef,
   useState,
 } from 'react';
-import { PET_CURIOUS_EVENT, PET_HAPPY_EVENT } from '../lib/petEvents.js';
+import { PET_AFFECTION_EVENT, PET_CURIOUS_EVENT, PET_HAPPY_EVENT } from '../lib/petEvents.js';
 import { princessAnimations } from '../lib/princessPetAnimations';
 import styles from './PrincessPet.module.css';
 
 type PetState = keyof typeof princessAnimations;
 type WalkState = 'walkLeft' | 'walkRight';
 type PlayfulInteraction = 'wave' | 'happy';
-type PendingInteraction = PlayfulInteraction | 'curious' | null;
+type PendingInteraction = PlayfulInteraction | 'curious' | 'affection' | null;
 type PetPosition = {
   x: number;
   y: number;
@@ -40,6 +40,7 @@ const PET_BEHAVIOR_TIMING = {
   waveDuration: [1_200, 2_000],
   happyDuration: [1_400, 2_400],
   curiousDuration: [1_800, 3_200],
+  affectionDuration: [1_800, 2_800],
 
   minTimeBeforeRest: 90_000,
   minTimeBeforeQuiet: 150_000,
@@ -52,6 +53,7 @@ const PET_BEHAVIOR_TIMING = {
   interactionCooldown: 10_000,
   waveCooldown: 12_000,
   happyCooldown: 10_000,
+  affectionCooldown: 12_000,
   curiousCooldown: 35_000,
   curiousPlayfulGap: 25_000,
 } as const;
@@ -119,8 +121,10 @@ const CUSTOM_EVENT_COOLDOWN = 8_000;
 const LOW_POWER_STATE_GAP = 45_000;
 const POST_SLEEP_LOW_POWER_GAP = 90_000;
 const DRAG_CLICK_THRESHOLD = 7;
+const LONG_PRESS_DELAY = [800, 1_200] as const;
 const SINGLE_CLICK_DELAY = 220;
 const DOUBLE_CLICK_WINDOW = 320;
+const REPEAT_CLICK_AFFECTION_WINDOW = 8_000;
 const PET_VISUAL_WIDTH_MULTIPLIER = 1.42;
 const PET_ASPECT_RATIO = 1.56;
 
@@ -342,7 +346,9 @@ export default function PrincessPet() {
   const waveEndTimeoutRef = useRef<number | null>(null);
   const happyEndTimeoutRef = useRef<number | null>(null);
   const curiousEndTimeoutRef = useRef<number | null>(null);
+  const affectionEndTimeoutRef = useRef<number | null>(null);
   const dragResumeTimeoutRef = useRef<number | null>(null);
+  const longPressTimeoutRef = useRef<number | null>(null);
   const singleClickTimeoutRef = useRef<number | null>(null);
   const scaleSaveTimeoutRef = useRef<number | null>(null);
   const dragAnimationFrameRef = useRef<number | null>(null);
@@ -351,6 +357,7 @@ export default function PrincessPet() {
   const lastPointerClickAtRef = useRef(0);
   const waveAllowedAtRef = useRef(0);
   const happyAllowedAtRef = useRef(0);
+  const affectionAllowedAtRef = useRef(0);
   const curiousAllowedAtRef = useRef(0);
   const customEventAllowedAtRef = useRef(0);
   const restAllowedAtRef = useRef(Date.now() + PET_BEHAVIOR_TIMING.minTimeBeforeRest);
@@ -366,6 +373,8 @@ export default function PrincessPet() {
   const lastThrottledActivityAtRef = useRef(0);
   const pendingInteractionRef = useRef<PendingInteraction>(null);
   const nextClickInteractionRef = useRef<PlayfulInteraction>('wave');
+  const lastPetClickAtRef = useRef(0);
+  const longPressTriggeredRef = useRef(false);
   const scheduleBehaviorRef = useRef<((delayRange: readonly [number, number]) => void) | null>(null);
   const dragSessionRef = useRef<{
     pointerId: number;
@@ -418,6 +427,7 @@ export default function PrincessPet() {
     clearTimer(waveEndTimeoutRef);
     clearTimer(happyEndTimeoutRef);
     clearTimer(curiousEndTimeoutRef);
+    clearTimer(affectionEndTimeoutRef);
     clearTimer(dragResumeTimeoutRef);
   }, [clearTimer]);
 
@@ -429,6 +439,7 @@ export default function PrincessPet() {
 
     clearTimer(blinkTimeoutRef);
     clearTimer(blinkResetRef);
+    clearTimer(longPressTimeoutRef);
     clearTimer(singleClickTimeoutRef);
     clearTimer(scaleSaveTimeoutRef);
     clearBehaviorTimers();
@@ -499,6 +510,36 @@ export default function PrincessPet() {
     return clampedScale;
   }, [persistScaleSoon]);
 
+  const playAffection = useCallback(() => {
+    if (prefersReducedMotion || isDraggingRef.current || stateRef.current !== 'idle') return false;
+
+    const now = Date.now();
+    clearTimer(behaviorTimeoutRef);
+    setBlinkSrc(null);
+    setMotionDuration(0);
+    setFrameIndex(0);
+    stateRef.current = 'affection';
+    setPetState('affection');
+    lastPlayfulInteractionAtRef.current = now;
+    affectionAllowedAtRef.current = now + PET_BEHAVIOR_TIMING.affectionCooldown;
+
+    clearTimer(affectionEndTimeoutRef);
+
+    affectionEndTimeoutRef.current = window.setTimeout(() => {
+      setIdleState();
+      scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
+    }, getRandomBetween(PET_BEHAVIOR_TIMING.affectionDuration));
+
+    return true;
+  }, [clearTimer, prefersReducedMotion, setIdleState]);
+
+  const playPendingAffection = useCallback(() => {
+    if (pendingInteractionRef.current !== 'affection') return false;
+
+    pendingInteractionRef.current = null;
+    return playAffection();
+  }, [playAffection]);
+
   const playWave = useCallback(() => {
     if (prefersReducedMotion || isDraggingRef.current || stateRef.current !== 'idle') return false;
 
@@ -514,11 +555,12 @@ export default function PrincessPet() {
 
     waveEndTimeoutRef.current = window.setTimeout(() => {
       setIdleState();
+      if (playPendingAffection()) return;
       scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
     }, getRandomBetween(PET_BEHAVIOR_TIMING.waveDuration));
 
     return true;
-  }, [clearTimer, prefersReducedMotion, setIdleState]);
+  }, [clearTimer, playPendingAffection, prefersReducedMotion, setIdleState]);
 
   const playHappy = useCallback(() => {
     if (prefersReducedMotion || isDraggingRef.current || stateRef.current !== 'idle') return false;
@@ -535,11 +577,12 @@ export default function PrincessPet() {
 
     happyEndTimeoutRef.current = window.setTimeout(() => {
       setIdleState();
+      if (playPendingAffection()) return;
       scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
     }, getRandomBetween(PET_BEHAVIOR_TIMING.happyDuration));
 
     return true;
-  }, [clearTimer, prefersReducedMotion, setIdleState]);
+  }, [clearTimer, playPendingAffection, prefersReducedMotion, setIdleState]);
 
   const playCurious = useCallback(() => {
     if (prefersReducedMotion || isDraggingRef.current || stateRef.current !== 'idle') return false;
@@ -558,21 +601,23 @@ export default function PrincessPet() {
 
     curiousEndTimeoutRef.current = window.setTimeout(() => {
       setIdleState();
+      if (playPendingAffection()) return;
       scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
     }, getRandomBetween(PET_BEHAVIOR_TIMING.curiousDuration));
 
     return true;
-  }, [clearTimer, prefersReducedMotion, setIdleState]);
+  }, [clearTimer, playPendingAffection, prefersReducedMotion, setIdleState]);
 
   const playPendingInteraction = useCallback(() => {
     const pendingInteraction = pendingInteractionRef.current;
     if (!pendingInteraction) return false;
 
     pendingInteractionRef.current = null;
+    if (pendingInteraction === 'affection') return playAffection();
     if (pendingInteraction === 'wave') return playWave();
     if (pendingInteraction === 'happy') return playHappy();
     return playCurious();
-  }, [playCurious, playHappy, playWave]);
+  }, [playAffection, playCurious, playHappy, playWave]);
 
   const finishSleep = useCallback((options: { schedule?: boolean; playPending?: boolean } = {}) => {
     clearTimer(sleepEndTimeoutRef);
@@ -627,6 +672,28 @@ export default function PrincessPet() {
       scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
     }
   }, [clearTimer, playPendingInteraction, setIdleState]);
+
+  const requestAffection = useCallback((source: 'customEvent' | 'drag' | 'interaction' | 'longPress') => {
+    if (prefersReducedMotion || isDraggingRef.current) return false;
+
+    const currentState = stateRef.current;
+    if (currentState === 'affection') return false;
+
+    const now = Date.now();
+    if (now < affectionAllowedAtRef.current) return false;
+    if (source === 'customEvent' && now < customEventAllowedAtRef.current) return false;
+
+    if (source === 'customEvent') {
+      customEventAllowedAtRef.current = now + CUSTOM_EVENT_COOLDOWN;
+    }
+
+    if (currentState === 'idle') {
+      return playAffection();
+    }
+
+    pendingInteractionRef.current = 'affection';
+    return true;
+  }, [playAffection, prefersReducedMotion]);
 
   const requestWave = useCallback((source: 'greeting' | 'interaction' | 'natural') => {
     if (prefersReducedMotion || isDraggingRef.current) return false;
@@ -1153,6 +1220,21 @@ export default function PrincessPet() {
   useEffect(() => {
     if (prefersReducedMotion) return undefined;
 
+    const handlePetAffection = () => {
+      noteUserInteraction({ immediate: true });
+      requestAffection('customEvent');
+    };
+
+    window.addEventListener(PET_AFFECTION_EVENT, handlePetAffection);
+
+    return () => {
+      window.removeEventListener(PET_AFFECTION_EVENT, handlePetAffection);
+    };
+  }, [noteUserInteraction, prefersReducedMotion, requestAffection]);
+
+  useEffect(() => {
+    if (prefersReducedMotion) return undefined;
+
     const handleActivity = () => {
       noteUserInteraction();
     };
@@ -1245,6 +1327,19 @@ export default function PrincessPet() {
       return;
     }
 
+    const now = Date.now();
+    const isRepeatPetClick = now - lastPetClickAtRef.current <= REPEAT_CLICK_AFFECTION_WINDOW;
+    lastPetClickAtRef.current = now;
+
+    if (isRepeatPetClick) {
+      const preferAffection = Math.random() < 0.5;
+      const played = preferAffection
+        ? requestAffection('interaction') || requestHappy('interaction')
+        : requestHappy('interaction') || requestAffection('interaction');
+
+      if (played) return;
+    }
+
     const preferredInteraction = nextClickInteractionRef.current;
     const alternateInteraction = preferredInteraction === 'wave' ? 'happy' : 'wave';
     const requestInteraction = (interaction: PlayfulInteraction) => (
@@ -1268,6 +1363,7 @@ export default function PrincessPet() {
     finishSleep,
     noteUserInteraction,
     prefersReducedMotion,
+    requestAffection,
     requestHappy,
     requestWave,
   ]);
@@ -1340,10 +1436,11 @@ export default function PrincessPet() {
   const beginDrag = useCallback(() => {
     isDraggingRef.current = true;
     setIsDragging(true);
+    clearTimer(longPressTimeoutRef);
     clearBehaviorTimers();
     pendingInteractionRef.current = null;
     setIdleState();
-  }, [clearBehaviorTimers, setIdleState]);
+  }, [clearBehaviorTimers, clearTimer, setIdleState]);
 
   const endDrag = useCallback((nextPosition: PetPosition) => {
     isDraggingRef.current = false;
@@ -1353,12 +1450,15 @@ export default function PrincessPet() {
     writeStoredPosition(nextPosition);
     setIdleState();
 
+    if (prefersReducedMotion) return;
+
     dragResumeTimeoutRef.current = window.setTimeout(() => {
       dragResumeTimeoutRef.current = null;
+      if (Math.random() < 0.4 && requestAffection('drag')) return;
       if (Math.random() < 0.3 && requestCurious('drag')) return;
       scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
     }, getRandomBetween(PET_BEHAVIOR_TIMING.dragResumeDelay));
-  }, [requestCurious, setIdleState]);
+  }, [prefersReducedMotion, requestAffection, requestCurious, setIdleState]);
 
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
@@ -1367,6 +1467,8 @@ export default function PrincessPet() {
     clearTimer(singleClickTimeoutRef);
     clearTimer(dragResumeTimeoutRef);
     clearTimer(behaviorTimeoutRef);
+    clearTimer(longPressTimeoutRef);
+    longPressTriggeredRef.current = false;
     settleWalkOffset();
 
     const originPosition = positionRef.current;
@@ -1379,8 +1481,25 @@ export default function PrincessPet() {
       altKey: event.altKey,
     };
 
+    if (!prefersReducedMotion) {
+      const pointerId = event.pointerId;
+
+      longPressTimeoutRef.current = window.setTimeout(() => {
+        longPressTimeoutRef.current = null;
+
+        const activeSession = dragSessionRef.current;
+        if (!activeSession || activeSession.pointerId !== pointerId || activeSession.dragging || isDraggingRef.current) {
+          return;
+        }
+
+        longPressTriggeredRef.current = true;
+        suppressNativeClickRef.current = true;
+        requestAffection('longPress');
+      }, getRandomBetween(LONG_PRESS_DELAY));
+    }
+
     event.currentTarget.setPointerCapture(event.pointerId);
-  }, [clearTimer, noteUserInteraction, settleWalkOffset]);
+  }, [clearTimer, noteUserInteraction, prefersReducedMotion, requestAffection, settleWalkOffset]);
 
   const handlePointerMove = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     const dragSession = dragSessionRef.current;
@@ -1412,6 +1531,7 @@ export default function PrincessPet() {
 
     dragSessionRef.current = null;
     suppressNativeClickRef.current = true;
+    clearTimer(longPressTimeoutRef);
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -1442,6 +1562,12 @@ export default function PrincessPet() {
       return;
     }
 
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false;
+      scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
+      return;
+    }
+
     const now = Date.now();
     const isDoubleClick = now - lastPointerClickAtRef.current <= DOUBLE_CLICK_WINDOW;
     lastPointerClickAtRef.current = now;
@@ -1452,7 +1578,7 @@ export default function PrincessPet() {
     }
 
     scheduleSingleClick();
-  }, [endDrag, handleDoubleClick, scheduleSingleClick]);
+  }, [clearTimer, endDrag, handleDoubleClick, scheduleSingleClick]);
 
   const handlePointerUp = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     finishPointerSession(event);
@@ -1461,6 +1587,10 @@ export default function PrincessPet() {
   const handlePointerCancel = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     finishPointerSession(event, { cancelled: true });
   }, [finishPointerSession]);
+
+  const handlePointerLeave = useCallback(() => {
+    clearTimer(longPressTimeoutRef);
+  }, [clearTimer]);
 
   const handlePetWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
@@ -1525,11 +1655,13 @@ export default function PrincessPet() {
                 ? styles.restAlive
               : petState === 'quiet'
                 ? styles.quietAlive
-                : petState === 'sleep'
+              : petState === 'sleep'
                   ? styles.sleepAlive
                   : petState === 'curious'
                     ? styles.curiousAlive
-                    : styles.walkAlive,
+                    : petState === 'affection'
+                      ? styles.affectionAlive
+                      : styles.walkAlive,
   ].join(' ');
 
   const imageClassName = [
@@ -1569,6 +1701,7 @@ export default function PrincessPet() {
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerCancel}
+                onPointerLeave={handlePointerLeave}
                 onClick={handleNativeClick}
               >
                 <img

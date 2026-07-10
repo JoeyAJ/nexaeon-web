@@ -90,6 +90,12 @@
   transform-origin: 50% 100%;
 }
 
+.affectionAlive {
+  animation:
+    princess-affection-nuzzle 2.2s ease-in-out;
+  transform-origin: 50% 100%;
+}
+
 .draggingAlive {
   animation: none;
   transform: none;
@@ -263,9 +269,28 @@
   }
 }
 
+@keyframes princess-affection-nuzzle {
+  0% {
+    transform: translateX(0) rotate(0deg);
+  }
+
+  30% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+
+  60% {
+    transform: translateX(2px) rotate(1deg);
+  }
+
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .idleAlive,
-  .curiousAlive {
+  .curiousAlive,
+  .affectionAlive {
     animation: none;
     transform: none;
   }
