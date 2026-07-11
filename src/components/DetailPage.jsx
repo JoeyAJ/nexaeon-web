@@ -2700,7 +2700,7 @@ function NotFound({ navigate, navigateBack, lang, setLang, theme, setTheme }) {
   );
 }
 
-export default function DetailPage({ type, id, navigate, navigateBack, lang, setLang, theme, setTheme }) {
+export default function DetailPage({ type, id, navigate, navigateBack, lang, setLang, theme, setTheme, princessEventBridge }) {
   const content = getLocalizedSite(lang);
   const { common } = content;
   const item = getDetailItem(type, id, lang);
@@ -2738,6 +2738,7 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             common={common}
             lang={lang}
             navigate={navigate}
+            eventBridge={princessEventBridge}
           />
         ) : item.template === 'theory-model-library' ? (
           <TheoryModelLibrary

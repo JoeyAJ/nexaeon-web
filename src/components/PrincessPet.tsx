@@ -1192,6 +1192,11 @@ export default function PrincessPet({
 
     return eventBridge.subscribe((request) => {
       if (isDraggingRef.current) return false;
+      if (request.event.type === 'navigator_response_aborted') {
+        const navigatorTransientStates = new Set(['curious', 'sit', 'happy', 'quiet']);
+        if (!navigatorTransientStates.has(stateRef.current)) return false;
+        return stateControllerRef.current?.transition(PRINCESS_STATES.IDLE, { source: 'complete' }) || false;
+      }
       return stateControllerRef.current?.transition(request.state, {
         source: 'websiteEvent',
         duration: request.duration,

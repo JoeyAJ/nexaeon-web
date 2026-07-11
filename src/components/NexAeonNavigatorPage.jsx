@@ -227,7 +227,7 @@ function AnswerText({ text, ui }) {
   );
 }
 
-function CitationCard({ citation, lang, navigate, ui }) {
+function CitationCard({ citation, lang, ui, onNavigate }) {
   const title = citation.localizedTitle || citation.title;
   const summary = citation.localizedSummary || citation.summary || citation.excerpt;
   const moduleLabel = citation.localizedModuleLabel || citation.moduleLabel;
@@ -249,7 +249,7 @@ function CitationCard({ citation, lang, navigate, ui }) {
       </div>
       <div className="mvp-actions">
         {citation.sourceRoute ? (
-          <button className="mvp-action-button" type="button" onClick={() => navigate(citation.sourceRoute)}>
+          <button className="mvp-action-button" type="button" onClick={() => onNavigate(citation.sourceRoute)}>
             {ui.viewSource}
           </button>
         ) : null}
@@ -318,7 +318,7 @@ function AgentLandingSection({ lang, navigate }) {
   );
 }
 
-function AssistantMessage({ message, lang, navigate, ui }) {
+function AssistantMessage({ message, lang, ui, onNavigate }) {
   const isSourcesOnly = message.mode === 'sources_only';
   const showFallback = isSourcesOnly && !message.content;
   const showSourcesOnlyNotice = isSourcesOnly && Boolean(message.content) && message.reason !== 'moderated';
@@ -341,7 +341,7 @@ function AssistantMessage({ message, lang, navigate, ui }) {
       {message.citations?.length ? (
         <div className="agent-result-grid">
           {message.citations.map((citation) => (
-            <CitationCard key={citation.sourceId} citation={citation} lang={lang} navigate={navigate} ui={ui} />
+            <CitationCard key={citation.sourceId} citation={citation} lang={lang} ui={ui} onNavigate={onNavigate} />
           ))}
         </div>
       ) : null}
@@ -349,7 +349,7 @@ function AssistantMessage({ message, lang, navigate, ui }) {
   );
 }
 
-export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
+export default function NexAeonNavigatorPage({ item, common, lang, navigate, eventBridge }) {
   const ui = ASSISTANT_UI[lang] || ASSISTANT_UI.en;
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
@@ -359,6 +359,8 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
   const activeRequestRef = useRef(false);
   const submissionLockRef = useRef(false);
   const requestSequenceRef = useRef(0);
+  const activeRequestIdRef = useRef(null);
+  const lastCompletedRequestIdRef = useRef(null);
   const lastSubmissionRef = useRef({ query: '', at: 0 });
   const isComposingRef = useRef(false);
 
@@ -371,11 +373,14 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
   }, [retryAfterSeconds]);
 
   useEffect(() => () => {
+    const requestId = activeRequestIdRef.current;
+    if (requestId) eventBridge?.emit({ type: 'navigator_response_aborted', requestId, timestamp: Date.now() });
     abortRef.current?.abort();
     activeRequestRef.current = false;
     submissionLockRef.current = false;
     requestSequenceRef.current += 1;
-  }, []);
+    activeRequestIdRef.current = null;
+  }, [eventBridge]);
 
   const suggestedQuestions = useMemo(() => {
     const latest = [...messages].reverse().find((message) => message.role === 'assistant' && message.suggestedQuestions?.length);
@@ -392,6 +397,10 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
     submissionLockRef.current = true;
     const requestSequence = requestSequenceRef.current + 1;
     requestSequenceRef.current = requestSequence;
+    const requestId = `navigator-${requestSequence}-${Date.now()}`;
+    activeRequestIdRef.current = requestId;
+    lastCompletedRequestIdRef.current = null;
+    eventBridge?.emit({ type: 'navigator_question_submitted', requestId, timestamp: Date.now() });
 
     const userMessage = {
       id: `user-${requestSequence}-${Date.now()}`,
@@ -407,6 +416,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
     abortRef.current = controller;
 
     try {
+      eventBridge?.emit({ type: 'navigator_response_started', requestId, timestamp: Date.now() });
       const response = await fetch('/api/agent/chat', {
         method: 'POST',
         headers: {
@@ -423,6 +433,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
       const payload = await response.json();
       if (requestSequence !== requestSequenceRef.current) return;
       if (response.status === 429) {
+        eventBridge?.emit({ type: 'navigator_response_error', requestId, errorType: 'rate_limit', timestamp: Date.now() });
         const seconds = Number.parseInt(response.headers.get('Retry-After') || '3', 10);
         setRetryAfterSeconds(Number.isFinite(seconds) ? Math.max(1, seconds) : 3);
         setMessages((current) => current.filter((message) => message.id !== userMessage.id));
@@ -439,8 +450,15 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
         partialSources: Boolean(payload.partialSources),
       };
       setMessages((current) => (requestSequence === requestSequenceRef.current ? [...current, assistantMessage] : current));
+      if (response.ok) {
+        lastCompletedRequestIdRef.current = requestId;
+        eventBridge?.emit({ type: 'navigator_response_completed', requestId, timestamp: Date.now() });
+      } else {
+        eventBridge?.emit({ type: 'navigator_response_error', requestId, errorType: 'api', timestamp: Date.now() });
+      }
     } catch (error) {
       if (error?.name !== 'AbortError' && requestSequence === requestSequenceRef.current) {
+        eventBridge?.emit({ type: 'navigator_response_error', requestId, errorType: 'network', timestamp: Date.now() });
         setMessages((current) => [...current, {
           id: `assistant-${requestSequence}-${Date.now()}`,
           role: 'assistant',
@@ -452,23 +470,34 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
           partialSources: false,
         }]);
       }
+      if (error?.name === 'AbortError') {
+        eventBridge?.emit({ type: 'navigator_response_aborted', requestId, timestamp: Date.now() });
+      }
     } finally {
-      setIsGenerating(false);
-      abortRef.current = null;
-      activeRequestRef.current = false;
-      submissionLockRef.current = false;
+      if (requestSequence === requestSequenceRef.current) {
+        setIsGenerating(false);
+        abortRef.current = null;
+        activeRequestRef.current = false;
+        submissionLockRef.current = false;
+        activeRequestIdRef.current = null;
+      }
     }
   }
 
   function stopGenerating() {
+    const requestId = activeRequestIdRef.current;
+    if (requestId) eventBridge?.emit({ type: 'navigator_response_aborted', requestId, timestamp: Date.now() });
     abortRef.current?.abort();
     requestSequenceRef.current += 1;
     setIsGenerating(false);
     activeRequestRef.current = false;
     submissionLockRef.current = false;
+    activeRequestIdRef.current = null;
   }
 
   function clearChat() {
+    const requestId = activeRequestIdRef.current;
+    if (requestId) eventBridge?.emit({ type: 'navigator_response_aborted', requestId, timestamp: Date.now() });
     abortRef.current?.abort();
     requestSequenceRef.current += 1;
     lastSubmissionRef.current = { query: '', at: 0 };
@@ -477,6 +506,20 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
     setIsGenerating(false);
     activeRequestRef.current = false;
     submissionLockRef.current = false;
+    activeRequestIdRef.current = null;
+  }
+
+  function navigateFromResponse(targetRoute) {
+    const requestId = lastCompletedRequestIdRef.current;
+    if (requestId) {
+      eventBridge?.emit({
+        type: 'navigator_navigation_completed',
+        requestId,
+        targetRoute,
+        timestamp: Date.now(),
+      });
+    }
+    navigate(targetRoute);
   }
 
   const isSubmitBlocked = isGenerating || retryAfterSeconds > 0;
@@ -506,7 +549,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate }) {
               <p>{message.content}</p>
             </section>
           ) : (
-            <AssistantMessage key={message.id} message={message} lang={lang} navigate={navigate} ui={ui} />
+            <AssistantMessage key={message.id} message={message} lang={lang} ui={ui} onNavigate={navigateFromResponse} />
           )
         ))}
         {isGenerating ? <p className="agent-state-message" data-state="generating">{ui.generating}</p> : null}

@@ -63,7 +63,7 @@ export default function App() {
     ...parseRoute(window.location.pathname),
     hash: window.location.hash,
   }));
-  const princessEventBridge = useMemo(() => createPrincessEventBridge(), []);
+  const princessEventBridge = useMemo(() => createPrincessEventBridge({ debug: import.meta.env.DEV }), []);
   const previousLangRef = useRef(lang);
   const previousThemeRef = useRef(theme);
   const previousRouteKeyRef = useRef('');
@@ -232,6 +232,7 @@ export default function App() {
             theme={theme}
             setTheme={setTheme}
             navigateBack={navigateBack}
+            princessEventBridge={princessEventBridge}
           />
         ) : route.kind === 'role' ? (
           <RoleDetailPage role={route.role} navigate={navigate} navigateBack={navigateBack} lang={lang} setLang={setLang} />
