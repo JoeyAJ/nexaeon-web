@@ -217,11 +217,11 @@ test('storage access failures and SSR window access are safe', () => {
   assert.doesNotThrow(() => createPrincessPresenceController({ storage: { getItem() { throw new Error('blocked'); } } }));
 });
 
-test('persistent states map onto existing animations without new assets', () => {
+test('persistent sleeping maps onto the dedicated prone sleeping animation', () => {
   assert.equal(getAnimationStateForPersistent('activeIdle'), 'idle');
   assert.equal(getAnimationStateForPersistent('calmIdle'), 'sit');
   assert.equal(getAnimationStateForPersistent('resting'), 'rest');
-  assert.equal(getAnimationStateForPersistent('sleeping'), 'sleep');
+  assert.equal(getAnimationStateForPersistent('sleeping'), 'sleeping_prone');
 });
 
 test('context change preserves activity and does not reset the persistent state', () => {

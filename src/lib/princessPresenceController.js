@@ -12,7 +12,7 @@ export const PRINCESS_PRESENCE_TIMING = Object.freeze({
   activeIdleThreshold: 45_000,
   calmIdleThreshold: 180_000,
   restThreshold: 420_000,
-  sleepThreshold: 900_000,
+  sleepThreshold: import.meta.env?.DEV ? 35_000 : 240_000,
   wakeDuration: 1_200,
   reevaluationInterval: 15_000,
   minimumPersistentStateDuration: 20_000,
@@ -38,7 +38,7 @@ export function getPersistentStateForInactivity(inactiveFor, timing = PRINCESS_P
 export function getAnimationStateForPersistent(persistentState) {
   if (persistentState === PRINCESS_PERSISTENT_STATES.CALM_IDLE) return 'sit';
   if (persistentState === PRINCESS_PERSISTENT_STATES.RESTING) return 'rest';
-  if (persistentState === PRINCESS_PERSISTENT_STATES.SLEEPING) return 'sleep';
+  if (persistentState === PRINCESS_PERSISTENT_STATES.SLEEPING) return 'sleeping_prone';
   return 'idle';
 }
 

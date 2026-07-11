@@ -58,7 +58,7 @@ export function getPrincessContextProfile(contextId) {
 
 export function selectContextIdleAnimation(contextProfile, persistentState) {
   if (persistentState === 'resting') return 'rest';
-  if (persistentState === 'sleeping') return 'sleep';
+  if (persistentState === 'sleeping') return 'sleeping_prone';
   const pool = Array.isArray(contextProfile?.idleAnimationPool)
     ? contextProfile.idleAnimationPool.filter((key) => ANIMATION_KEYS.has(key))
     : [];

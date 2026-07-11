@@ -82,6 +82,15 @@ test('sleep cannot be interrupted by an automatic idle transition', () => {
   }), true);
 });
 
+test('sleeping prone is a recognized low-priority sleep state that wakes normally', () => {
+  const controller = createPrincessStateController();
+
+  assert.equal(controller.transition(PRINCESS_STATES.SLEEPING_PRONE, { source: 'presence' }), true);
+  assert.equal(controller.getState(), PRINCESS_STATES.SLEEPING_PRONE);
+  assert.equal(controller.transition(PRINCESS_STATES.IDLE, { source: 'automatic' }), false);
+  assert.equal(controller.transition(PRINCESS_STATES.CURIOUS, { source: 'wake' }), true);
+});
+
 test('disposing the controller clears its active completion timer', () => {
   const clock = createFakeClock();
   const controller = createPrincessStateController({ ...clock });
@@ -129,12 +138,12 @@ test('presence cannot interrupt drag or affection', () => {
   assert.equal(controller.transition(PRINCESS_STATES.REST, { source: 'presence' }), false);
   clock.tick(1_000);
   controller.startDrag();
-  assert.equal(controller.transition(PRINCESS_STATES.SLEEP, { source: 'presence' }), false);
+  assert.equal(controller.transition(PRINCESS_STATES.SLEEPING_PRONE, { source: 'presence' }), false);
 });
 
 test('low priority website events do not wake sleep but wake transition can', () => {
   const controller = createPrincessStateController();
-  controller.transition(PRINCESS_STATES.SLEEP, { source: 'presence' });
+  controller.transition(PRINCESS_STATES.SLEEPING_PRONE, { source: 'presence' });
   assert.equal(controller.transition(PRINCESS_STATES.CURIOUS, { source: 'websiteEvent' }), false);
   assert.equal(controller.transition(PRINCESS_STATES.CURIOUS, { source: 'wake', duration: 1 }), true);
 });

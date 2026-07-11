@@ -10,6 +10,7 @@ export const PRINCESS_STATES = Object.freeze({
   QUIET: 'quiet',
   REST: 'rest',
   SLEEP: 'sleep',
+  SLEEPING_PRONE: 'sleeping_prone',
 });
 
 export const PRINCESS_STATE_GROUPS = Object.freeze({
@@ -29,7 +30,7 @@ export const PRINCESS_STATE_GROUPS = Object.freeze({
     PRINCESS_STATES.QUIET,
     PRINCESS_STATES.REST,
   ]),
-  SLEEP: Object.freeze([PRINCESS_STATES.SLEEP]),
+  SLEEP: Object.freeze([PRINCESS_STATES.SLEEP, PRINCESS_STATES.SLEEPING_PRONE]),
 });
 
 const INTERACTION_STATES = new Set(PRINCESS_STATE_GROUPS.INTERACTION);
@@ -40,7 +41,7 @@ export function getPrincessStatePriority(state, isDragging = false) {
   if (isDragging) return 6;
   if (state === PRINCESS_STATES.AFFECTION) return 5;
   if (INTERACTION_STATES.has(state)) return 4;
-  if (state === PRINCESS_STATES.SLEEP) return 3;
+  if (PRINCESS_STATE_GROUPS.SLEEP.includes(state)) return 3;
   if (PRINCESS_STATE_GROUPS.LOW_ACTIVITY.includes(state)) return 2;
   return 1;
 }
@@ -55,7 +56,7 @@ export function canTransitionPrincess({ current, next, isDragging = false, sourc
   }
 
   if (source === 'wake') {
-    return current === PRINCESS_STATES.SLEEP
+    return PRINCESS_STATE_GROUPS.SLEEP.includes(current)
       && [PRINCESS_STATES.IDLE, PRINCESS_STATES.CURIOUS, PRINCESS_STATES.HAPPY, PRINCESS_STATES.WAVE].includes(next);
   }
 
@@ -63,7 +64,7 @@ export function canTransitionPrincess({ current, next, isDragging = false, sourc
     return !INTERACTION_STATES.has(current);
   }
 
-  if (source === 'websiteEvent' && current !== PRINCESS_STATES.SLEEP) {
+  if (source === 'websiteEvent' && !PRINCESS_STATE_GROUPS.SLEEP.includes(current)) {
     return !INTERACTION_STATES.has(current);
   }
 
@@ -75,7 +76,7 @@ export function canTransitionPrincess({ current, next, isDragging = false, sourc
   // Active animations finish before another interaction starts; higher-priority
   // requests are queued by the component instead of replacing a visible frame.
   if (INTERACTION_STATES.has(current)) return false;
-  if (current === PRINCESS_STATES.SLEEP) return false;
+  if (PRINCESS_STATE_GROUPS.SLEEP.includes(current)) return false;
 
   return current === PRINCESS_STATES.IDLE
     && getPrincessStatePriority(next) >= getPrincessStatePriority(current);

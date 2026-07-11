@@ -413,17 +413,51 @@ test('Princess context follows routes without remounting, respects locale, Navig
     }));
   });
   await page.goto('/research/ai-in-education');
-  await expect(root).toHaveAttribute('data-pet-state', 'sleep');
+  await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
+  await expect(page.locator(PET_BUTTON)).toHaveAttribute('aria-label', '公主正趴著安靜睡覺');
+  await expect(root.locator('img')).toHaveAttribute('src', /princess-sleeping-prone\.webp$/);
   await page.getByRole('button', { name: 'Switch to English' }).click();
   await expect(root).toHaveAttribute('data-princess-context', 'research');
-  await expect(root).toHaveAttribute('data-pet-state', 'sleep');
+  await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
+  await expect(page.locator(PET_BUTTON)).toHaveAttribute('aria-label', 'Princess sleeping peacefully');
+  await page.getByRole('button', { name: '한국어로 전환' }).click();
+  await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
+  await expect(page.locator(PET_BUTTON)).toHaveAttribute('aria-label', '공주가 편안하게 엎드려 자고 있음');
   await page.getByRole('button', { name: 'Toggle theme' }).click();
-  await expect(root).toHaveAttribute('data-pet-state', 'sleep');
+  await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
   await page.evaluate(() => {
     window.history.pushState({}, '', '/research/learning-analytics');
     window.dispatchEvent(new PopStateEvent('popstate'));
   });
   await expect(root).toHaveAttribute('data-princess-context', 'research');
-  await expect(root).toHaveAttribute('data-pet-state', 'sleep');
+  await expect(root).toHaveAttribute('data-pet-state', /curious|idle/);
+  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 3_000 });
+  assertRuntimeClean();
+});
+
+test('reduced motion keeps prone sleep visible without breathing animation', async ({ page }) => {
+  const assertRuntimeClean = watchRuntimeErrors(page);
+  await page.addInitScript(() => {
+    const now = Date.now();
+    window.sessionStorage.setItem('nexaeon-princess-presence', JSON.stringify({
+      version: 2,
+      lastActivityAt: now - (30 * 60 * 1000),
+      persistentState: 'sleeping',
+      stateEnteredAt: now - (10 * 60 * 1000),
+      hiddenAt: null,
+      currentContextId: 'research',
+      previousContextId: 'navigator',
+      contextEnteredAt: now - (10 * 60 * 1000),
+    }));
+  });
+
+  await page.goto('/research/ai-in-education');
+  const root = page.locator(PET_ROOT);
+  await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
+  await expect(root.locator('img')).toHaveAttribute('src', /princess-sleeping-prone\.webp$/);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
+  await expect.poll(() => root.locator('[class*="aliveLayer"]').evaluate((node) => getComputedStyle(node).animationName))
+    .toBe('none');
   assertRuntimeClean();
 });

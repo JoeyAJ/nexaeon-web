@@ -463,7 +463,7 @@ export default function PrincessPet({
   }, [contextProfile]);
 
   const currentFrame = useMemo(() => {
-    if (prefersReducedMotion) return princessAnimations.idle.frames[0];
+    if (prefersReducedMotion) return normalFrames[0];
     return blinkSrc || normalFrames[frameIndex % normalFrames.length];
   }, [blinkSrc, frameIndex, normalFrames, prefersReducedMotion]);
 
@@ -818,7 +818,7 @@ export default function PrincessPet({
       return true;
     }
 
-    if (currentState === 'sleep') {
+    if (PRINCESS_STATE_GROUPS.SLEEP.includes(currentState)) {
       if (source === 'natural') return false;
 
       finishSleep({ schedule: false, playPending: false });
@@ -955,7 +955,7 @@ export default function PrincessPet({
   }, []);
 
   useEffect(() => {
-    const frames = Object.values(princessAnimations).flatMap((item) => [
+    const frames = Object.values(princessAnimations).filter((item) => !('preload' in item) || item.preload !== false).flatMap((item) => [
       ...item.frames,
       ...('blinkFrames' in item ? item.blinkFrames || [] : []),
     ]);
@@ -1000,8 +1000,14 @@ export default function PrincessPet({
   }, []);
 
   useEffect(() => {
-    if (prefersReducedMotion || !visible) {
+    if (!visible) {
       stateControllerRef.current?.transition(PRINCESS_STATES.IDLE, { source: 'reducedMotion' });
+      setFrameIndex(0);
+      setBlinkSrc(null);
+      return undefined;
+    }
+
+    if (prefersReducedMotion) {
       setFrameIndex(0);
       setBlinkSrc(null);
       return undefined;
@@ -1115,7 +1121,7 @@ export default function PrincessPet({
           }
 
           setMotionDuration(0);
-          stateControllerRef.current?.transition(PRINCESS_STATES.SLEEP, {
+          stateControllerRef.current?.transition(PRINCESS_STATES.SLEEPING_PRONE, {
             source: 'automatic',
             duration: getRandomBetween(PET_BEHAVIOR_TIMING.sleepDuration),
             onComplete: () => finishSleep(),
@@ -1261,7 +1267,7 @@ export default function PrincessPet({
         return stateControllerRef.current?.transition(restoreState, { source: 'presence' }) || false;
       }
       return stateControllerRef.current?.transition(request.state, {
-        source: request.canWakeSleeping && stateRef.current === 'sleep' ? 'wake' : 'websiteEvent',
+        source: request.canWakeSleeping && PRINCESS_STATE_GROUPS.SLEEP.includes(stateRef.current) ? 'wake' : 'websiteEvent',
         duration: request.duration,
         resolveCompletionState: () => selectContextIdleAnimation(
           contextProfileRef.current,
@@ -1317,7 +1323,7 @@ export default function PrincessPet({
   }, [interactionEnabled, noteUserInteraction, prefersReducedMotion, requestAffection, visible]);
 
   useEffect(() => {
-    if (prefersReducedMotion || !visible) return undefined;
+    if (!visible) return undefined;
 
     let lastScrollAt = 0;
     const isPassiveControl = (event: Event) => (
@@ -1327,6 +1333,10 @@ export default function PrincessPet({
     const handlePointerActivity = (event: PointerEvent) => {
       if (isPassiveControl(event)) return;
       noteUserInteraction({ immediate: true, type: 'pointerDown' });
+    };
+    const handlePointerMoveActivity = (event: PointerEvent) => {
+      if (isPassiveControl(event)) return;
+      noteUserInteraction({ type: 'pointerMove' });
     };
     const handleTouchActivity = (event: TouchEvent) => {
       if (isPassiveControl(event)) return;
@@ -1344,17 +1354,19 @@ export default function PrincessPet({
     };
 
     window.addEventListener('pointerdown', handlePointerActivity, { passive: true });
+    window.addEventListener('pointermove', handlePointerMoveActivity, { passive: true });
     window.addEventListener('touchstart', handleTouchActivity, { passive: true });
     window.addEventListener('keydown', handleKeyboardActivity);
     window.addEventListener('scroll', handleScrollActivity, { passive: true });
 
     return () => {
       window.removeEventListener('pointerdown', handlePointerActivity);
+      window.removeEventListener('pointermove', handlePointerMoveActivity);
       window.removeEventListener('touchstart', handleTouchActivity);
       window.removeEventListener('keydown', handleKeyboardActivity);
       window.removeEventListener('scroll', handleScrollActivity);
     };
-  }, [noteUserInteraction, prefersReducedMotion, visible]);
+  }, [noteUserInteraction, visible]);
 
   useEffect(() => {
     const controller = presenceControllerRef.current;
@@ -1362,22 +1374,13 @@ export default function PrincessPet({
     const handleVisibility = () => controller.setVisibility(!document.hidden);
     document.addEventListener('visibilitychange', handleVisibility);
     handleVisibility();
-    if (visible && autoBehaviorEnabled && !prefersReducedMotion) controller.start();
+    if (visible && autoBehaviorEnabled) controller.start();
     else controller.stop();
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       controller.stop();
     };
-  }, [autoBehaviorEnabled, prefersReducedMotion, visible]);
-
-  useEffect(() => {
-    if (!prefersReducedMotion) return;
-
-    pendingInteractionRef.current = null;
-    clearPetTimers();
-    setIdleState();
-    setMotionDuration(0);
-  }, [clearPetTimers, prefersReducedMotion, setIdleState]);
+  }, [autoBehaviorEnabled, visible]);
 
   useEffect(() => () => {
     scheduleBehaviorRef.current = null;
@@ -1418,7 +1421,7 @@ export default function PrincessPet({
       return;
     }
 
-    if (stateRef.current === 'sleep') {
+    if (stateRef.current === 'sleep' || stateRef.current === 'sleeping_prone') {
       finishSleep({ schedule: false, playPending: false });
       clearTimer(interactionWakeTimeoutRef);
       interactionWakeTimeoutRef.current = window.setTimeout(() => {
@@ -1659,6 +1662,10 @@ export default function PrincessPet({
     if (previousNavigationKeyRef.current === navigationKey) return;
     previousNavigationKeyRef.current = navigationKey;
 
+    if (PRINCESS_STATE_GROUPS.SLEEP.includes(stateRef.current)) {
+      noteUserInteraction({ immediate: true, type: 'primaryNavigation' });
+    }
+
     const dragSession = dragSessionRef.current;
     if (!dragSession) return;
 
@@ -1692,7 +1699,7 @@ export default function PrincessPet({
     }
 
     scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
-  }, [clearTimer, endDrag, navigationKey]);
+  }, [clearTimer, endDrag, navigationKey, noteUserInteraction]);
 
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0 && event.pointerType === 'mouse') return;
@@ -1886,6 +1893,7 @@ export default function PrincessPet({
   if (!visible) return null;
 
   const interactionLabel = PET_INTERACTION_LABELS[lang] || PET_INTERACTION_LABELS.en;
+  const stateAriaLabel = 'ariaLabel' in animation ? animation.ariaLabel[lang] : null;
 
   const rootStyle = {
     transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
@@ -1918,6 +1926,8 @@ export default function PrincessPet({
                 ? styles.quietAlive
               : petState === 'sleep'
                   ? styles.sleepAlive
+                : petState === 'sleeping_prone'
+                  ? styles.sleepingProneAlive
                   : petState === 'curious'
                     ? styles.curiousAlive
                     : petState === 'affection'
@@ -1961,7 +1971,7 @@ export default function PrincessPet({
                 type="button"
                 data-testid="princess-interactive"
                 className={styles.interactiveLayer}
-                aria-label={interactionEnabled ? interactionLabel.enabled : interactionLabel.disabled}
+                aria-label={stateAriaLabel || (interactionEnabled ? interactionLabel.enabled : interactionLabel.disabled)}
                 onPointerEnter={handlePointerEnter}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}

@@ -98,6 +98,26 @@ export const princessAnimations = {
       '/pet/princess/frames/frame-033.png',
     ],
   },
+  sleeping_prone: {
+    name: 'sleeping_prone',
+    label: 'Sleeping Prone / 趴著睡覺',
+    localizedLabel: {
+      zh: '趴著睡覺',
+      ko: '엎드려 자기',
+      en: 'Sleeping',
+    },
+    ariaLabel: {
+      zh: '公主正趴著安靜睡覺',
+      ko: '공주가 편안하게 엎드려 자고 있음',
+      en: 'Princess sleeping peacefully',
+    },
+    fps: 1,
+    loop: true,
+    preload: false,
+    frames: [
+      '/pet/princess/frames/princess-sleeping-prone.webp',
+    ],
+  },
   curious: {
     name: 'curious',
     label: 'Curious / Look Around / 好奇觀察',
