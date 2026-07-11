@@ -417,6 +417,7 @@ export default function PrincessPet({
   const stateControllerRef = useRef<ReturnType<typeof createPrincessStateController> | null>(null);
   const presenceControllerRef = useRef<ReturnType<typeof createPrincessPresenceController> | null>(null);
   const contextProfileRef = useRef(contextProfile);
+  const suppressRouteReactionAfterDragRef = useRef(false);
 
   if (stateControllerRef.current === null) {
     stateControllerRef.current = createPrincessStateController({
@@ -1237,6 +1238,10 @@ export default function PrincessPet({
 
     return eventBridge.subscribe((request) => {
       if (isDraggingRef.current) return false;
+      if (suppressRouteReactionAfterDragRef.current && ['route_enter', 'module_enter', 'subpage_enter'].includes(request.event.type)) {
+        suppressRouteReactionAfterDragRef.current = false;
+        return false;
+      }
       if (request.event.type === 'navigator_question_submitted' || request.event.type === 'navigator_response_started') {
         noteUserInteraction({ immediate: true, type: 'navigatorQuestionSubmitted' });
       }
@@ -1253,7 +1258,7 @@ export default function PrincessPet({
         return stateControllerRef.current?.transition(restoreState, { source: 'presence' }) || false;
       }
       return stateControllerRef.current?.transition(request.state, {
-        source: 'websiteEvent',
+        source: request.canWakeSleeping && stateRef.current === 'sleep' ? 'wake' : 'websiteEvent',
         duration: request.duration,
         resolveCompletionState: () => selectContextIdleAnimation(
           contextProfileRef.current,
@@ -1673,7 +1678,13 @@ export default function PrincessPet({
     pendingDragPositionRef.current = null;
 
     if (dragSession.dragging || isDraggingRef.current) {
+      suppressRouteReactionAfterDragRef.current = true;
       endDrag(safePosition, { resume: false });
+      clearTimer(dragResumeTimeoutRef);
+      dragResumeTimeoutRef.current = window.setTimeout(() => {
+        dragResumeTimeoutRef.current = null;
+        stateControllerRef.current?.transition(PRINCESS_STATES.IDLE, { source: 'drag' });
+      }, 0);
       return;
     }
 

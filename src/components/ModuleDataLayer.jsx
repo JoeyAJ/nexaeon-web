@@ -1088,7 +1088,7 @@ function MvpFilterGroup({ label, filters, activeValue, onSelect, lang }) {
             className="mvp-filter-chip"
             data-active={activeValue === filter.value ? 'true' : 'false'}
             type="button"
-            onClick={() => onSelect(filter.value)}
+            onClick={() => { if (activeValue !== filter.value) onSelect(filter.value); }}
           >
             {filter.label[lang] || filter.label.zh}
           </button>
@@ -1180,7 +1180,7 @@ function MvpCoreFeatures({ label, value }) {
   );
 }
 
-function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window.location.href = path; } }) {
+function MvpDataPanel({ moduleKey, endpoint, lang, activityAdapter, navigate = (path) => { window.location.href = path; } }) {
   const moduleState = useModuleData(moduleKey, endpoint);
   const ui = MVP_DATABASE_UI[lang] || MVP_DATABASE_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
@@ -1227,9 +1227,11 @@ function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window
   function updateFilter(setter, value) {
     setter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'demo-filter' });
   }
 
   function toggleExpanded(id) {
+    activityAdapter?.dispatch(expandedIds.has(id) ? 'item-closed' : 'item-opened', { entityType: 'demo' });
     setExpandedIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -1240,6 +1242,8 @@ function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window
 
   function handleSearchKeyDown(event) {
     if (event.key === 'Enter') {
+      if (!searchQuery.trim()) return;
+      activityAdapter?.dispatch('search-submitted', { entityType: 'demo' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -1347,7 +1351,7 @@ function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window
                       {isExpanded ? ui.collapse : ui.expand}
                     </button>
                     {launch.canLaunch && launch.mode === LAUNCH_MODES.EXTERNAL ? (
-                      <a className="mvp-action-button" href={launch.url} target="_blank" rel="noopener noreferrer">
+                      <a className="mvp-action-button" href={launch.url} target="_blank" rel="noopener noreferrer" onClick={() => activityAdapter?.dispatch('external-demo-opened', { entityType: 'demo' })}>
                         {launchLabel}
                       </a>
                     ) : null}
@@ -1355,7 +1359,7 @@ function MvpDataPanel({ moduleKey, endpoint, lang, navigate = (path) => { window
                       <button
                         className="mvp-action-button"
                         type="button"
-                        onClick={() => navigate(runtimePath)}
+                        onClick={() => { activityAdapter?.dispatch('demo-opened', { entityType: 'demo' }); navigate(runtimePath); }}
                       >
                         {launchLabel}
                       </button>
@@ -1426,7 +1430,7 @@ function TeachingFilterGroup({ label, filters, activeValue, onSelect, lang }) {
             className="teaching-filter-chip"
             data-active={activeValue === filter.value ? 'true' : 'false'}
             type="button"
-            onClick={() => onSelect(filter.value)}
+            onClick={() => { if (activeValue !== filter.value) onSelect(filter.value); }}
           >
             {filter.label[lang] || filter.label.zh}
           </button>
@@ -1436,7 +1440,7 @@ function TeachingFilterGroup({ label, filters, activeValue, onSelect, lang }) {
   );
 }
 
-function TeachingDataPanel({ moduleKey, endpoint, lang }) {
+function TeachingDataPanel({ moduleKey, endpoint, lang, activityAdapter }) {
   const moduleState = useModuleData(moduleKey, endpoint);
   const ui = TEACHING_DATABASE_UI[lang] || TEACHING_DATABASE_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
@@ -1486,36 +1490,44 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
   }
 
   function updateCategoryFilter(value) {
+    if (value === categoryFilter) return;
     setCategoryFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'course-filter' });
   }
 
   function updateFormatFilter(value) {
     setFormatFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'course-filter' });
   }
 
   function updateAudienceFilter(value) {
     setAudienceFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'course-filter' });
   }
 
   function updateStatusFilter(value) {
     setStatusFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'course-filter' });
   }
 
   function updateLanguageFilter(value) {
     setLanguageFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'course-filter' });
   }
 
   function updateDifficultyFilter(value) {
     setDifficultyFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'course-filter' });
   }
 
   function toggleExpanded(id) {
+    activityAdapter?.dispatch(expandedIds.has(id) ? 'item-closed' : 'course-opened', { entityType: 'course' });
     setExpandedIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -1526,6 +1538,7 @@ function TeachingDataPanel({ moduleKey, endpoint, lang }) {
 
   function handleSearchKeyDown(event) {
     if (event.key === 'Enter' && searchQuery.trim()) {
+      activityAdapter?.dispatch('search-submitted', { entityType: 'course' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -1745,19 +1758,19 @@ function StandardModuleDataPanel({ moduleKey, endpoint, lang }) {
   );
 }
 
-export function ModuleDataPanel({ moduleKey, endpoint, lang, navigate }) {
+export function ModuleDataPanel({ moduleKey, endpoint, lang, navigate, activityAdapter }) {
   if (moduleKey === 'teaching') {
-    return <TeachingDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
+    return <TeachingDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} activityAdapter={activityAdapter} />;
   }
 
   if (moduleKey === 'modules') {
-    return <MvpDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} navigate={navigate} />;
+    return <MvpDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} navigate={navigate} activityAdapter={activityAdapter} />;
   }
 
   return <StandardModuleDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
 }
 
-export default function ModuleDataLayer({ item, common, lang, navigate }) {
+export default function ModuleDataLayer({ item, common, lang, navigate, activityAdapter }) {
   const moduleKey = item.moduleKey;
   const pageUi = getModulePageUi(moduleKey, lang);
   const showBackendReadiness = moduleKey === 'action';
@@ -1772,7 +1785,7 @@ export default function ModuleDataLayer({ item, common, lang, navigate }) {
       <div className="detail-module-label">{item.moduleLabel}</div>
       <h1>{pageUi.title}</h1>
       <p className="detail-subtitle">{pageUi.subtitle}</p>
-      <ModuleDataPanel moduleKey={moduleKey} endpoint={item.dataEndpoint} lang={lang} navigate={navigate} />
+      <ModuleDataPanel moduleKey={moduleKey} endpoint={item.dataEndpoint} lang={lang} navigate={navigate} activityAdapter={activityAdapter} />
       {showBackendReadiness ? <BackendReadinessStatus lang={lang} /> : null}
     </article>
   );

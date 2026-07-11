@@ -15,10 +15,28 @@ export const PRINCESS_EVENT_TYPES = [
   'navigator_navigation_completed',
   'navigator_response_error',
   'navigator_response_aborted',
+  'module_activity',
 ] as const;
 
 export type PrincessEventType = (typeof PRINCESS_EVENT_TYPES)[number];
-export type PrincessWebsiteState = 'walkLeft' | 'sit' | 'wave' | 'happy' | 'curious' | 'quiet' | 'rest' | 'sleep';
+export type PrincessWebsiteState = 'idle' | 'walkLeft' | 'sit' | 'wave' | 'happy' | 'curious' | 'quiet' | 'rest' | 'sleep';
+
+export const PRINCESS_MODULE_ACTION_TYPES = [
+  'search-submitted', 'filter-applied', 'item-opened', 'item-expanded', 'item-closed',
+  'demo-opened', 'external-demo-opened', 'course-opened', 'resource-opened',
+  'project-opened', 'navigation-arrived', 'meaningful-action-completed', 'action-error',
+] as const;
+export type PrincessModuleActionType = (typeof PRINCESS_MODULE_ACTION_TYPES)[number];
+export type PrincessModuleContextId = 'identity' | 'research' | 'coaching' | 'knowledge' | 'prototype' | 'action' | 'navigator';
+export type PrincessModuleActivityEvent = {
+  activityId: string;
+  contextId: PrincessModuleContextId;
+  actionType: PrincessModuleActionType;
+  entityType?: string;
+  errorCategory?: 'unavailable' | 'invalid-target' | 'network' | 'permission' | 'unknown';
+  source: 'user' | 'navigator';
+  timestamp: number;
+};
 
 export type PrincessWebsiteEvent = {
   type: PrincessEventType;
@@ -29,6 +47,7 @@ export type PrincessWebsiteEvent = {
   targetRoute?: string;
   errorType?: 'network' | 'api' | 'rate_limit' | 'unknown';
   timestamp?: number;
+  activity?: PrincessModuleActivityEvent;
 };
 
 export type PrincessEventRequest = {
@@ -36,6 +55,7 @@ export type PrincessEventRequest = {
   state: PrincessWebsiteState;
   duration: number;
   priority: number;
+  canWakeSleeping?: boolean;
 };
 
 type EventHandler = (request: PrincessEventRequest) => boolean;
@@ -57,6 +77,7 @@ export const PRINCESS_EVENT_COOLDOWNS: Readonly<Record<PrincessEventType, number
   navigator_navigation_completed: 1_500,
   navigator_response_error: 4_000,
   navigator_response_aborted: 0,
+  module_activity: 0,
 });
 
 const EVENT_PRIORITIES: Readonly<Record<PrincessEventType, number>> = Object.freeze({
@@ -76,6 +97,7 @@ const EVENT_PRIORITIES: Readonly<Record<PrincessEventType, number>> = Object.fre
   theme_change: 2,
   scroll_milestone: 1,
   idle_long: 0,
+  module_activity: 4,
 });
 
 const MODULE_STATE: Readonly<Record<string, PrincessWebsiteState>> = Object.freeze({
@@ -101,9 +123,53 @@ export const PRINCESS_EVENT_DURATIONS: Readonly<Partial<Record<PrincessEventType
   navigator_navigation_completed: 1_800,
   navigator_response_error: 2_800,
   navigator_response_aborted: 0,
+  module_activity: 2_000,
 });
 
+export const PRINCESS_MODULE_ACTIVITY_COOLDOWNS: Readonly<Record<PrincessModuleActionType, number>> = Object.freeze({
+  'search-submitted': 3_000, 'filter-applied': 4_000, 'item-opened': 3_000,
+  'item-expanded': 3_000, 'item-closed': 3_000, 'demo-opened': 6_000,
+  'external-demo-opened': 6_000, 'course-opened': 5_000, 'resource-opened': 4_000,
+  'project-opened': 5_000, 'navigation-arrived': 2_000,
+  'meaningful-action-completed': 7_000, 'action-error': 5_000,
+});
+
+const MODULE_ACTIVITY_PRIORITY: Readonly<Record<PrincessModuleActionType, number>> = Object.freeze({
+  'action-error': 6, 'meaningful-action-completed': 6, 'demo-opened': 5,
+  'external-demo-opened': 5, 'course-opened': 5, 'project-opened': 5,
+  'search-submitted': 4, 'filter-applied': 4, 'item-opened': 4,
+  'item-expanded': 4, 'item-closed': 4, 'resource-opened': 4, 'navigation-arrived': 5,
+});
+
+const MODULE_REACTIONS: Readonly<Partial<Record<PrincessModuleContextId, Partial<Record<PrincessModuleActionType, PrincessWebsiteState>>>>> = Object.freeze({
+  research: { 'search-submitted': 'curious', 'filter-applied': 'wave', 'item-opened': 'sit', 'item-expanded': 'wave', 'resource-opened': 'sit' },
+  knowledge: { 'search-submitted': 'curious', 'filter-applied': 'wave', 'item-opened': 'sit', 'item-expanded': 'wave', 'resource-opened': 'sit' },
+  coaching: { 'course-opened': 'curious', 'item-opened': 'curious', 'item-expanded': 'wave', 'resource-opened': 'sit' },
+  prototype: { 'demo-opened': 'happy', 'external-demo-opened': 'wave', 'item-opened': 'curious', 'filter-applied': 'wave' },
+  action: { 'project-opened': 'curious', 'item-opened': 'curious', 'item-expanded': 'wave', 'filter-applied': 'wave' },
+  identity: { 'item-opened': 'sit', 'item-expanded': 'wave', 'filter-applied': 'wave' },
+  navigator: { 'navigation-arrived': 'wave' },
+});
+
+function mapModuleActivity(activity: PrincessModuleActivityEvent): PrincessEventRequest {
+  const fallback: Partial<Record<PrincessModuleActionType, PrincessWebsiteState>> = {
+    'search-submitted': 'curious', 'filter-applied': 'wave', 'item-opened': 'sit',
+    'item-expanded': 'wave', 'item-closed': 'sit', 'demo-opened': 'happy',
+    'external-demo-opened': 'wave', 'course-opened': 'curious', 'resource-opened': 'sit',
+    'project-opened': 'curious', 'navigation-arrived': 'wave',
+    'meaningful-action-completed': 'happy', 'action-error': 'quiet',
+  };
+  return {
+    event: { type: 'module_activity', activity },
+    state: MODULE_REACTIONS[activity.contextId]?.[activity.actionType] || fallback[activity.actionType] || 'curious',
+    duration: activity.contextId === 'identity' ? 1_400 : 2_000,
+    priority: MODULE_ACTIVITY_PRIORITY[activity.actionType],
+    canWakeSleeping: ['meaningful-action-completed', 'demo-opened', 'project-opened', 'navigation-arrived'].includes(activity.actionType),
+  };
+}
+
 export function mapPrincessEvent(event: PrincessWebsiteEvent): PrincessEventRequest | null {
+  if (event.type === 'module_activity' && event.activity) return mapModuleActivity(event.activity);
   let state: PrincessWebsiteState | null = null;
 
   if (event.type === 'module_enter') state = MODULE_STATE[event.moduleId || ''] || 'curious';
@@ -139,12 +205,19 @@ export function createPrincessEventBridge({ now = Date.now, debug = false } = {}
   let routeEventsSuppressedUntil = 0;
   let reactionCooldownMultiplier = 1;
   const seenNavigatorRequestIds = new Set<string>();
+  const seenActivityIds = new Map<string, number>();
+  const recentActivityAt = new Map<string, number>();
+  let activityBurst: number[] = [];
+  let moduleContextAllowedAt = 0;
 
   const log = (event: PrincessWebsiteEvent, accepted: boolean, reason: string) => {
     if (!debug || typeof console === 'undefined') return;
     console.debug('[Princess Event Bridge]', {
       event: event.type,
       requestId: event.requestId,
+      activityId: event.activity?.activityId,
+      contextId: event.activity?.contextId,
+      actionType: event.activity?.actionType,
       accepted,
       reason,
     });
@@ -197,6 +270,28 @@ export function createPrincessEventBridge({ now = Date.now, debug = false } = {}
 
   return {
     emit(event: PrincessWebsiteEvent) {
+      if (event.type === 'module_activity') {
+        const activity = event.activity;
+        if (!activity || !activity.activityId || !PRINCESS_MODULE_ACTION_TYPES.includes(activity.actionType)) {
+          log(event, false, 'invalid_activity'); return false;
+        }
+        const timestamp = now();
+        for (const [activityId, seenAt] of seenActivityIds) {
+          if (timestamp - seenAt > 10_000) seenActivityIds.delete(activityId);
+        }
+        if (seenActivityIds.has(activity.activityId)) { log(event, false, 'duplicate_activity_id'); return false; }
+        activityBurst = activityBurst.filter((at) => timestamp - at < 2_000);
+        if (activityBurst.length >= 3) { log(event, false, 'burst_protection'); return false; }
+        const dedupKey = `${activity.contextId}:${activity.actionType}:${activity.entityType || ''}`;
+        const cooldown = PRINCESS_MODULE_ACTIVITY_COOLDOWNS[activity.actionType] * reactionCooldownMultiplier;
+        if (timestamp < (recentActivityAt.get(dedupKey) || 0) || (timestamp < moduleContextAllowedAt && activity.actionType !== 'action-error')) {
+          log(event, false, 'activity_cooldown'); return false;
+        }
+        seenActivityIds.set(activity.activityId, timestamp);
+        recentActivityAt.set(dedupKey, timestamp + cooldown);
+        moduleContextAllowedAt = timestamp + Math.min(2_000, cooldown / 2);
+        activityBurst.push(timestamp);
+      }
       if ((event.type === 'module_enter' || event.type === 'subpage_enter' || event.type === 'route_enter') && now() < routeEventsSuppressedUntil) {
         log(event, false, 'navigator_navigation_deduplication');
         return false;

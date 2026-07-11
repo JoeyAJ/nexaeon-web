@@ -24,6 +24,7 @@ import NeuralBackground from './NeuralBackground.jsx';
 import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
 import { toDetailPath } from '../utils/router.js';
 import NexAeonNavigatorPage from './NexAeonNavigatorPage.jsx';
+import { createPrincessModuleActivityAdapter } from '../lib/princessModuleActivity.ts';
 
 const INTRO_SEEN_KEY = 'nexaeon_intro_seen';
 
@@ -86,8 +87,8 @@ function renderBody(body) {
   return <p>{body}</p>;
 }
 
-function ModuleDataSkeleton({ item, common, lang, navigate }) {
-  return <ModuleDataLayer item={item} common={common} lang={lang} navigate={navigate} />;
+function ModuleDataSkeleton({ item, common, lang, navigate, activityAdapter }) {
+  return <ModuleDataLayer item={item} common={common} lang={lang} navigate={navigate} activityAdapter={activityAdapter} />;
 }
 
 function normalizeList(value) {
@@ -425,7 +426,7 @@ function ActionFilterGroup({ label, filters, activeValue, onSelect, lang }) {
             className="action-filter-chip"
             data-active={activeValue === filter.value ? 'true' : 'false'}
             type="button"
-            onClick={() => onSelect(filter.value)}
+            onClick={() => { if (activeValue !== filter.value) onSelect(filter.value); }}
           >
             {filter.label[lang] || filter.label.zh}
           </button>
@@ -446,7 +447,7 @@ function ActionDetailField({ label, value }) {
   );
 }
 
-function ActionProjectDashboard({ item, common, lang }) {
+function ActionProjectDashboard({ item, common, lang, activityAdapter }) {
   const projectState = useActionProjects(lang);
   const ui = ACTION_PAGE_UI[lang] || ACTION_PAGE_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
@@ -503,6 +504,8 @@ function ActionProjectDashboard({ item, common, lang }) {
   ];
 
   function toggleExpanded(id) {
+    const opening = !expandedIds.has(id);
+    activityAdapter?.dispatch(opening ? 'project-opened' : 'item-closed', { entityType: 'project' });
     setExpandedIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -523,10 +526,12 @@ function ActionProjectDashboard({ item, common, lang }) {
   function updateFilter(setter, value) {
     setter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'project-filter' });
   }
 
   function handleSearchKeyDown(event) {
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && searchQuery.trim()) {
+      activityAdapter?.dispatch('search-submitted', { entityType: 'project' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -991,7 +996,7 @@ function CollaborationFilterGroup({ label, filters, activeValue, onSelect, lang 
             className="collaboration-filter-chip"
             data-active={activeValue === filter.value ? 'true' : 'false'}
             type="button"
-            onClick={() => onSelect(filter.value)}
+            onClick={() => { if (activeValue !== filter.value) onSelect(filter.value); }}
           >
             {filter.label[lang] || filter.label.zh}
           </button>
@@ -1655,7 +1660,7 @@ function LiteratureStatusCard({ source, lang }) {
   );
 }
 
-function LiteratureDatabase({ item, common, lang }) {
+function LiteratureDatabase({ item, common, lang, activityAdapter }) {
   const literatureState = useResearchLiterature();
   const ui = LITERATURE_UI[lang] || LITERATURE_UI.zh;
   const databaseUi = LITERATURE_DATABASE_UI[lang] || LITERATURE_DATABASE_UI.zh;
@@ -1696,6 +1701,7 @@ function LiteratureDatabase({ item, common, lang }) {
   const latestUpdatedAt = getLatestLiteratureUpdate(literatureState);
 
   function toggleExpanded(id) {
+    activityAdapter?.dispatch(expandedIds.has(id) ? 'item-closed' : 'item-opened', { entityType: 'literature' });
     setExpandedIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -1710,18 +1716,24 @@ function LiteratureDatabase({ item, common, lang }) {
   }
 
   function updateTopicFilter(value) {
+    if (value === topicFilter) return;
     setTopicFilter(value);
     setVisibleCount(10);
+    activityAdapter?.dispatch('filter-applied', { entityType: 'literature-filter' });
   }
 
   function updateMethodFilter(value) {
+    if (value === methodFilter) return;
     setMethodFilter(value);
     setVisibleCount(10);
+    activityAdapter?.dispatch('filter-applied', { entityType: 'literature-filter' });
   }
 
   function updateStatusFilter(value) {
+    if (value === statusFilter) return;
     setStatusFilter(value);
     setVisibleCount(10);
+    activityAdapter?.dispatch('filter-applied', { entityType: 'literature-filter' });
   }
 
   function updateSortMode(value) {
@@ -1731,6 +1743,7 @@ function LiteratureDatabase({ item, common, lang }) {
 
   function handleSearchKeyDown(event) {
     if (event.key === 'Enter' && searchQuery.trim()) {
+      activityAdapter?.dispatch('search-submitted', { entityType: 'literature' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -1945,7 +1958,7 @@ function KnowledgeStatusCard({ source, lang }) {
   );
 }
 
-function KnowledgeResourceDatabase({ item, common, lang }) {
+function KnowledgeResourceDatabase({ item, common, lang, activityAdapter }) {
   const knowledgeState = useKnowledgeResources();
   const ui = KNOWLEDGE_RESOURCE_UI[lang] || KNOWLEDGE_RESOURCE_UI.zh;
   const databaseUi = KNOWLEDGE_DATABASE_UI[lang] || KNOWLEDGE_DATABASE_UI.zh;
@@ -1994,31 +2007,42 @@ function KnowledgeResourceDatabase({ item, common, lang }) {
   }
 
   function updateSourceFilter(value) {
+    if (value === sourceFilter) return;
     setSourceFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'resource-filter' });
   }
 
   function updateTypeFilter(value) {
+    if (value === typeFilter) return;
     setTypeFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'resource-filter' });
   }
 
   function updateModuleFilter(value) {
+    if (value === moduleFilter) return;
     setModuleFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'resource-filter' });
   }
 
   function updateStatusFilter(value) {
+    if (value === statusFilter) return;
     setStatusFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'resource-filter' });
   }
 
   function updateLanguageFilter(value) {
+    if (value === languageFilter) return;
     setLanguageFilter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'resource-filter' });
   }
 
   function toggleExpanded(id) {
+    activityAdapter?.dispatch(expandedIds.has(id) ? 'item-closed' : 'resource-opened', { entityType: 'resource' });
     setExpandedIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -2029,6 +2053,7 @@ function KnowledgeResourceDatabase({ item, common, lang }) {
 
   function handleSearchKeyDown(event) {
     if (event.key === 'Enter' && searchQuery.trim()) {
+      activityAdapter?.dispatch('search-submitted', { entityType: 'resource' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -2359,7 +2384,7 @@ function IdentityFilterGroup({ label, filters, activeValue, onSelect }) {
             className="identity-filter-chip"
             data-active={activeValue === filter.value ? 'true' : 'false'}
             type="button"
-            onClick={() => onSelect(filter.value)}
+            onClick={() => { if (activeValue !== filter.value) onSelect(filter.value); }}
           >
             {filter.label}
           </button>
@@ -2403,7 +2428,7 @@ function useIdentityProfiles() {
   return usePublicApiResource('/api/identity/profiles', { createClientFallbackPayload });
 }
 
-function IdentityProfilesDatabase({ item, common, lang }) {
+function IdentityProfilesDatabase({ item, common, lang, activityAdapter }) {
   const profileState = useIdentityProfiles();
   const ui = IDENTITY_PROFILES_UI[lang] || IDENTITY_PROFILES_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
@@ -2461,9 +2486,11 @@ function IdentityProfilesDatabase({ item, common, lang }) {
   function updateFilter(setter, value) {
     setter(value);
     resetVisibleCount();
+    activityAdapter?.dispatch('filter-applied', { entityType: 'identity-filter' });
   }
 
   function toggleExpanded(id) {
+    activityAdapter?.dispatch(expandedIds.has(id) ? 'item-closed' : 'item-opened', { entityType: 'identity' });
     setExpandedIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -2701,10 +2728,12 @@ function NotFound({ navigate, navigateBack, lang, setLang, theme, setTheme }) {
   );
 }
 
-export default function DetailPage({ type, id, navigate, navigateBack, lang, setLang, theme, setTheme, princessEventBridge }) {
+export default function DetailPage({ type, id, navigate, navigateBack, lang, setLang, theme, setTheme, princessEventBridge, navigatorActivity }) {
   const content = getLocalizedSite(lang);
   const { common } = content;
   const item = getDetailItem(type, id, lang);
+  const contextId = ({ teaching: 'coaching', projects: 'prototype', action: 'action', research: 'research', knowledge: 'knowledge', identity: 'identity' })[type] || 'research';
+  const activityAdapter = useMemo(() => createPrincessModuleActivityAdapter(princessEventBridge, contextId), [contextId, princessEventBridge]);
   const parentPath = `/#${type}`;
   const goToParent = () => {
     suppressIntroReplay();
@@ -2740,6 +2769,7 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             lang={lang}
             navigate={navigate}
             eventBridge={princessEventBridge}
+            activityAdapter={navigatorActivity}
           />
         ) : item.template === 'theory-model-library' ? (
           <TheoryModelLibrary
@@ -2749,24 +2779,28 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             navigate={navigate}
             navigateBack={navigateBack}
             lang={lang}
+            activityAdapter={activityAdapter}
           />
         ) : item.template === 'knowledge-resources' ? (
           <KnowledgeResourceDatabase
             item={item}
             common={common}
             lang={lang}
+            activityAdapter={activityAdapter}
           />
         ) : item.template === 'identity-profiles' ? (
           <IdentityProfilesDatabase
             item={item}
             common={common}
             lang={lang}
+            activityAdapter={activityAdapter}
           />
         ) : item.id === 'action-projects' ? (
           <ActionProjectDashboard
             item={item}
             common={common}
             lang={lang}
+            activityAdapter={activityAdapter}
           />
         ) : item.id === 'future-collaboration-context' ? (
           <FutureCollaborationContextDashboard
@@ -2780,12 +2814,14 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             common={common}
             lang={lang}
             navigate={navigate}
+            activityAdapter={activityAdapter}
           />
         ) : item.template === 'literature-database' ? (
           <LiteratureDatabase
             item={item}
             common={common}
             lang={lang}
+            activityAdapter={activityAdapter}
           />
         ) : (
           <article className="content-detail-card module-detail-card">

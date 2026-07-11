@@ -56,7 +56,7 @@ export function canTransitionPrincess({ current, next, isDragging = false, sourc
 
   if (source === 'wake') {
     return current === PRINCESS_STATES.SLEEP
-      && (next === PRINCESS_STATES.IDLE || next === PRINCESS_STATES.CURIOUS);
+      && [PRINCESS_STATES.IDLE, PRINCESS_STATES.CURIOUS, PRINCESS_STATES.HAPPY, PRINCESS_STATES.WAVE].includes(next);
   }
 
   if (source === 'presence') {

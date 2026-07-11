@@ -17,6 +17,7 @@ import {
   writePrincessSettings,
 } from './lib/princessLayoutPersistence.js';
 import { createPrincessEventBridge } from './lib/princessEventBridge.ts';
+import { createPrincessModuleActivityAdapter } from './lib/princessModuleActivity.ts';
 import { resolvePrincessContext } from './lib/princessContextResolver.js';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
@@ -65,6 +66,7 @@ export default function App() {
     hash: window.location.hash,
   }));
   const princessEventBridge = useMemo(() => createPrincessEventBridge({ debug: import.meta.env.DEV }), []);
+  const navigatorActivity = useMemo(() => createPrincessModuleActivityAdapter(princessEventBridge, 'navigator'), [princessEventBridge]);
   const previousLangRef = useRef(lang);
   const previousThemeRef = useRef(theme);
   const previousRouteKeyRef = useRef('');
@@ -243,6 +245,7 @@ export default function App() {
             setTheme={setTheme}
             navigateBack={navigateBack}
             princessEventBridge={princessEventBridge}
+            navigatorActivity={navigatorActivity}
           />
         ) : route.kind === 'role' ? (
           <RoleDetailPage role={route.role} navigate={navigate} navigateBack={navigateBack} lang={lang} setLang={setLang} />

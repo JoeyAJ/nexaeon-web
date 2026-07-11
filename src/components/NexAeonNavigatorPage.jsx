@@ -349,7 +349,7 @@ function AssistantMessage({ message, lang, ui, onNavigate }) {
   );
 }
 
-export default function NexAeonNavigatorPage({ item, common, lang, navigate, eventBridge }) {
+export default function NexAeonNavigatorPage({ item, common, lang, navigate, eventBridge, activityAdapter }) {
   const ui = ASSISTANT_UI[lang] || ASSISTANT_UI.en;
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
@@ -519,6 +519,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
         timestamp: Date.now(),
       });
     }
+    activityAdapter?.dispatch('navigation-arrived', { source: 'navigator', entityType: 'module' });
     navigate(targetRoute);
   }
 
