@@ -93,3 +93,48 @@ test('disposing the controller clears its active completion timer', () => {
   clock.tick(2_000);
   assert.equal(controller.getState(), PRINCESS_STATES.HAPPY);
 });
+
+test('transient completion restores its resolved persistent animation', () => {
+  const clock = createFakeClock();
+  const controller = createPrincessStateController({ ...clock });
+  assert.equal(controller.transition(PRINCESS_STATES.REST, { source: 'presence' }), true);
+  assert.equal(controller.transition(PRINCESS_STATES.HAPPY, {
+    source: 'websiteEvent',
+    duration: 1_000,
+    resolveCompletionState: () => PRINCESS_STATES.REST,
+  }), true);
+  clock.tick(1_000);
+  assert.equal(controller.getState(), PRINCESS_STATES.REST);
+});
+
+test('activity during a transient can change the resolved persistent animation', () => {
+  const clock = createFakeClock();
+  let restoreState = PRINCESS_STATES.REST;
+  const controller = createPrincessStateController({ ...clock });
+  controller.transition(PRINCESS_STATES.REST, { source: 'presence' });
+  controller.transition(PRINCESS_STATES.CURIOUS, {
+    source: 'websiteEvent',
+    duration: 1_000,
+    resolveCompletionState: () => restoreState,
+  });
+  restoreState = PRINCESS_STATES.IDLE;
+  clock.tick(1_000);
+  assert.equal(controller.getState(), PRINCESS_STATES.IDLE);
+});
+
+test('presence cannot interrupt drag or affection', () => {
+  const clock = createFakeClock();
+  const controller = createPrincessStateController({ ...clock });
+  controller.requestAffection({ duration: 1_000 });
+  assert.equal(controller.transition(PRINCESS_STATES.REST, { source: 'presence' }), false);
+  clock.tick(1_000);
+  controller.startDrag();
+  assert.equal(controller.transition(PRINCESS_STATES.SLEEP, { source: 'presence' }), false);
+});
+
+test('low priority website events do not wake sleep but wake transition can', () => {
+  const controller = createPrincessStateController();
+  controller.transition(PRINCESS_STATES.SLEEP, { source: 'presence' });
+  assert.equal(controller.transition(PRINCESS_STATES.CURIOUS, { source: 'websiteEvent' }), false);
+  assert.equal(controller.transition(PRINCESS_STATES.CURIOUS, { source: 'wake', duration: 1 }), true);
+});

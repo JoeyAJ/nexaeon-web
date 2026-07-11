@@ -34,7 +34,7 @@ export const PRINCESS_STATE_GROUPS = Object.freeze({
 
 const INTERACTION_STATES = new Set(PRINCESS_STATE_GROUPS.INTERACTION);
 const KNOWN_STATES = new Set(Object.values(PRINCESS_STATES));
-const RELEASE_SOURCES = new Set(['complete', 'drag', 'reducedMotion', 'wake']);
+const RELEASE_SOURCES = new Set(['complete', 'drag', 'reducedMotion']);
 
 export function getPrincessStatePriority(state, isDragging = false) {
   if (isDragging) return 6;
@@ -52,6 +52,19 @@ export function canTransitionPrincess({ current, next, isDragging = false, sourc
 
   if (RELEASE_SOURCES.has(source)) {
     return next === PRINCESS_STATES.IDLE;
+  }
+
+  if (source === 'wake') {
+    return current === PRINCESS_STATES.SLEEP
+      && (next === PRINCESS_STATES.IDLE || next === PRINCESS_STATES.CURIOUS);
+  }
+
+  if (source === 'presence') {
+    return !INTERACTION_STATES.has(current);
+  }
+
+  if (source === 'websiteEvent' && current !== PRINCESS_STATES.SLEEP) {
+    return !INTERACTION_STATES.has(current);
   }
 
   // Automatic behavior may only claim the machine from a settled idle state.
@@ -115,7 +128,8 @@ export function createPrincessStateController({
       completionTimer = setTimeoutFn(() => {
         completionTimer = null;
         if (disposed || dragging || state !== expectedState) return;
-        applyState(PRINCESS_STATES.IDLE);
+        const completionState = options.resolveCompletionState?.() || options.completionState || PRINCESS_STATES.IDLE;
+        applyState(KNOWN_STATES.has(completionState) ? completionState : PRINCESS_STATES.IDLE);
         options.onComplete?.();
       }, options.duration);
     }

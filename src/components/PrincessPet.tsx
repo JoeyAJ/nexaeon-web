@@ -21,6 +21,12 @@ import {
   writePrincessPosition,
   writePrincessScale,
 } from '../lib/princessLayoutPersistence.js';
+import {
+  PRINCESS_PRESENCE_TIMING,
+  createPrincessPresenceController,
+  getAnimationStateForPersistent,
+  getPrincessSessionStorage,
+} from '../lib/princessPresenceController.js';
 import { princessAnimations } from '../lib/princessPetAnimations';
 import type { PrincessEventBridge } from '../lib/princessEventBridge';
 import {
@@ -98,8 +104,6 @@ const NATURAL_BEHAVIOR_WEIGHTS: Record<'base' | 'restReady' | 'quietReady' | 'sl
     { behavior: 'walk', weight: 14 },
     { behavior: 'sit', weight: 12 },
     { behavior: 'curious', weight: 10 },
-    { behavior: 'rest', weight: 8 },
-    { behavior: 'quiet', weight: 4 },
     { behavior: 'wave', weight: 2 },
     { behavior: 'happy', weight: 2 },
   ],
@@ -108,9 +112,6 @@ const NATURAL_BEHAVIOR_WEIGHTS: Record<'base' | 'restReady' | 'quietReady' | 'sl
     { behavior: 'walk', weight: 12 },
     { behavior: 'sit', weight: 10 },
     { behavior: 'curious', weight: 10 },
-    { behavior: 'rest', weight: 10 },
-    { behavior: 'quiet', weight: 7 },
-    { behavior: 'sleep', weight: 4 },
     { behavior: 'wave', weight: 3 },
     { behavior: 'happy', weight: 2 },
   ],
@@ -119,9 +120,6 @@ const NATURAL_BEHAVIOR_WEIGHTS: Record<'base' | 'restReady' | 'quietReady' | 'sl
     { behavior: 'walk', weight: 12 },
     { behavior: 'sit', weight: 10 },
     { behavior: 'curious', weight: 10 },
-    { behavior: 'rest', weight: 10 },
-    { behavior: 'quiet', weight: 7 },
-    { behavior: 'sleep', weight: 4 },
     { behavior: 'wave', weight: 3 },
     { behavior: 'happy', weight: 2 },
   ],
@@ -132,7 +130,6 @@ const MOBILE_WALK_DISTANCE = [12, 28] as const;
 const MOBILE_BREAKPOINT = 520;
 const USER_ACTIVITY_THROTTLE = 1_500;
 const QUIET_HOVER_WAKE_DELAY = [300, 600] as const;
-const SLEEP_HOVER_WAKE_DELAY = [800, 1_200] as const;
 const SLEEP_WAKE_INTERACTION_DELAY = 400;
 const CUSTOM_EVENT_COOLDOWN = 8_000;
 const LOW_POWER_STATE_GAP = 45_000;
@@ -403,6 +400,7 @@ export default function PrincessPet({
     altKey: boolean;
   } | null>(null);
   const stateControllerRef = useRef<ReturnType<typeof createPrincessStateController> | null>(null);
+  const presenceControllerRef = useRef<ReturnType<typeof createPrincessPresenceController> | null>(null);
 
   if (stateControllerRef.current === null) {
     stateControllerRef.current = createPrincessStateController({
@@ -413,6 +411,27 @@ export default function PrincessPet({
         setFrameIndex(0);
         setBlinkSrc(null);
         if (nextState === PRINCESS_STATES.IDLE) setMotionDuration(0);
+      },
+    });
+  }
+
+  if (presenceControllerRef.current === null) {
+    presenceControllerRef.current = createPrincessPresenceController({
+      storage: getPrincessSessionStorage(typeof window === 'undefined' ? null : window),
+      onPersistentStateChange: (persistentState: string) => {
+        if (isDraggingRef.current || PRINCESS_STATE_GROUPS.INTERACTION.includes(stateRef.current)) return;
+        stateControllerRef.current?.transition(getAnimationStateForPersistent(persistentState), { source: 'presence' });
+      },
+      onWake: () => {
+        if (isDraggingRef.current) return;
+        stateControllerRef.current?.transition(PRINCESS_STATES.CURIOUS, {
+          source: 'wake',
+          duration: PRINCESS_PRESENCE_TIMING.wakeDuration,
+          completionState: PRINCESS_STATES.IDLE,
+        });
+      },
+      onDebug: (entry: unknown) => {
+        if (import.meta.env.DEV) console.debug('[Princess Presence]', entry);
       },
     });
   }
@@ -470,7 +489,7 @@ export default function PrincessPet({
     }
   }, [clearBehaviorTimers, clearTimer]);
 
-  const noteUserInteraction = useCallback((options: { immediate?: boolean } = {}) => {
+  const noteUserInteraction = useCallback((options: { immediate?: boolean; type?: string; wake?: boolean } = {}) => {
     const now = Date.now();
 
     if (!options.immediate && now - lastThrottledActivityAtRef.current < USER_ACTIVITY_THROTTLE) {
@@ -479,6 +498,7 @@ export default function PrincessPet({
 
     lastThrottledActivityAtRef.current = now;
     lastUserInteractionAtRef.current = now;
+    presenceControllerRef.current?.noteActivity(options.type || 'princessInteraction', { wake: options.wake !== false });
   }, []);
 
   const setIdleState = useCallback(() => {
@@ -1192,17 +1212,27 @@ export default function PrincessPet({
 
     return eventBridge.subscribe((request) => {
       if (isDraggingRef.current) return false;
+      if (request.event.type === 'navigator_question_submitted' || request.event.type === 'navigator_response_started') {
+        noteUserInteraction({ immediate: true, type: 'navigatorQuestionSubmitted' });
+      }
+      if (request.event.type === 'navigator_navigation_completed') {
+        noteUserInteraction({ immediate: true, type: 'primaryNavigation' });
+      }
       if (request.event.type === 'navigator_response_aborted') {
         const navigatorTransientStates = new Set(['curious', 'sit', 'happy', 'quiet']);
         if (!navigatorTransientStates.has(stateRef.current)) return false;
-        return stateControllerRef.current?.transition(PRINCESS_STATES.IDLE, { source: 'complete' }) || false;
+        const restoreState = getAnimationStateForPersistent(presenceControllerRef.current?.evaluate('navigator_abort'));
+        return stateControllerRef.current?.transition(restoreState, { source: 'presence' }) || false;
       }
       return stateControllerRef.current?.transition(request.state, {
         source: 'websiteEvent',
         duration: request.duration,
+        resolveCompletionState: () => getAnimationStateForPersistent(
+          presenceControllerRef.current?.evaluate('transient_complete'),
+        ),
       }) || false;
     });
-  }, [eventBridge, prefersReducedMotion, visible]);
+  }, [eventBridge, noteUserInteraction, prefersReducedMotion, visible]);
 
   useEffect(() => {
     if (prefersReducedMotion || !visible || !interactionEnabled) return undefined;
@@ -1252,24 +1282,49 @@ export default function PrincessPet({
   useEffect(() => {
     if (prefersReducedMotion || !visible) return undefined;
 
-    const handleActivity = () => {
-      noteUserInteraction();
+    let lastScrollAt = 0;
+    const handlePointerActivity = () => {
+      noteUserInteraction({ immediate: true, type: 'pointerDown' });
+    };
+    const handleTouchActivity = () => {
+      noteUserInteraction({ immediate: true, type: 'touchStart' });
+    };
+    const handleKeyboardActivity = () => {
+      noteUserInteraction({ immediate: true, type: 'keyDown' });
+    };
+    const handleScrollActivity = () => {
+      const now = Date.now();
+      if (now - lastScrollAt < PRINCESS_PRESENCE_TIMING.meaningfulScrollThrottle) return;
+      lastScrollAt = now;
+      noteUserInteraction({ immediate: true, type: 'meaningfulScroll', wake: false });
     };
 
-    window.addEventListener('pointermove', handleActivity, { passive: true });
-    window.addEventListener('pointerdown', handleActivity, { passive: true });
-    window.addEventListener('click', handleActivity, { passive: true });
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('scroll', handleActivity, { passive: true });
+    window.addEventListener('pointerdown', handlePointerActivity, { passive: true });
+    window.addEventListener('touchstart', handleTouchActivity, { passive: true });
+    window.addEventListener('keydown', handleKeyboardActivity);
+    window.addEventListener('scroll', handleScrollActivity, { passive: true });
 
     return () => {
-      window.removeEventListener('pointermove', handleActivity);
-      window.removeEventListener('pointerdown', handleActivity);
-      window.removeEventListener('click', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('pointerdown', handlePointerActivity);
+      window.removeEventListener('touchstart', handleTouchActivity);
+      window.removeEventListener('keydown', handleKeyboardActivity);
+      window.removeEventListener('scroll', handleScrollActivity);
     };
   }, [noteUserInteraction, prefersReducedMotion, visible]);
+
+  useEffect(() => {
+    const controller = presenceControllerRef.current;
+    if (!controller) return undefined;
+    const handleVisibility = () => controller.setVisibility(!document.hidden);
+    document.addEventListener('visibilitychange', handleVisibility);
+    handleVisibility();
+    if (visible && autoBehaviorEnabled && !prefersReducedMotion) controller.start();
+    else controller.stop();
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      controller.stop();
+    };
+  }, [autoBehaviorEnabled, prefersReducedMotion, visible]);
 
   useEffect(() => {
     if (!prefersReducedMotion) return;
@@ -1284,12 +1339,11 @@ export default function PrincessPet({
     scheduleBehaviorRef.current = null;
     clearPetTimers();
     stateControllerRef.current?.dispose();
+    presenceControllerRef.current?.dispose();
   }, [clearPetTimers]);
 
   const handlePointerEnter = useCallback(() => {
     if (!interactionEnabled || isDraggingRef.current) return;
-
-    noteUserInteraction({ immediate: true });
 
     if (stateRef.current === 'quiet') {
       clearTimer(quietInteractionTimeoutRef);
@@ -1301,15 +1355,7 @@ export default function PrincessPet({
       return;
     }
 
-    if (stateRef.current === 'sleep') {
-      clearTimer(sleepInteractionTimeoutRef);
-      sleepInteractionTimeoutRef.current = window.setTimeout(() => {
-        if (stateRef.current === 'sleep') {
-          finishSleep();
-        }
-      }, getRandomBetween(SLEEP_HOVER_WAKE_DELAY));
-    }
-  }, [clearTimer, finishQuiet, finishSleep, interactionEnabled, noteUserInteraction]);
+  }, [clearTimer, finishQuiet, interactionEnabled]);
 
   const handlePetClick = useCallback(() => {
     if (!interactionEnabled || prefersReducedMotion || isDraggingRef.current) return;
@@ -1476,6 +1522,7 @@ export default function PrincessPet({
   }, []);
 
   const beginDrag = useCallback(() => {
+    noteUserInteraction({ immediate: true, type: 'princessDragStart' });
     isDraggingRef.current = true;
     setIsDragging(true);
     clearTimer(longPressTimeoutRef);
@@ -1485,7 +1532,7 @@ export default function PrincessPet({
     setFrameIndex(0);
     setBlinkSrc(null);
     setMotionDuration(0);
-  }, [clearBehaviorTimers, clearTimer]);
+  }, [clearBehaviorTimers, clearTimer, noteUserInteraction]);
 
   const endDrag = useCallback((nextPosition: PetPosition, options: { resume?: boolean } = {}) => {
     isDraggingRef.current = false;
@@ -1494,7 +1541,11 @@ export default function PrincessPet({
     positionRef.current = nextPosition;
     setPosition(nextPosition);
     writeStoredPosition(nextPosition);
-    setIdleState();
+    presenceControllerRef.current?.evaluate('drag_complete');
+    stateControllerRef.current?.transition(
+      getAnimationStateForPersistent(presenceControllerRef.current?.getPersistentState()),
+      { source: 'presence' },
+    );
 
     if (prefersReducedMotion || options.resume === false) {
       scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
