@@ -263,6 +263,34 @@ test('Companion controls persist visibility, automatic behavior, and interaction
   assertRuntimeClean();
 });
 
+test('website events remain low-frequency when direct interaction and auto behavior are off', async ({ page }) => {
+  const assertRuntimeClean = watchRuntimeErrors(page);
+  await page.goto('/');
+  await expectLoadedIdlePrincess(page);
+
+  const controls = page.getByTestId('princess-controls');
+  const root = page.locator(PET_ROOT);
+  await controls.getByRole('button', { name: '開啟 Companion 控制' }).click();
+  await controls.getByRole('switch', { name: '自動行為' }).click();
+  await controls.getByRole('switch', { name: '互動' }).click();
+  await page.keyboard.press('Escape');
+
+  await page.getByTestId('module-card-research').getByRole('button').click();
+  await expect(root).toHaveAttribute('data-pet-state', 'curious');
+  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+  await expect(root).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await expect(root).toHaveAttribute('data-pet-state', 'wave');
+  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+
+  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await expect(root).toHaveAttribute('data-pet-state', 'curious');
+  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+  await expect(root).toHaveCount(1);
+  assertRuntimeClean();
+});
+
 test('Companion controls reset position, size, and only Princess settings', async ({ page }) => {
   const assertRuntimeClean = watchRuntimeErrors(page);
   await page.goto('/');

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import './styles.css';
 import DirectionB from './components/DirectionB.jsx';
 import DemoRuntimePage from './components/DemoRuntimePage.jsx';
@@ -16,6 +16,7 @@ import {
   readPrincessSettings,
   writePrincessSettings,
 } from './lib/princessLayoutPersistence.js';
+import { createPrincessEventBridge } from './lib/princessEventBridge.ts';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
 const BACK_TO_TOP_TEXT = {
@@ -62,10 +63,25 @@ export default function App() {
     ...parseRoute(window.location.pathname),
     hash: window.location.hash,
   }));
+  const princessEventBridge = useMemo(() => createPrincessEventBridge(), []);
+  const previousLangRef = useRef(lang);
+  const previousThemeRef = useRef(theme);
+  const previousRouteKeyRef = useRef('');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+    if (previousThemeRef.current !== theme) {
+      princessEventBridge.emit({ type: 'theme_change', key: theme });
+      previousThemeRef.current = theme;
+    }
+  }, [princessEventBridge, theme]);
+
+  useEffect(() => {
+    if (previousLangRef.current !== lang) {
+      princessEventBridge.emit({ type: 'language_change', key: lang });
+      previousLangRef.current = lang;
+    }
+  }, [lang, princessEventBridge]);
 
   useEffect(() => {
     markInitialHistoryEntry();
@@ -121,6 +137,54 @@ export default function App() {
     route.key,
     route.hash,
   ].filter(Boolean).join(':');
+
+  useEffect(() => {
+    if (!companionSettings.visible) return undefined;
+    const currentRouteKey = companionNavigationKey || 'home';
+    if (previousRouteKeyRef.current && previousRouteKeyRef.current !== currentRouteKey) {
+      princessEventBridge.emit({ type: 'route_leave', key: previousRouteKeyRef.current });
+    }
+
+    const moduleId = route.kind === 'detail'
+      ? route.type
+      : route.kind === 'home' && route.hash
+        ? route.hash.replace(/^#/, '')
+        : null;
+
+    if (moduleId) {
+      princessEventBridge.emit({ type: 'module_enter', moduleId, key: currentRouteKey });
+    }
+    if (route.kind === 'detail' || route.kind === 'demoRuntime' || route.kind === 'role') {
+      princessEventBridge.emit({ type: 'subpage_enter', key: currentRouteKey });
+    }
+    previousRouteKeyRef.current = currentRouteKey;
+
+    const milestones = new Set();
+    let frame = 0;
+    const checkScroll = () => {
+      frame = 0;
+      if (document.hidden) return;
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      const progress = window.scrollY / scrollable;
+      if (progress >= 0.5 && !milestones.has('half')) {
+        milestones.add('half');
+        princessEventBridge.emit({ type: 'scroll_milestone', milestone: 'half', key: `${currentRouteKey}:half` });
+      }
+      if (progress >= 0.96 && !milestones.has('bottom')) {
+        milestones.add('bottom');
+        princessEventBridge.emit({ type: 'scroll_milestone', milestone: 'bottom', key: `${currentRouteKey}:bottom` });
+      }
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(checkScroll);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [companionNavigationKey, companionSettings.visible, princessEventBridge, route.hash, route.kind, route.type]);
 
   const updateCompanionSetting = (key, value) => {
     if (!(key in DEFAULT_PRINCESS_SETTINGS)) return;
@@ -213,6 +277,7 @@ export default function App() {
         interactionEnabled={companionSettings.interactionEnabled}
         resetPositionToken={resetPositionToken}
         resetSizeToken={resetSizeToken}
+        eventBridge={princessEventBridge}
       />
       <PrincessCompanionControls
         lang={lang}

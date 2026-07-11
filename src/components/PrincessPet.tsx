@@ -22,6 +22,7 @@ import {
   writePrincessScale,
 } from '../lib/princessLayoutPersistence.js';
 import { princessAnimations } from '../lib/princessPetAnimations';
+import type { PrincessEventBridge } from '../lib/princessEventBridge';
 import {
   PRINCESS_STATES,
   PRINCESS_STATE_GROUPS,
@@ -320,6 +321,7 @@ type PrincessPetProps = {
   interactionEnabled?: boolean;
   resetPositionToken?: number;
   resetSizeToken?: number;
+  eventBridge?: PrincessEventBridge;
 };
 
 export default function PrincessPet({
@@ -330,6 +332,7 @@ export default function PrincessPet({
   interactionEnabled = true,
   resetPositionToken = 0,
   resetSizeToken = 0,
+  eventBridge,
 }: PrincessPetProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const initialLayout = useMemo(getInitialPetLayout, []);
@@ -1183,6 +1186,18 @@ export default function PrincessPet({
     autoBehaviorEnabled,
     visible,
   ]);
+
+  useEffect(() => {
+    if (prefersReducedMotion || !visible || !eventBridge) return undefined;
+
+    return eventBridge.subscribe((request) => {
+      if (isDraggingRef.current) return false;
+      return stateControllerRef.current?.transition(request.state, {
+        source: 'websiteEvent',
+        duration: request.duration,
+      }) || false;
+    });
+  }, [eventBridge, prefersReducedMotion, visible]);
 
   useEffect(() => {
     if (prefersReducedMotion || !visible || !interactionEnabled) return undefined;
