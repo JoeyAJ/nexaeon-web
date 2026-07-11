@@ -1,5 +1,3 @@
-import { dispatchPetHappy } from '../lib/petEvents.js';
-
 const NX_ASPECT = 1270 / 780;
 
 export function NexLogo({ size = 40, style = {} }) {
@@ -121,9 +119,9 @@ export function LangSwitcher({ lang, setLang }) {
             if (l.code === lang) return;
 
             setLang(l.code);
-            dispatchPetHappy();
           }}
           type="button"
+          data-princess-passive-control="true"
           aria-label={l.ariaLabel}
           style={{
             padding: '5px 11px', borderRadius: 999,

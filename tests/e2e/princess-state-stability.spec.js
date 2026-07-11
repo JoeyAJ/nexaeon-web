@@ -345,3 +345,85 @@ test('Companion controls localize and remain readable across theme changes', asy
   await expect(controls.getByText('모두 기본값으로')).toBeVisible();
   assertRuntimeClean();
 });
+
+test('Princess context follows routes without remounting, respects locale, Navigator input, mobile bounds, and sleeping priority', async ({ page }) => {
+  const assertRuntimeClean = watchRuntimeErrors(page);
+  await page.goto('/');
+  const root = page.locator(PET_ROOT);
+  await expect(root).toHaveAttribute('data-princess-context', 'home');
+  await root.evaluate((node) => { node.dataset.contextMarker = 'same-context-princess'; });
+
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/research/ai-in-education');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(root).toHaveAttribute('data-princess-context', 'research');
+  await expect(root).toHaveAttribute('data-context-marker', 'same-context-princess');
+
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/research/learning-analytics');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(root).toHaveAttribute('data-princess-context', 'research');
+  await expect(root).toHaveAttribute('data-context-marker', 'same-context-princess');
+
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await expect(root).toHaveAttribute('data-princess-context', 'research');
+  await page.getByRole('button', { name: '한국어로 전환' }).click();
+  await expect(root).toHaveAttribute('data-princess-context', 'research');
+
+  await page.evaluate(() => {
+    window.localStorage.removeItem('nexaeon-princess-pet-position');
+    window.history.pushState({}, '', '/identity/nexaeon-navigator');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(root).toHaveAttribute('data-princess-context', 'navigator');
+  const inputBox = await page.locator('#navigator-agent-query').boundingBox();
+  const petBox = await root.boundingBox();
+  expect(inputBox).not.toBeNull();
+  expect(petBox).not.toBeNull();
+  const overlapsInput = petBox.x < inputBox.x + inputBox.width
+    && petBox.x + petBox.width > inputBox.x
+    && petBox.y < inputBox.y + inputBox.height
+    && petBox.y + petBox.height > inputBox.y;
+  expect(overlapsInput).toBe(false);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => {
+    const mobileBox = await root.boundingBox();
+    return {
+      leftSafe: mobileBox.x >= 0,
+      topSafe: mobileBox.y >= 0,
+      rightSafe: mobileBox.x + mobileBox.width <= 390,
+      bottomSafe: mobileBox.y + mobileBox.height <= 844,
+    };
+  }).toEqual({ leftSafe: true, topSafe: true, rightSafe: true, bottomSafe: true });
+
+  await page.addInitScript(() => {
+    const now = Date.now();
+    window.sessionStorage.setItem('nexaeon-princess-presence', JSON.stringify({
+      version: 2,
+      lastActivityAt: now - (30 * 60 * 1000),
+      persistentState: 'sleeping',
+      stateEnteredAt: now - (10 * 60 * 1000),
+      hiddenAt: null,
+      currentContextId: 'research',
+      previousContextId: 'navigator',
+      contextEnteredAt: now - (5 * 60 * 1000),
+    }));
+  });
+  await page.goto('/research/ai-in-education');
+  await expect(root).toHaveAttribute('data-pet-state', 'sleep');
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await expect(root).toHaveAttribute('data-princess-context', 'research');
+  await expect(root).toHaveAttribute('data-pet-state', 'sleep');
+  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await expect(root).toHaveAttribute('data-pet-state', 'sleep');
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/research/learning-analytics');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(root).toHaveAttribute('data-princess-context', 'research');
+  await expect(root).toHaveAttribute('data-pet-state', 'sleep');
+  assertRuntimeClean();
+});

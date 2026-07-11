@@ -123,6 +123,7 @@ function DemoRuntimeTopbar({ ui, lang, setLang, theme, setTheme, navigate }) {
         <div className="nav-actions">
           <button
             className="theme-toggle"
+            data-princess-passive-control="true"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             type="button"
             aria-label="Toggle theme"

@@ -1,5 +1,5 @@
 export const PRINCESS_PRESENCE_STORAGE_KEY = 'nexaeon-princess-presence';
-export const PRINCESS_PRESENCE_STORAGE_VERSION = 1;
+export const PRINCESS_PRESENCE_STORAGE_VERSION = 2;
 
 export const PRINCESS_PERSISTENT_STATES = Object.freeze({
   ACTIVE_IDLE: 'activeIdle',
@@ -20,11 +20,18 @@ export const PRINCESS_PRESENCE_TIMING = Object.freeze({
 });
 
 const PERSISTENT_STATES = new Set(Object.values(PRINCESS_PERSISTENT_STATES));
+const CONTEXT_IDS = new Set(['home', 'identity', 'research', 'coaching', 'knowledge', 'prototype', 'action', 'navigator', 'generic']);
 
-export function getPersistentStateForInactivity(inactiveFor, timing = PRINCESS_PRESENCE_TIMING) {
-  if (inactiveFor >= timing.sleepThreshold) return PRINCESS_PERSISTENT_STATES.SLEEPING;
-  if (inactiveFor >= timing.restThreshold) return PRINCESS_PERSISTENT_STATES.RESTING;
-  if (inactiveFor >= timing.calmIdleThreshold) return PRINCESS_PERSISTENT_STATES.CALM_IDLE;
+export function getPersistentStateForInactivity(inactiveFor, timing = PRINCESS_PRESENCE_TIMING, contextProfile = null) {
+  const bias = contextProfile?.presenceBias || {};
+  const sleepThreshold = contextProfile?.allowAutoSleep === false
+    ? Number.POSITIVE_INFINITY
+    : timing.sleepThreshold * (Number.isFinite(bias.sleep) ? bias.sleep : 1);
+  const restThreshold = timing.restThreshold * (Number.isFinite(bias.rest) ? bias.rest : 1);
+  const calmThreshold = timing.calmIdleThreshold * (Number.isFinite(bias.calm) ? bias.calm : 1);
+  if (inactiveFor >= sleepThreshold) return PRINCESS_PERSISTENT_STATES.SLEEPING;
+  if (inactiveFor >= restThreshold) return PRINCESS_PERSISTENT_STATES.RESTING;
+  if (inactiveFor >= calmThreshold) return PRINCESS_PERSISTENT_STATES.CALM_IDLE;
   return PRINCESS_PERSISTENT_STATES.ACTIVE_IDLE;
 }
 
@@ -38,7 +45,7 @@ export function getAnimationStateForPersistent(persistentState) {
 export function parsePrincessPresenceRecord(rawValue, now = Date.now()) {
   try {
     const value = JSON.parse(rawValue);
-    if (value?.version !== PRINCESS_PRESENCE_STORAGE_VERSION) return null;
+    if (value?.version !== 1 && value?.version !== PRINCESS_PRESENCE_STORAGE_VERSION) return null;
     if (!PERSISTENT_STATES.has(value.persistentState)) return null;
     if (![value.lastActivityAt, value.stateEnteredAt].every(Number.isFinite)) return null;
     if (value.lastActivityAt < 0 || value.stateEnteredAt < 0 || value.lastActivityAt > now + 60_000) return null;
@@ -48,6 +55,9 @@ export function parsePrincessPresenceRecord(rawValue, now = Date.now()) {
       persistentState: value.persistentState,
       stateEnteredAt: value.stateEnteredAt,
       hiddenAt: value.hiddenAt ?? null,
+      currentContextId: CONTEXT_IDS.has(value.currentContextId) ? value.currentContextId : 'generic',
+      previousContextId: CONTEXT_IDS.has(value.previousContextId) ? value.previousContextId : null,
+      contextEnteredAt: Number.isFinite(value.contextEnteredAt) ? value.contextEnteredAt : value.stateEnteredAt,
     };
   } catch {
     return null;
@@ -70,6 +80,7 @@ export function createPrincessPresenceController({
   storage = null,
   onPersistentStateChange = () => {},
   onWake = () => {},
+  contextProfile = null,
   onDebug = () => {},
 } = {}) {
   const storedValue = (() => {
@@ -82,9 +93,13 @@ export function createPrincessPresenceController({
   const restored = parsePrincessPresenceRecord(storedValue, nowFn());
   let lastActivityAt = restored?.lastActivityAt ?? nowFn();
   let persistentState = restored?.persistentState
-    ?? getPersistentStateForInactivity(Math.max(0, nowFn() - lastActivityAt), timing);
+    ?? getPersistentStateForInactivity(Math.max(0, nowFn() - lastActivityAt), timing, contextProfile);
   let stateEnteredAt = restored?.stateEnteredAt ?? nowFn();
   let hiddenAt = restored?.hiddenAt ?? null;
+  let currentContextProfile = contextProfile;
+  let currentContextId = contextProfile?.id || restored?.currentContextId || 'generic';
+  let previousContextId = restored?.previousContextId ?? null;
+  let contextEnteredAt = restored?.contextEnteredAt ?? nowFn();
   let timer = null;
   let running = false;
   let disposed = false;
@@ -101,6 +116,9 @@ export function createPrincessPresenceController({
         persistentState,
         stateEnteredAt,
         hiddenAt,
+        currentContextId,
+        previousContextId,
+        contextEnteredAt,
       }));
     } catch {
       debug({ action: 'storage_ignored', reason: 'unavailable' });
@@ -133,7 +151,7 @@ export function createPrincessPresenceController({
 
   const evaluate = (reason = 'inactivity') => {
     if (disposed || hiddenAt !== null) return persistentState;
-    const next = getPersistentStateForInactivity(Math.max(0, nowFn() - lastActivityAt), timing);
+    const next = getPersistentStateForInactivity(Math.max(0, nowFn() - lastActivityAt), timing, currentContextProfile);
     applyPersistentState(next, reason);
     return persistentState;
   };
@@ -192,6 +210,24 @@ export function createPrincessPresenceController({
     debug({ action: 'visibility_change', visible: true });
   };
 
+  const setContext = (nextProfile, { reason = 'route_context' } = {}) => {
+    if (disposed) return false;
+    const nextContextId = CONTEXT_IDS.has(nextProfile?.id) ? nextProfile.id : 'generic';
+    if (nextContextId === currentContextId) {
+      debug({ action: 'context_ignored', reason: 'duplicate_context', contextId: nextContextId });
+      return false;
+    }
+    const previous = currentContextId;
+    previousContextId = previous;
+    currentContextId = nextContextId;
+    currentContextProfile = nextProfile;
+    contextEnteredAt = nowFn();
+    persist();
+    evaluate('context_change');
+    debug({ action: 'context_changed', previousContext: previous, nextContext: nextContextId, reason });
+    return true;
+  };
+
   const start = () => {
     if (disposed || running) return false;
     running = true;
@@ -224,12 +260,16 @@ export function createPrincessPresenceController({
     dispose,
     evaluate,
     getLastActivityAt: () => lastActivityAt,
+    getContextId: () => currentContextId,
+    getPreviousContextId: () => previousContextId,
+    getContextEnteredAt: () => contextEnteredAt,
     getPersistentState: () => persistentState,
     getStateEnteredAt: () => stateEnteredAt,
     isHidden: () => hiddenAt !== null,
     isRunning: () => running,
     noteActivity,
     setVisibility,
+    setContext,
     start,
     stop,
   };

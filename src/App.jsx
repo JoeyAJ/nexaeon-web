@@ -17,6 +17,7 @@ import {
   writePrincessSettings,
 } from './lib/princessLayoutPersistence.js';
 import { createPrincessEventBridge } from './lib/princessEventBridge.ts';
+import { resolvePrincessContext } from './lib/princessContextResolver.js';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
 const BACK_TO_TOP_TEXT = {
@@ -137,6 +138,15 @@ export default function App() {
     route.key,
     route.hash,
   ].filter(Boolean).join(':');
+  const princessContext = useMemo(() => resolvePrincessContext({
+    pathname: window.location.pathname,
+    routeKey: companionNavigationKey,
+    locale: lang,
+  }), [companionNavigationKey, lang]);
+
+  useEffect(() => {
+    princessEventBridge.setContextProfile(princessContext.profile);
+  }, [princessContext.id, princessContext.profile, princessEventBridge]);
 
   useEffect(() => {
     if (!companionSettings.visible) return undefined;
@@ -279,6 +289,7 @@ export default function App() {
         resetPositionToken={resetPositionToken}
         resetSizeToken={resetSizeToken}
         eventBridge={princessEventBridge}
+        contextProfile={princessContext.profile}
       />
       <PrincessCompanionControls
         lang={lang}

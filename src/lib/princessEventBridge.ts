@@ -137,6 +137,7 @@ export function createPrincessEventBridge({ now = Date.now, debug = false } = {}
   let activeNavigatorRequestId: string | null = null;
   let navigatorTerminalEvent: PrincessEventType | null = null;
   let routeEventsSuppressedUntil = 0;
+  let reactionCooldownMultiplier = 1;
   const seenNavigatorRequestIds = new Set<string>();
 
   const log = (event: PrincessWebsiteEvent, accepted: boolean, reason: string) => {
@@ -190,7 +191,8 @@ export function createPrincessEventBridge({ now = Date.now, debug = false } = {}
     if (!accepted) return;
 
     const cooldownKey = getCooldownKey(request.event);
-    allowedAt.set(cooldownKey, now() + PRINCESS_EVENT_COOLDOWNS[request.event.type]);
+    const multiplier = request.event.type.startsWith('navigator_') ? 1 : reactionCooldownMultiplier;
+    allowedAt.set(cooldownKey, now() + (PRINCESS_EVENT_COOLDOWNS[request.event.type] * multiplier));
   };
 
   return {
@@ -226,6 +228,12 @@ export function createPrincessEventBridge({ now = Date.now, debug = false } = {}
     subscribe(handler: EventHandler) {
       handlers.add(handler);
       return () => handlers.delete(handler);
+    },
+    setContextProfile(profile: { reactionCooldownMultiplier?: number } | null) {
+      const nextMultiplier = profile?.reactionCooldownMultiplier;
+      reactionCooldownMultiplier = Number.isFinite(nextMultiplier) && Number(nextMultiplier) > 0
+        ? Number(nextMultiplier)
+        : 1;
     },
   };
 }

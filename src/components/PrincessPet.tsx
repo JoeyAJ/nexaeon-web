@@ -22,9 +22,13 @@ import {
   writePrincessScale,
 } from '../lib/princessLayoutPersistence.js';
 import {
+  PRINCESS_CONTEXT_PROFILES,
+  getContextPreferredPosition,
+  selectContextIdleAnimation,
+} from '../lib/princessContextResolver.js';
+import {
   PRINCESS_PRESENCE_TIMING,
   createPrincessPresenceController,
-  getAnimationStateForPersistent,
   getPrincessSessionStorage,
 } from '../lib/princessPresenceController.js';
 import { princessAnimations } from '../lib/princessPetAnimations';
@@ -250,15 +254,24 @@ function clampPetPosition(position: PetPosition, scale: PetScale, root: HTMLDivE
   });
 }
 
-function getDefaultPetPosition(root: HTMLDivElement | null, scale: PetScale): PetPosition {
+function getDefaultPetPosition(root: HTMLDivElement | null, scale: PetScale, preferredAnchor = 'bottomRight'): PetPosition {
   const viewport = getViewportSize();
   const size = getPetSize(root);
   const margins = getDefaultPetMargins(viewport.width, viewport.height);
+  const baseSafeArea = getPetSafeArea(viewport.width);
+  const preferred = getContextPreferredPosition({
+    preferredAnchor,
+    viewport,
+    size,
+    safeArea: {
+      ...baseSafeArea,
+      left: margins.right,
+      right: margins.right,
+      bottom: margins.bottom,
+    },
+  });
 
-  return clampPetPosition({
-    x: viewport.width - margins.right - size.width,
-    y: viewport.height - margins.bottom - size.height,
-  }, scale, root);
+  return clampPetPosition(preferred.position, scale, root);
 }
 
 function readStoredPosition() {
@@ -288,12 +301,12 @@ function clearStoredPetLayout() {
   clearPrincessScale(storage);
 }
 
-function getInitialPetLayout() {
+function getInitialPetLayout(preferredAnchor = 'bottomRight') {
   const restoredScale = clampPetScale(readStoredScale() ?? PET_SCALE.default);
   const restoredPosition = readStoredPosition();
   const position = restoredPosition
     ? clampPetPosition(restoredPosition, restoredScale, null)
-    : getDefaultPetPosition(null, restoredScale);
+    : getDefaultPetPosition(null, restoredScale, preferredAnchor);
 
   return { position, scale: restoredScale };
 }
@@ -319,6 +332,7 @@ type PrincessPetProps = {
   resetPositionToken?: number;
   resetSizeToken?: number;
   eventBridge?: PrincessEventBridge;
+  contextProfile?: (typeof PRINCESS_CONTEXT_PROFILES)[keyof typeof PRINCESS_CONTEXT_PROFILES];
 };
 
 export default function PrincessPet({
@@ -330,9 +344,10 @@ export default function PrincessPet({
   resetPositionToken = 0,
   resetSizeToken = 0,
   eventBridge,
+  contextProfile = PRINCESS_CONTEXT_PROFILES.generic,
 }: PrincessPetProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
-  const initialLayout = useMemo(getInitialPetLayout, []);
+  const [initialLayout] = useState(() => getInitialPetLayout(contextProfile.preferredAnchor));
   const [petState, setPetState] = useState<PetState>('idle');
   const animation = princessAnimations[petState];
   const normalFrames = animation.frames;
@@ -401,6 +416,7 @@ export default function PrincessPet({
   } | null>(null);
   const stateControllerRef = useRef<ReturnType<typeof createPrincessStateController> | null>(null);
   const presenceControllerRef = useRef<ReturnType<typeof createPrincessPresenceController> | null>(null);
+  const contextProfileRef = useRef(contextProfile);
 
   if (stateControllerRef.current === null) {
     stateControllerRef.current = createPrincessStateController({
@@ -418,9 +434,13 @@ export default function PrincessPet({
   if (presenceControllerRef.current === null) {
     presenceControllerRef.current = createPrincessPresenceController({
       storage: getPrincessSessionStorage(typeof window === 'undefined' ? null : window),
+      contextProfile,
       onPersistentStateChange: (persistentState: string) => {
         if (isDraggingRef.current || PRINCESS_STATE_GROUPS.INTERACTION.includes(stateRef.current)) return;
-        stateControllerRef.current?.transition(getAnimationStateForPersistent(persistentState), { source: 'presence' });
+        stateControllerRef.current?.transition(
+          selectContextIdleAnimation(contextProfileRef.current, persistentState),
+          { source: 'presence' },
+        );
       },
       onWake: () => {
         if (isDraggingRef.current) return;
@@ -435,6 +455,11 @@ export default function PrincessPet({
       },
     });
   }
+
+  useEffect(() => {
+    contextProfileRef.current = contextProfile;
+    presenceControllerRef.current?.setContext(contextProfile);
+  }, [contextProfile]);
 
   const currentFrame = useMemo(() => {
     if (prefersReducedMotion) return princessAnimations.idle.frames[0];
@@ -1221,13 +1246,17 @@ export default function PrincessPet({
       if (request.event.type === 'navigator_response_aborted') {
         const navigatorTransientStates = new Set(['curious', 'sit', 'happy', 'quiet']);
         if (!navigatorTransientStates.has(stateRef.current)) return false;
-        const restoreState = getAnimationStateForPersistent(presenceControllerRef.current?.evaluate('navigator_abort'));
+        const restoreState = selectContextIdleAnimation(
+          contextProfileRef.current,
+          presenceControllerRef.current?.evaluate('navigator_abort'),
+        );
         return stateControllerRef.current?.transition(restoreState, { source: 'presence' }) || false;
       }
       return stateControllerRef.current?.transition(request.state, {
         source: 'websiteEvent',
         duration: request.duration,
-        resolveCompletionState: () => getAnimationStateForPersistent(
+        resolveCompletionState: () => selectContextIdleAnimation(
+          contextProfileRef.current,
           presenceControllerRef.current?.evaluate('transient_complete'),
         ),
       }) || false;
@@ -1283,13 +1312,20 @@ export default function PrincessPet({
     if (prefersReducedMotion || !visible) return undefined;
 
     let lastScrollAt = 0;
-    const handlePointerActivity = () => {
+    const isPassiveControl = (event: Event) => (
+      event.target instanceof Element
+      && Boolean(event.target.closest('[data-princess-passive-control="true"]'))
+    );
+    const handlePointerActivity = (event: PointerEvent) => {
+      if (isPassiveControl(event)) return;
       noteUserInteraction({ immediate: true, type: 'pointerDown' });
     };
-    const handleTouchActivity = () => {
+    const handleTouchActivity = (event: TouchEvent) => {
+      if (isPassiveControl(event)) return;
       noteUserInteraction({ immediate: true, type: 'touchStart' });
     };
-    const handleKeyboardActivity = () => {
+    const handleKeyboardActivity = (event: KeyboardEvent) => {
+      if (isPassiveControl(event)) return;
       noteUserInteraction({ immediate: true, type: 'keyDown' });
     };
     const handleScrollActivity = () => {
@@ -1543,7 +1579,7 @@ export default function PrincessPet({
     writeStoredPosition(nextPosition);
     presenceControllerRef.current?.evaluate('drag_complete');
     stateControllerRef.current?.transition(
-      getAnimationStateForPersistent(presenceControllerRef.current?.getPersistentState()),
+      selectContextIdleAnimation(contextProfileRef.current, presenceControllerRef.current?.getPersistentState()),
       { source: 'presence' },
     );
 
@@ -1900,6 +1936,7 @@ export default function PrincessPet({
       data-pet-scale={scale.toFixed(2)}
       data-pet-auto-behavior={autoBehaviorEnabled ? 'true' : 'false'}
       data-pet-interaction={interactionEnabled ? 'true' : 'false'}
+      data-princess-context={contextProfile.id}
     >
       <div className={styles.walkOffsetLayer} style={walkStyle}>
         <div className={styles.scaleLayer} style={scaleStyle}>

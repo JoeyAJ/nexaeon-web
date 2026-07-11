@@ -129,3 +129,19 @@ test('Navigator navigation suppresses the duplicate route reaction during the de
   now += 1_501;
   assert.equal(bridge.emit({ type: 'module_enter', moduleId: 'research', key: 'research:example' }), true);
 });
+
+test('context profile adjusts website cooldown without creating a second reaction', async () => {
+  let now = 1_000;
+  const requests = [];
+  const bridge = createPrincessEventBridge({ now: () => now });
+  bridge.subscribe((request) => { requests.push(request); return true; });
+  bridge.setContextProfile({ reactionCooldownMultiplier: 1.5 });
+  bridge.emit({ type: 'theme_change', key: 'dark' });
+  await nextTick();
+  now += 8_001;
+  assert.equal(bridge.emit({ type: 'theme_change', key: 'dark' }), false);
+  now += 4_001;
+  assert.equal(bridge.emit({ type: 'theme_change', key: 'dark' }), true);
+  await nextTick();
+  assert.equal(requests.length, 2);
+});

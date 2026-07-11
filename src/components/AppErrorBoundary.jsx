@@ -84,6 +84,7 @@ export function GuardrailStatePage({
             {theme && setTheme ? (
               <button
                 className="theme-toggle"
+                data-princess-passive-control="true"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 type="button"
                 aria-label="Toggle theme"

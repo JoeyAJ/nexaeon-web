@@ -10,7 +10,7 @@ import NeuralBackground from './NeuralBackground.jsx';
 function ThemeToggle({ theme, setTheme }) {
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
   return (
-    <button className="theme-toggle-btn" type="button" onClick={() => setTheme(nextTheme)}>
+    <button className="theme-toggle-btn" data-princess-passive-control="true" type="button" onClick={() => setTheme(nextTheme)}>
       {theme === 'dark' ? 'Light' : 'Dark'}
     </button>
   );

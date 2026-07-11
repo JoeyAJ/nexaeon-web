@@ -187,7 +187,16 @@ test('versioned session storage persists only presence timestamps and state', ()
   const controller = createPrincessPresenceController({ ...clock, timing: TEST_TIMING, storage });
   controller.noteActivity('keyDown');
   const saved = JSON.parse(storage.value(PRINCESS_PRESENCE_STORAGE_KEY));
-  assert.deepEqual(Object.keys(saved).sort(), ['hiddenAt', 'lastActivityAt', 'persistentState', 'stateEnteredAt', 'version']);
+  assert.deepEqual(Object.keys(saved).sort(), [
+    'contextEnteredAt',
+    'currentContextId',
+    'hiddenAt',
+    'lastActivityAt',
+    'persistentState',
+    'previousContextId',
+    'stateEnteredAt',
+    'version',
+  ]);
   assert.equal(saved.persistentState, PRINCESS_PERSISTENT_STATES.ACTIVE_IDLE);
 });
 
@@ -213,4 +222,48 @@ test('persistent states map onto existing animations without new assets', () => 
   assert.equal(getAnimationStateForPersistent('calmIdle'), 'sit');
   assert.equal(getAnimationStateForPersistent('resting'), 'rest');
   assert.equal(getAnimationStateForPersistent('sleeping'), 'sleep');
+});
+
+test('context change preserves activity and does not reset the persistent state', () => {
+  const clock = createFakeClock();
+  const controller = createPrincessPresenceController({ ...clock, timing: TEST_TIMING, contextProfile: { id: 'generic' } });
+  controller.start();
+  clock.tick(100);
+  const lastActivityAt = controller.getLastActivityAt();
+  const persistentState = controller.getPersistentState();
+  assert.equal(controller.setContext({ id: 'research', presenceBias: { calm: 1, rest: 1, sleep: 1 }, allowAutoSleep: true }), true);
+  assert.equal(controller.getLastActivityAt(), lastActivityAt);
+  assert.equal(controller.getPersistentState(), persistentState);
+});
+
+test('same context subpage update is ignored without scheduling another transition', () => {
+  const clock = createFakeClock();
+  const transitions = [];
+  const controller = createPrincessPresenceController({ ...clock, timing: TEST_TIMING, contextProfile: { id: 'research' }, onPersistentStateChange: (state) => transitions.push(state) });
+  controller.start();
+  transitions.length = 0;
+  assert.equal(controller.setContext({ id: 'research' }), false);
+  assert.deepEqual(transitions, []);
+  assert.equal(clock.pendingCount(), 1);
+});
+
+test('context bias adjusts persistent thresholds without direct state forcing', () => {
+  const timing = { ...TEST_TIMING, minimumPersistentStateDuration: 0 };
+  const base = getPersistentStateForInactivity(80, timing, { presenceBias: { calm: 1 } });
+  const research = getPersistentStateForInactivity(80, timing, { presenceBias: { calm: 0.75 } });
+  assert.equal(base, PRINCESS_PERSISTENT_STATES.ACTIVE_IDLE);
+  assert.equal(research, PRINCESS_PERSISTENT_STATES.CALM_IDLE);
+});
+
+test('version one records migrate safely to generic context metadata', () => {
+  const migrated = parsePrincessPresenceRecord(JSON.stringify({
+    version: 1,
+    lastActivityAt: 500,
+    persistentState: 'calmIdle',
+    stateEnteredAt: 600,
+    hiddenAt: null,
+  }), 1_000);
+  assert.equal(migrated.currentContextId, 'generic');
+  assert.equal(migrated.previousContextId, null);
+  assert.equal(migrated.contextEnteredAt, 600);
 });
