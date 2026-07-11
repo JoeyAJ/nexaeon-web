@@ -18,6 +18,7 @@ import {
 } from './lib/princessLayoutPersistence.js';
 import { createPrincessEventBridge } from './lib/princessEventBridge.ts';
 import { createPrincessModuleActivityAdapter } from './lib/princessModuleActivity.ts';
+import { createNexonFusionOrchestrator } from './lib/nexonFusionOrchestrator.ts';
 import { resolvePrincessContext } from './lib/princessContextResolver.js';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
@@ -67,6 +68,10 @@ export default function App() {
   }));
   const princessEventBridge = useMemo(() => createPrincessEventBridge({ debug: import.meta.env.DEV }), []);
   const navigatorActivity = useMemo(() => createPrincessModuleActivityAdapter(princessEventBridge, 'navigator'), [princessEventBridge]);
+  const nexonFusionOrchestrator = useMemo(() => createNexonFusionOrchestrator({
+    eventBridge: princessEventBridge,
+    debug: import.meta.env.DEV,
+  }), [princessEventBridge]);
   const previousLangRef = useRef(lang);
   const previousThemeRef = useRef(theme);
   const previousRouteKeyRef = useRef('');
@@ -246,6 +251,7 @@ export default function App() {
             navigateBack={navigateBack}
             princessEventBridge={princessEventBridge}
             navigatorActivity={navigatorActivity}
+            nexonFusionOrchestrator={nexonFusionOrchestrator}
           />
         ) : route.kind === 'role' ? (
           <RoleDetailPage role={route.role} navigate={navigate} navigateBack={navigateBack} lang={lang} setLang={setLang} />

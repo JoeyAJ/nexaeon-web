@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { deriveFusionOutcome } from '../lib/nexonFusionPolicy.ts';
 import { AGENT_SOURCES } from '../../lib/agent/sourceRegistry.js';
 import { NAVIGATOR_AGENT } from '../data/agentBrands.js';
 import {
@@ -136,7 +137,7 @@ function scrollToCitation(sourceId) {
   window.setTimeout(() => target.classList.remove('agent-result-card-highlight'), 1600);
 }
 
-function renderInlineMarkdown(text, ui) {
+function renderInlineMarkdown(text, ui, onCitationOpen) {
   const parts = String(text || '').split(/(\[S\d+\]|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean);
   return parts.map((part, index) => {
     const marker = part.match(/^\[(S\d+)\]$/);
@@ -147,7 +148,7 @@ function renderInlineMarkdown(text, ui) {
           className="agent-citation-marker"
           type="button"
           aria-label={ui.citationLabel(marker[1])}
-          onClick={() => scrollToCitation(marker[1])}
+          onClick={() => { scrollToCitation(marker[1]); onCitationOpen?.(marker[1]); }}
         >
           {part}
         </button>
@@ -205,7 +206,7 @@ function parseMarkdownBlocks(text) {
   return blocks;
 }
 
-function AnswerText({ text, ui }) {
+function AnswerText({ text, ui, onCitationOpen }) {
   const blocks = parseMarkdownBlocks(text);
 
   return (
@@ -216,12 +217,12 @@ function AnswerText({ text, ui }) {
           return (
             <ListTag key={`${block.type}-${blockIndex}`}>
               {block.items.map((item, itemIndex) => (
-                <li key={`${item}-${itemIndex}`}>{renderInlineMarkdown(item, ui)}</li>
+                <li key={`${item}-${itemIndex}`}>{renderInlineMarkdown(item, ui, onCitationOpen)}</li>
               ))}
             </ListTag>
           );
         }
-        return <p key={`${block.text}-${blockIndex}`}>{renderInlineMarkdown(block.text, ui)}</p>;
+        return <p key={`${block.text}-${blockIndex}`}>{renderInlineMarkdown(block.text, ui, onCitationOpen)}</p>;
       })}
     </div>
   );
@@ -318,14 +319,14 @@ function AgentLandingSection({ lang, navigate }) {
   );
 }
 
-function AssistantMessage({ message, lang, ui, onNavigate }) {
+function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
   const isSourcesOnly = message.mode === 'sources_only';
   const showFallback = isSourcesOnly && !message.content;
   const showSourcesOnlyNotice = isSourcesOnly && Boolean(message.content) && message.reason !== 'moderated';
   return (
     <section className="agent-message agent-message-assistant">
       <div className="agent-message-label">{ui.assistantLabel}</div>
-      {message.content ? <AnswerText text={message.content} ui={ui} /> : null}
+      {message.content ? <AnswerText text={message.content} ui={ui} onCitationOpen={onCitationOpen} /> : null}
       {showFallback ? (
         <p className="agent-state-message" data-state={message.reason || 'sources-only'}>
           {getFallbackMessage(message.reason, ui)}
@@ -349,7 +350,7 @@ function AssistantMessage({ message, lang, ui, onNavigate }) {
   );
 }
 
-export default function NexAeonNavigatorPage({ item, common, lang, navigate, eventBridge, activityAdapter }) {
+export default function NexAeonNavigatorPage({ item, common, lang, navigate, eventBridge, activityAdapter, fusionOrchestrator }) {
   const ui = ASSISTANT_UI[lang] || ASSISTANT_UI.en;
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
@@ -363,6 +364,8 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
   const lastCompletedRequestIdRef = useRef(null);
   const lastSubmissionRef = useRef({ query: '', at: 0 });
   const isComposingRef = useRef(false);
+  const activeFusionTokenRef = useRef(null);
+  const citationFusionSequenceRef = useRef(0);
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) return undefined;
@@ -375,12 +378,13 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
   useEffect(() => () => {
     const requestId = activeRequestIdRef.current;
     if (requestId) eventBridge?.emit({ type: 'navigator_response_aborted', requestId, timestamp: Date.now() });
+    if (activeFusionTokenRef.current) fusionOrchestrator?.abort(activeFusionTokenRef.current);
     abortRef.current?.abort();
     activeRequestRef.current = false;
     submissionLockRef.current = false;
     requestSequenceRef.current += 1;
     activeRequestIdRef.current = null;
-  }, [eventBridge]);
+  }, [eventBridge, fusionOrchestrator]);
 
   const suggestedQuestions = useMemo(() => {
     const latest = [...messages].reverse().find((message) => message.role === 'assistant' && message.suggestedQuestions?.length);
@@ -400,6 +404,8 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
     const requestId = `navigator-${requestSequence}-${Date.now()}`;
     activeRequestIdRef.current = requestId;
     lastCompletedRequestIdRef.current = null;
+    const fusionToken = fusionOrchestrator?.start({ requestId, operationType: 'question', contextId: 'navigator' }) || null;
+    activeFusionTokenRef.current = fusionToken;
     eventBridge?.emit({ type: 'navigator_question_submitted', requestId, timestamp: Date.now() });
 
     const userMessage = {
@@ -414,9 +420,13 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
 
     const controller = new AbortController();
     abortRef.current = controller;
+    await Promise.resolve();
 
     try {
       eventBridge?.emit({ type: 'navigator_response_started', requestId, timestamp: Date.now() });
+      fusionOrchestrator?.transition(fusionToken, 'retrieving', {
+        sourceAvailability: 'none', citationStatus: 'none', navigationStatus: 'none',
+      });
       const response = await fetch('/api/agent/chat', {
         method: 'POST',
         headers: {
@@ -433,6 +443,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
       const payload = await response.json();
       if (requestSequence !== requestSequenceRef.current) return;
       if (response.status === 429) {
+        fusionOrchestrator?.transition(fusionToken, 'unavailable', { resultType: 'unavailable', recoverable: true, sourceAvailability: 'none' });
         eventBridge?.emit({ type: 'navigator_response_error', requestId, errorType: 'rate_limit', timestamp: Date.now() });
         const seconds = Number.parseInt(response.headers.get('Retry-After') || '3', 10);
         setRetryAfterSeconds(Number.isFinite(seconds) ? Math.max(1, seconds) : 3);
@@ -451,13 +462,21 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
       };
       setMessages((current) => (requestSequence === requestSequenceRef.current ? [...current, assistantMessage] : current));
       if (response.ok) {
+        const outcome = deriveFusionOutcome({
+          ok: true, status: response.status, mode: assistantMessage.mode, reason: assistantMessage.reason,
+          citationCount: assistantMessage.citations.length, partialSources: assistantMessage.partialSources,
+        });
+        fusionOrchestrator?.transition(fusionToken, outcome.phase, outcome);
         lastCompletedRequestIdRef.current = requestId;
         eventBridge?.emit({ type: 'navigator_response_completed', requestId, timestamp: Date.now() });
       } else {
+        const outcome = deriveFusionOutcome({ ok: false, status: response.status });
+        fusionOrchestrator?.transition(fusionToken, outcome.phase, outcome);
         eventBridge?.emit({ type: 'navigator_response_error', requestId, errorType: 'api', timestamp: Date.now() });
       }
     } catch (error) {
       if (error?.name !== 'AbortError' && requestSequence === requestSequenceRef.current) {
+        fusionOrchestrator?.transition(fusionToken, 'failed', { resultType: 'failed', recoverable: true, sourceAvailability: 'none' });
         eventBridge?.emit({ type: 'navigator_response_error', requestId, errorType: 'network', timestamp: Date.now() });
         setMessages((current) => [...current, {
           id: `assistant-${requestSequence}-${Date.now()}`,
@@ -471,6 +490,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
         }]);
       }
       if (error?.name === 'AbortError') {
+        fusionOrchestrator?.abort(fusionToken);
         eventBridge?.emit({ type: 'navigator_response_aborted', requestId, timestamp: Date.now() });
       }
     } finally {
@@ -480,6 +500,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
         activeRequestRef.current = false;
         submissionLockRef.current = false;
         activeRequestIdRef.current = null;
+        if (activeFusionTokenRef.current?.generation === fusionToken?.generation) activeFusionTokenRef.current = null;
       }
     }
   }
@@ -487,17 +508,20 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
   function stopGenerating() {
     const requestId = activeRequestIdRef.current;
     if (requestId) eventBridge?.emit({ type: 'navigator_response_aborted', requestId, timestamp: Date.now() });
+    if (activeFusionTokenRef.current) fusionOrchestrator?.abort(activeFusionTokenRef.current);
     abortRef.current?.abort();
     requestSequenceRef.current += 1;
     setIsGenerating(false);
     activeRequestRef.current = false;
     submissionLockRef.current = false;
     activeRequestIdRef.current = null;
+    activeFusionTokenRef.current = null;
   }
 
   function clearChat() {
     const requestId = activeRequestIdRef.current;
     if (requestId) eventBridge?.emit({ type: 'navigator_response_aborted', requestId, timestamp: Date.now() });
+    if (activeFusionTokenRef.current) fusionOrchestrator?.abort(activeFusionTokenRef.current);
     abortRef.current?.abort();
     requestSequenceRef.current += 1;
     lastSubmissionRef.current = { query: '', at: 0 };
@@ -507,6 +531,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
     activeRequestRef.current = false;
     submissionLockRef.current = false;
     activeRequestIdRef.current = null;
+    activeFusionTokenRef.current = null;
   }
 
   function navigateFromResponse(targetRoute) {
@@ -520,7 +545,22 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
       });
     }
     activityAdapter?.dispatch('navigation-arrived', { source: 'navigator', entityType: 'module' });
+    const navigationToken = fusionOrchestrator?.start({
+      requestId: `${requestId || 'navigator'}-navigation-${++citationFusionSequenceRef.current}`,
+      operationType: 'module-navigation', contextId: 'navigator', initialPhase: 'guiding',
+    });
+    fusionOrchestrator?.transition(navigationToken, 'resolved', {
+      resultType: 'navigated', navigationStatus: 'completed', sourceAvailability: 'available',
+    });
     navigate(targetRoute);
+  }
+
+  function openCitation(sourceId) {
+    const token = fusionOrchestrator?.start({
+      requestId: `${lastCompletedRequestIdRef.current || 'navigator'}-citation-${String(sourceId || 'source').replace(/[^a-z0-9_-]/gi, '').slice(0, 24)}`,
+      operationType: 'citation-navigation', contextId: 'navigator', initialPhase: 'guiding',
+    });
+    return token;
   }
 
   const isSubmitBlocked = isGenerating || retryAfterSeconds > 0;
@@ -550,7 +590,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
               <p>{message.content}</p>
             </section>
           ) : (
-            <AssistantMessage key={message.id} message={message} lang={lang} ui={ui} onNavigate={navigateFromResponse} />
+            <AssistantMessage key={message.id} message={message} lang={lang} ui={ui} onNavigate={navigateFromResponse} onCitationOpen={openCitation} />
           )
         ))}
         {isGenerating ? <p className="agent-state-message" data-state="generating">{ui.generating}</p> : null}

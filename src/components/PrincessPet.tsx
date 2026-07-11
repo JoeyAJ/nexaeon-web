@@ -1245,10 +1245,13 @@ export default function PrincessPet({
       if (request.event.type === 'navigator_question_submitted' || request.event.type === 'navigator_response_started') {
         noteUserInteraction({ immediate: true, type: 'navigatorQuestionSubmitted' });
       }
+      if (request.event.type === 'nexon_fusion_state' && request.event.fusion?.phase === 'listening') {
+        noteUserInteraction({ immediate: true, type: 'nexonFusionListening' });
+      }
       if (request.event.type === 'navigator_navigation_completed') {
         noteUserInteraction({ immediate: true, type: 'primaryNavigation' });
       }
-      if (request.event.type === 'navigator_response_aborted') {
+      if (request.event.type === 'navigator_response_aborted' || (request.event.type === 'nexon_fusion_state' && request.event.fusion?.phase === 'aborted')) {
         const navigatorTransientStates = new Set(['curious', 'sit', 'happy', 'quiet']);
         if (!navigatorTransientStates.has(stateRef.current)) return false;
         const restoreState = selectContextIdleAnimation(

@@ -1,3 +1,5 @@
+import type { NexonFusionMetadata, NexonFusionPhase } from './nexonFusionTypes.ts';
+
 export const PRINCESS_EVENT_TYPES = [
   'route_enter',
   'route_leave',
@@ -16,6 +18,7 @@ export const PRINCESS_EVENT_TYPES = [
   'navigator_response_error',
   'navigator_response_aborted',
   'module_activity',
+  'nexon_fusion_state',
 ] as const;
 
 export type PrincessEventType = (typeof PRINCESS_EVENT_TYPES)[number];
@@ -48,6 +51,7 @@ export type PrincessWebsiteEvent = {
   errorType?: 'network' | 'api' | 'rate_limit' | 'unknown';
   timestamp?: number;
   activity?: PrincessModuleActivityEvent;
+  fusion?: NexonFusionMetadata;
 };
 
 export type PrincessEventRequest = {
@@ -78,6 +82,7 @@ export const PRINCESS_EVENT_COOLDOWNS: Readonly<Record<PrincessEventType, number
   navigator_response_error: 4_000,
   navigator_response_aborted: 0,
   module_activity: 0,
+  nexon_fusion_state: 0,
 });
 
 const EVENT_PRIORITIES: Readonly<Record<PrincessEventType, number>> = Object.freeze({
@@ -98,6 +103,7 @@ const EVENT_PRIORITIES: Readonly<Record<PrincessEventType, number>> = Object.fre
   scroll_milestone: 1,
   idle_long: 0,
   module_activity: 4,
+  nexon_fusion_state: 5,
 });
 
 const MODULE_STATE: Readonly<Record<string, PrincessWebsiteState>> = Object.freeze({
@@ -124,6 +130,7 @@ export const PRINCESS_EVENT_DURATIONS: Readonly<Partial<Record<PrincessEventType
   navigator_response_error: 2_800,
   navigator_response_aborted: 0,
   module_activity: 2_000,
+  nexon_fusion_state: 1_800,
 });
 
 export const PRINCESS_MODULE_ACTIVITY_COOLDOWNS: Readonly<Record<PrincessModuleActionType, number>> = Object.freeze({
@@ -168,8 +175,35 @@ function mapModuleActivity(activity: PrincessModuleActivityEvent): PrincessEvent
   };
 }
 
+const FUSION_REACTIONS: Readonly<Record<NexonFusionPhase, { state: PrincessWebsiteState; duration: number; priority: number; canWakeSleeping?: boolean } | null>> = Object.freeze({
+  dormant: null,
+  listening: { state: 'curious', duration: 1_000, priority: 5, canWakeSleeping: true },
+  interpreting: { state: 'sit', duration: 1_400, priority: 5 },
+  retrieving: { state: 'sit', duration: 1_600, priority: 5 },
+  connecting: { state: 'curious', duration: 1_600, priority: 6 },
+  guiding: { state: 'wave', duration: 1_500, priority: 6 },
+  resolved: { state: 'happy', duration: 1_800, priority: 7, canWakeSleeping: true },
+  needsClarification: { state: 'curious', duration: 1_800, priority: 6 },
+  uncertain: { state: 'quiet', duration: 1_800, priority: 6 },
+  unavailable: { state: 'quiet', duration: 2_000, priority: 7 },
+  failed: { state: 'quiet', duration: 2_400, priority: 9 },
+  aborted: { state: 'idle', duration: 0, priority: 9 },
+});
+
+function mapFusionState(fusion: NexonFusionMetadata): PrincessEventRequest | null {
+  const reaction = FUSION_REACTIONS[fusion.phase];
+  if (!reaction) return null;
+  let state = reaction.state;
+  let duration = reaction.duration;
+  if (fusion.operationType === 'research-assistance' && fusion.phase === 'resolved') { state = 'wave'; duration = 1_400; }
+  if (fusion.operationType === 'citation-navigation' && fusion.phase === 'guiding') { state = 'wave'; duration = 1_200; }
+  if (fusion.operationType === 'prototype-guidance' && fusion.phase === 'resolved') state = 'happy';
+  return { event: { type: 'nexon_fusion_state', fusion }, state, duration, priority: reaction.priority, canWakeSleeping: reaction.canWakeSleeping };
+}
+
 export function mapPrincessEvent(event: PrincessWebsiteEvent): PrincessEventRequest | null {
   if (event.type === 'module_activity' && event.activity) return mapModuleActivity(event.activity);
+  if (event.type === 'nexon_fusion_state' && event.fusion) return mapFusionState(event.fusion);
   let state: PrincessWebsiteState | null = null;
 
   if (event.type === 'module_enter') state = MODULE_STATE[event.moduleId || ''] || 'curious';
