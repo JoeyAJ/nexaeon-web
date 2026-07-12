@@ -101,6 +101,7 @@ export function classifyPrincessPointerGesture({ movedDistance, dragThreshold, l
 export function createPrincessStateController({
   initialState = PRINCESS_STATES.IDLE,
   onStateChange = () => {},
+  onSnapshotChange = () => {},
   setTimeoutFn = globalThis.setTimeout,
   clearTimeoutFn = globalThis.clearTimeout,
   nowFn = Date.now,
@@ -110,6 +111,16 @@ export function createPrincessStateController({
   let completionTimer = null;
   let affectionAllowedAt = 0;
   let disposed = false;
+  let snapshot = Object.freeze({
+    emotion: getCompanionEmotionForPose(initialState),
+    pose: initialState,
+    source: COMPANION_BEHAVIOR_SOURCES.IDLE,
+    priority: getCompanionSourcePriority(COMPANION_BEHAVIOR_SOURCES.IDLE),
+    startedAt: nowFn(),
+    minDuration: getCompanionMinimumDuration(COMPANION_BEHAVIOR_SOURCES.IDLE),
+    expiresAt: null,
+    interruptible: true,
+  });
 
   const cancelCompletion = () => {
     if (completionTimer === null) return;
@@ -117,9 +128,23 @@ export function createPrincessStateController({
     completionTimer = null;
   };
 
-  const applyState = (next) => {
+  const applyState = (next, options = {}) => {
     state = next;
     onStateChange(next);
+    const source = options.behaviorSource || options.source || COMPANION_BEHAVIOR_SOURCES.IDLE;
+    const startedAt = nowFn();
+    const duration = Number.isFinite(options.duration) && options.duration > 0 ? options.duration : null;
+    snapshot = Object.freeze({
+      emotion: options.emotion || getCompanionEmotionForPose(next),
+      pose: next,
+      source,
+      priority: Number.isFinite(options.priority) ? options.priority : getCompanionSourcePriority(source),
+      startedAt,
+      minDuration: Number.isFinite(options.minDuration) ? Math.max(0, options.minDuration) : getCompanionMinimumDuration(source),
+      expiresAt: duration === null ? null : startedAt + duration,
+      interruptible: options.interruptible !== false,
+    });
+    onSnapshotChange(snapshot);
   };
 
   const transition = (next, options = {}) => {
@@ -131,7 +156,7 @@ export function createPrincessStateController({
     }
 
     cancelCompletion();
-    applyState(next);
+    applyState(next, options);
 
     if (Number.isFinite(options.duration) && options.duration > 0) {
       const expectedState = next;
@@ -139,12 +164,56 @@ export function createPrincessStateController({
         completionTimer = null;
         if (disposed || dragging || state !== expectedState) return;
         const completionState = options.resolveCompletionState?.() || options.completionState || PRINCESS_STATES.IDLE;
-        applyState(KNOWN_STATES.has(completionState) ? completionState : PRINCESS_STATES.IDLE);
+        applyState(KNOWN_STATES.has(completionState) ? completionState : PRINCESS_STATES.IDLE, {
+          source: options.completionSource || COMPANION_BEHAVIOR_SOURCES.IDLE,
+          emotion: options.resolveCompletionEmotion?.(),
+        });
         options.onComplete?.();
       }, options.duration);
     }
 
     return true;
+  };
+
+  const requestBehavior = ({ pose, emotion, source, priority, minDuration, duration, interruptible = true, force = false, ...options } = {}) => {
+    if (!KNOWN_STATES.has(pose) || disposed) return false;
+    const behaviorSource = source || COMPANION_BEHAVIOR_SOURCES.IDLE;
+    const nextPriority = Number.isFinite(priority) ? priority : getCompanionSourcePriority(behaviorSource);
+    const now = nowFn();
+    if (!force && snapshot.pose === pose && snapshot.emotion === (emotion || getCompanionEmotionForPose(pose))) return false;
+    if (!force && now - snapshot.startedAt < snapshot.minDuration && nextPriority < snapshot.priority) return false;
+    if (
+      !force
+      && !snapshot.interruptible
+      && ![
+        COMPANION_BEHAVIOR_SOURCES.INTERACTION,
+        COMPANION_BEHAVIOR_SOURCES.SYSTEM,
+        COMPANION_BEHAVIOR_SOURCES.DEBUG,
+      ].includes(behaviorSource)
+    ) return false;
+    if (state === pose) {
+      cancelCompletion();
+      applyState(pose, {
+        ...options,
+        behaviorSource,
+        emotion: emotion || getCompanionEmotionForPose(pose),
+        priority: nextPriority,
+        minDuration,
+        duration,
+        interruptible,
+      });
+      return true;
+    }
+    return transition(pose, {
+      ...options,
+      source: 'debug',
+      behaviorSource,
+      emotion: emotion || getCompanionEmotionForPose(pose),
+      priority: nextPriority,
+      minDuration,
+      duration,
+      interruptible,
+    });
   };
 
   const requestAffection = ({ duration, cooldown, onComplete } = {}) => {
@@ -161,18 +230,18 @@ export function createPrincessStateController({
     return started;
   };
 
-  const startDrag = () => {
+  const startDrag = (nextState = PRINCESS_STATES.IDLE, options = {}) => {
     if (disposed) return false;
     dragging = true;
     cancelCompletion();
-    if (state !== PRINCESS_STATES.IDLE) applyState(PRINCESS_STATES.IDLE);
+    if (state !== nextState) applyState(nextState, options);
     return true;
   };
 
-  const endDrag = () => {
+  const endDrag = (nextState = PRINCESS_STATES.IDLE, options = {}) => {
     if (disposed) return false;
     dragging = false;
-    if (state !== PRINCESS_STATES.IDLE) applyState(PRINCESS_STATES.IDLE);
+    if (state !== nextState) applyState(nextState, options);
     return true;
   };
 
@@ -187,9 +256,17 @@ export function createPrincessStateController({
     dispose,
     endDrag,
     getState: () => state,
+    getSnapshot: () => snapshot,
     isDragging: () => dragging,
     requestAffection,
+    requestBehavior,
     startDrag,
     transition,
   };
 }
+import {
+  COMPANION_BEHAVIOR_SOURCES,
+  getCompanionEmotionForPose,
+  getCompanionMinimumDuration,
+  getCompanionSourcePriority,
+} from './companionBehaviorConfig.ts';

@@ -1,6 +1,7 @@
 .root {
   --princess-pet-width: clamp(88px, 11vw, 148px);
   --princess-pet-motion-duration: 0ms;
+  --princess-pose-transition-duration: 0ms;
 
   position: fixed;
   top: 0;
@@ -227,7 +228,11 @@
   pointer-events: none;
   overflow: visible;
   opacity: 1;
-  transition: opacity 120ms ease;
+  transition: opacity var(--princess-pose-transition-duration) ease;
+}
+
+.stablePoseImage {
+  animation: princess-pose-fade-in var(--princess-pose-transition-duration) ease both;
 }
 
 .flipped {
@@ -262,6 +267,11 @@
   100% {
     transform: translateY(-1px) scale(1.004);
   }
+}
+
+@keyframes princess-pose-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes princess-rest-breathe {

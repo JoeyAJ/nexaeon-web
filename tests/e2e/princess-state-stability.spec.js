@@ -25,10 +25,10 @@ async function expectLoadedIdlePrincess(page) {
   const root = page.locator(PET_ROOT);
   const image = root.locator('img');
   await expect(root).toBeVisible();
-  await expect(root).toHaveAttribute('data-pet-state', 'idle');
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
   await expect(root).toHaveAttribute('data-pet-dragging', 'false');
   await expect.poll(() => image.evaluate((node) => ({ complete: node.complete, width: node.naturalWidth })))
-    .toEqual({ complete: true, width: 138 });
+    .toEqual({ complete: true, width: 1448 });
 }
 
 test('Princess loads safely, refreshes, and keeps single and double clicks isolated', async ({ page }) => {
@@ -38,14 +38,16 @@ test('Princess loads safely, refreshes, and keeps single and double clicks isola
 
   const root = page.locator(PET_ROOT);
   const button = page.locator(PET_BUTTON);
-  await button.click();
-  await expect(root).toHaveAttribute('data-pet-state', /wave|happy/);
-  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+  await button.click({ force: true });
+  await expect(root).toHaveAttribute('data-pet-state', /wave|sitting_smile/);
+  await page.mouse.move(0, 0);
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
 
-  await button.dblclick();
-  await expect(root).toHaveAttribute('data-pet-state', 'idle');
+  await button.dblclick({ force: true });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
   await expect(root).toHaveAttribute('data-pet-scale', '1.18');
 
+  await page.mouse.move(0, 0);
   await page.reload();
   await expectLoadedIdlePrincess(page);
   await expect(root).toHaveAttribute('data-pet-scale', '1.18');
@@ -68,13 +70,12 @@ test('drag pauses state changes and does not trigger a click interaction', async
   await page.mouse.down();
   await page.mouse.move(startX - 24, startY - 18, { steps: 3 });
   await expect(root).toHaveAttribute('data-pet-dragging', 'true');
-  await expect(root).toHaveAttribute('data-pet-state', 'idle');
+  await expect(root).toHaveAttribute('data-pet-state', 'standing_attentive');
   await page.mouse.up();
 
   await expect(root).toHaveAttribute('data-pet-dragging', 'false');
-  await expect(root).toHaveAttribute('data-pet-state', 'idle');
-  await page.waitForTimeout(500);
-  await expect(root).toHaveAttribute('data-pet-state', 'idle');
+  await expect(root).toHaveAttribute('data-pet-state', 'standing_attentive');
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 3_000 });
   expect(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-pet-position'))).not.toBeNull();
   assertRuntimeClean();
 });
@@ -94,9 +95,9 @@ test('long press triggers affection without also triggering click, including mob
   await page.mouse.down();
   await expect(root).toHaveAttribute('data-pet-state', 'affection', { timeout: 1_500 });
   await page.mouse.up();
-  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
   await page.waitForTimeout(400);
-  await expect(root).toHaveAttribute('data-pet-state', 'idle');
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
   assertRuntimeClean();
 });
 
@@ -195,7 +196,7 @@ test('route change safely ends an active Princess drag without remounting', asyn
   });
   await expect(page).toHaveURL(/\/research\/research-literature-database$/);
   await expect(root).toHaveAttribute('data-pet-dragging', 'false');
-  await expect(root).toHaveAttribute('data-pet-state', 'idle');
+  await expect(root).toHaveAttribute('data-pet-state', 'standing_attentive');
   await expect(root).toHaveAttribute('data-persistence-marker', 'drag-route-instance');
   await expect(page.locator(PET_ROOT)).toHaveCount(1);
   await page.mouse.up();
@@ -221,17 +222,17 @@ test('Companion controls persist visibility, automatic behavior, and interaction
   await autoSwitch.click();
   await expect(autoSwitch).toHaveAttribute('aria-checked', 'false');
   await expect(root).toHaveAttribute('data-pet-auto-behavior', 'false');
-  await expect(root).toHaveAttribute('data-pet-state', 'idle');
-  await page.getByTestId('princess-interactive').click();
-  await expect(root).toHaveAttribute('data-pet-state', /wave|happy/);
-  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
+  await page.getByTestId('princess-interactive').click({ force: true });
+  await expect(root).toHaveAttribute('data-pet-state', /wave|sitting_smile/);
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
 
   const interactionSwitch = controls.getByRole('switch', { name: '互動' });
   await interactionSwitch.click();
   await expect(interactionSwitch).toHaveAttribute('aria-checked', 'false');
   await expect(root).toHaveAttribute('data-pet-interaction', 'false');
-  await page.getByTestId('princess-interactive').click();
-  await expect(root).toHaveAttribute('data-pet-state', 'idle');
+  await page.getByTestId('princess-interactive').click({ force: true });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
 
   const visibleSwitch = controls.getByRole('switch', { name: '顯示 Princess' });
   await visibleSwitch.click();
@@ -277,16 +278,16 @@ test('website events remain low-frequency when direct interaction and auto behav
 
   await page.getByTestId('module-card-research').getByRole('button').click();
   await expect(root).toHaveAttribute('data-pet-state', 'curious');
-  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
   await expect(root).toHaveCount(1);
 
   await page.getByRole('button', { name: 'Switch to English' }).click();
   await expect(root).toHaveAttribute('data-pet-state', 'wave');
-  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
 
   await page.getByRole('button', { name: 'Toggle theme' }).click();
   await expect(root).toHaveAttribute('data-pet-state', 'curious');
-  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 4_000 });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
   await expect(root).toHaveCount(1);
   assertRuntimeClean();
 });
@@ -430,8 +431,8 @@ test('Princess context follows routes without remounting, respects locale, Navig
     window.dispatchEvent(new PopStateEvent('popstate'));
   });
   await expect(root).toHaveAttribute('data-princess-context', 'research');
-  await expect(root).toHaveAttribute('data-pet-state', /curious|idle/);
-  await expect(root).toHaveAttribute('data-pet-state', 'idle', { timeout: 3_000 });
+  await expect(root).toHaveAttribute('data-pet-state', /standing_attentive|curious/);
+  await expect(root).toHaveAttribute('data-pet-state', 'standing_attentive', { timeout: 3_000 });
   assertRuntimeClean();
 });
 

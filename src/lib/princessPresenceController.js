@@ -9,13 +9,13 @@ export const PRINCESS_PERSISTENT_STATES = Object.freeze({
 });
 
 export const PRINCESS_PRESENCE_TIMING = Object.freeze({
-  activeIdleThreshold: 45_000,
-  calmIdleThreshold: 180_000,
-  restThreshold: 420_000,
-  sleepThreshold: import.meta.env?.DEV ? 35_000 : 240_000,
-  wakeDuration: 1_200,
-  reevaluationInterval: 15_000,
-  minimumPersistentStateDuration: 20_000,
+  activeIdleThreshold: COMPANION_BEHAVIOR_TIMING.inactivity.calm,
+  calmIdleThreshold: COMPANION_BEHAVIOR_TIMING.inactivity.calm,
+  restThreshold: COMPANION_BEHAVIOR_TIMING.inactivity.sleepy,
+  sleepThreshold: COMPANION_BEHAVIOR_TIMING.inactivity.sleeping,
+  wakeDuration: COMPANION_BEHAVIOR_TIMING.wake.duration,
+  reevaluationInterval: COMPANION_BEHAVIOR_TIMING.inactivity.reevaluation,
+  minimumPersistentStateDuration: COMPANION_BEHAVIOR_TIMING.stateMinimumDuration.inactivity,
   meaningfulScrollThrottle: 8_000,
 });
 
@@ -274,3 +274,4 @@ export function createPrincessPresenceController({
     stop,
   };
 }
+import { COMPANION_BEHAVIOR_TIMING } from './companionBehaviorConfig.ts';

@@ -89,7 +89,10 @@ const EVENT_PRIORITIES: Readonly<Record<PrincessEventType, number>> = Object.fre
   action_success: 5,
   action_error: 5,
   navigator_response_error: 8,
-  navigator_response_completed: 7,
+  // Fusion owns the semantic terminal reaction. Keep the generic completion
+  // below every Fusion terminal priority so both events emitted in the same
+  // microtask cannot discard clarification, uncertainty, or unavailable.
+  navigator_response_completed: 4,
   navigator_navigation_completed: 7,
   navigator_response_started: 6,
   navigator_question_submitted: 5,

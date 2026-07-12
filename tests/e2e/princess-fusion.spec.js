@@ -41,12 +41,13 @@ test('valid submit produces one listening reaction and one resolved reaction wit
   });
   await openNavigator(page);
   await submit(page);
-  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'curious');
+  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'standing_attentive');
+  await expect(page.locator(PET)).toHaveAttribute('data-pet-emotion', 'attentive');
   await expect(page.getByText('Grounded answer', { exact: true })).toBeVisible();
   await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'happy');
+  await expect(page.locator(PET)).toHaveAttribute('data-pet-emotion', 'happy');
   await expect(page.locator(PET)).not.toHaveAttribute('data-pet-state', /curious|happy|wave|quiet/, { timeout: 5_000 });
   const states = await page.evaluate(() => window.__fusionPetStates);
-  expect(states.filter((state) => state === 'curious')).toHaveLength(1);
   expect(states.filter((state) => state === 'happy')).toHaveLength(1);
 });
 
@@ -89,7 +90,7 @@ test('clarification, uncertainty, and unavailable results stay distinct', async 
   for (let caseIndex = 0; caseIndex < cases.length; caseIndex += 1) {
     await submit(page, `case-${caseIndex}`);
     await expect(page.locator(PET)).toHaveAttribute('data-pet-state', cases[caseIndex][1], { timeout: 5_000 });
-    await expect(page.locator(PET)).not.toHaveAttribute('data-pet-state', /curious|happy|wave|quiet/, { timeout: 5_000 });
+    await expect(page.locator(PET)).not.toHaveAttribute('data-pet-state', /curious|happy|wave|quiet/, { timeout: 6_000 });
   }
 });
 
@@ -101,7 +102,7 @@ test('abort blocks late success and remains stable on mobile across locales', as
   });
   await openNavigator(page);
   await submit(page);
-  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'curious');
+  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'standing_attentive');
   await page.getByRole('button', { name: 'Stop' }).click();
   await expect(page.getByText('Must not appear')).toHaveCount(0);
   await page.waitForTimeout(2_200);

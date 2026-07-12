@@ -10,8 +10,6 @@ export const PRINCESS_CONTEXT_IDS = Object.freeze({
   GENERIC: 'generic',
 });
 
-const ANIMATION_KEYS = new Set(['idle', 'sit', 'sitting_smile', 'rest', 'sleep']);
-
 const profile = (value) => Object.freeze({
   ...value,
   preferredPersistentStates: Object.freeze(value.preferredPersistentStates),
@@ -57,14 +55,13 @@ export function getPrincessContextProfile(contextId) {
 }
 
 export function selectContextIdleAnimation(contextProfile, persistentState) {
-  if (persistentState === 'resting') return 'rest';
-  if (persistentState === 'sleeping') return 'sleeping_prone';
-  const pool = Array.isArray(contextProfile?.idleAnimationPool)
-    ? contextProfile.idleAnimationPool.filter((key) => ANIMATION_KEYS.has(key))
-    : [];
-  if (persistentState === 'calmIdle' && pool.includes('sitting_smile')) return 'sitting_smile';
-  if (persistentState === 'calmIdle' && pool.includes('sit')) return 'sit';
-  return pool[0] || 'idle';
+  return getCompanionInactivityBehavior(persistentState, contextProfile?.id).pose;
+}
+
+export function selectContextCompanionBehavior(contextProfile, persistentState = 'activeIdle') {
+  return persistentState === 'activeIdle'
+    ? getCompanionModuleBehavior(contextProfile?.id)
+    : getCompanionInactivityBehavior(persistentState, contextProfile?.id);
 }
 
 export function getContextPreferredPosition({ preferredAnchor = 'bottomRight', viewport, size, safeArea, savedPosition = null }) {
@@ -91,3 +88,4 @@ export function correctContextPositionOnce({ position, viewport, size, safeArea,
   const corrected = correctedPosition.x !== position.x || correctedPosition.y !== position.y;
   return { position: corrected ? correctedPosition : position, corrected };
 }
+import { getCompanionInactivityBehavior, getCompanionModuleBehavior } from './companionBehaviorConfig.ts';

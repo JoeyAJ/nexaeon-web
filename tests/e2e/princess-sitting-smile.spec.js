@@ -34,7 +34,7 @@ test('sitting smile renders on desktop light mode, survives scrolling, and yield
   await page.goto('/');
   await page.getByRole('button', { name: 'Toggle theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'idle');
+  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'resting_awake');
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexaeon:pet-sitting-smile')));
   const root = await expectSittingSmile(page, '公主正坐著微笑陪伴你');
   await expect.poll(() => root.locator('[data-state="sitting_smile"]').evaluate(

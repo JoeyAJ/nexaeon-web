@@ -30,6 +30,7 @@ import {
   PRINCESS_CONTEXT_PROFILES,
   getContextPreferredPosition,
   selectContextIdleAnimation,
+  selectContextCompanionBehavior,
 } from '../lib/princessContextResolver.js';
 import {
   PRINCESS_PRESENCE_TIMING,
@@ -47,6 +48,24 @@ import {
 } from '../lib/princessStateController.js';
 import styles from './PrincessPet.module.css';
 import { createCompanionBubbleController, getCompanionRouteMessage, resolveCompanionRoute } from '../lib/companionRouteConfig.js';
+import {
+  COMPANION_BEHAVIOR_PRIORITY,
+  COMPANION_BEHAVIOR_SOURCES,
+  COMPANION_BEHAVIOR_TIMING,
+  COMPANION_EMOTIONS,
+  getCompanionEmotionForPose,
+  getCompanionEventBehavior,
+  getCompanionInactivityBehavior,
+  getCompanionModuleBehavior,
+  type CompanionBehavior,
+  type CompanionEmotion,
+  type CompanionSystemEventType,
+} from '../lib/companionBehaviorConfig.ts';
+import {
+  COMPANION_BEHAVIOR_EVENT,
+  normalizeCompanionEventDetail,
+  triggerCompanionEvent,
+} from '../lib/companionEvents.ts';
 
 type PetState = keyof typeof princessAnimations;
 type WalkState = 'walkLeft' | 'walkRight';
@@ -59,6 +78,7 @@ type PetPosition = {
 type PetScale = number;
 type NaturalBehavior = 'idle' | 'walk' | 'sit' | 'curious' | 'wave' | 'happy' | 'rest' | 'quiet' | 'sleep';
 type LowPowerState = 'rest' | 'quiet' | 'sleep';
+type CompanionBehaviorSource = (typeof COMPANION_BEHAVIOR_SOURCES)[keyof typeof COMPANION_BEHAVIOR_SOURCES];
 
 const DEV_PREVIEW_STATE_PARAM = 'princessState';
 const DEV_PREVIEW_STATES = new Set<PetState>([
@@ -79,14 +99,14 @@ const PET_BEHAVIOR_TIMING = {
   restDuration: [18_000, 36_000],
   quietDuration: [12_000, 24_000],
   sleepDuration: [30_000, 70_000],
-  waveDuration: [1_200, 2_000],
-  happyDuration: [1_400, 2_400],
+  waveDuration: [COMPANION_BEHAVIOR_TIMING.click.minimumHold, COMPANION_BEHAVIOR_TIMING.click.duration],
+  happyDuration: [COMPANION_BEHAVIOR_TIMING.click.minimumHold, COMPANION_BEHAVIOR_TIMING.click.duration],
   curiousDuration: [1_800, 3_200],
   affectionDuration: [1_800, 2_800],
 
-  minTimeBeforeRest: 90_000,
-  minTimeBeforeQuiet: 150_000,
-  minTimeBeforeSleep: 240_000,
+  minTimeBeforeRest: COMPANION_BEHAVIOR_TIMING.inactivity.calm,
+  minTimeBeforeQuiet: COMPANION_BEHAVIOR_TIMING.inactivity.sleepy,
+  minTimeBeforeSleep: COMPANION_BEHAVIOR_TIMING.inactivity.sleeping,
 
   restCooldown: 120_000,
   quietCooldown: 150_000,
@@ -170,6 +190,32 @@ function getDevPreviewState(): PetState | null {
   if (typeof window === 'undefined') return null;
   const requestedState = new URLSearchParams(window.location.search).get(DEV_PREVIEW_STATE_PARAM) as PetState | null;
   return requestedState && DEV_PREVIEW_STATES.has(requestedState) ? requestedState : null;
+}
+
+function hasCompanionDebugQuery(): boolean {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return ['princessState', 'princessEmotion', 'princessModule', 'princessEvent', 'princessInactivity']
+    .some((key) => params.has(key));
+}
+
+function getBridgeCompanionEvent(eventType: string): CompanionSystemEventType | null {
+  if (eventType === 'action_success') return 'success';
+  if (eventType === 'action_error' || eventType === 'navigator_response_error') return 'error';
+  if (eventType === 'navigator_question_submitted' || eventType === 'navigator_response_started') return 'loading';
+  return null;
+}
+
+function canStartDirectInteraction(state: PetState): boolean {
+  return [
+    PRINCESS_STATES.IDLE,
+    PRINCESS_STATES.SIT,
+    PRINCESS_STATES.SITTING_SMILE,
+    PRINCESS_STATES.RESTING_AWAKE,
+    PRINCESS_STATES.STANDING_ATTENTIVE,
+    PRINCESS_STATES.ATTENTIVE_PORTRAIT,
+    PRINCESS_STATES.REST,
+  ].includes(state);
 }
 
 function usePrefersReducedMotion() {
@@ -369,8 +415,21 @@ export default function PrincessPet({
 }: PrincessPetProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const debugPreviewState = useMemo(getDevPreviewState, []);
+  const debugBehaviorOverride = useMemo(hasCompanionDebugQuery, []);
+  const initialBehavior = useMemo<CompanionBehavior>(() => (
+    debugPreviewState
+      ? { emotion: getCompanionEmotionForPose(debugPreviewState), pose: debugPreviewState }
+      : getCompanionModuleBehavior(contextProfile.id)
+  ), [contextProfile.id, debugPreviewState]);
   const [initialLayout] = useState(() => getInitialPetLayout(contextProfile.preferredAnchor));
-  const [petState, setPetState] = useState<PetState>(debugPreviewState || 'idle');
+  const [petState, setPetState] = useState<PetState>(initialBehavior.pose as PetState);
+  const [emotion, setEmotion] = useState<CompanionEmotion>(initialBehavior.emotion);
+  const [behaviorSource, setBehaviorSource] = useState<CompanionBehaviorSource>(
+    debugPreviewState ? COMPANION_BEHAVIOR_SOURCES.DEBUG : COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+  );
+  const [behaviorPriority, setBehaviorPriority] = useState(
+    debugPreviewState ? COMPANION_BEHAVIOR_PRIORITY.debug : COMPANION_BEHAVIOR_PRIORITY.context,
+  );
   const animation = princessAnimations[petState];
   const normalFrames = animation.frames;
   const blinkFrame = petState === 'idle' ? princessAnimations.idle.blinkFrames?.[0] || null : null;
@@ -388,7 +447,7 @@ export default function PrincessPet({
   const offsetXRef = useRef(0);
   const positionRef = useRef(position);
   const scaleRef = useRef(scale);
-  const stateRef = useRef<PetState>(debugPreviewState || 'idle');
+  const stateRef = useRef<PetState>(initialBehavior.pose as PetState);
   const isDraggingRef = useRef(false);
   const intervalRef = useRef<number | null>(null);
   const blinkTimeoutRef = useRef<number | null>(null);
@@ -399,6 +458,8 @@ export default function PrincessPet({
   const quietInteractionTimeoutRef = useRef<number | null>(null);
   const interactionWakeTimeoutRef = useRef<number | null>(null);
   const dragResumeTimeoutRef = useRef<number | null>(null);
+  const hoverDebounceTimeoutRef = useRef<number | null>(null);
+  const hoverReturnTimeoutRef = useRef<number | null>(null);
   const longPressTimeoutRef = useRef<number | null>(null);
   const singleClickTimeoutRef = useRef<number | null>(null);
   const scaleSaveTimeoutRef = useRef<number | null>(null);
@@ -442,6 +503,7 @@ export default function PrincessPet({
   const contextProfileRef = useRef(contextProfile);
   const suppressRouteReactionAfterDragRef = useRef(false);
   const routeBubbleVisibleRef = useRef(false);
+  const pointerHoveringRef = useRef(false);
   const bubbleControllerRef = useRef<ReturnType<typeof createCompanionBubbleController> | null>(null);
 
   if (bubbleControllerRef.current === null) {
@@ -453,13 +515,18 @@ export default function PrincessPet({
 
   if (stateControllerRef.current === null) {
     stateControllerRef.current = createPrincessStateController({
-      initialState: debugPreviewState || PRINCESS_STATES.IDLE,
+      initialState: initialBehavior.pose,
       onStateChange: (nextState: PetState) => {
         stateRef.current = nextState;
         setPetState(nextState);
         setFrameIndex(0);
         setBlinkSrc(null);
         if (nextState === PRINCESS_STATES.IDLE) setMotionDuration(0);
+      },
+      onSnapshotChange: (snapshot: { emotion: CompanionEmotion; source: CompanionBehaviorSource; priority: number }) => {
+        setEmotion(snapshot.emotion);
+        setBehaviorSource(snapshot.source);
+        setBehaviorPriority(snapshot.priority);
       },
     });
   }
@@ -470,17 +537,28 @@ export default function PrincessPet({
       contextProfile,
       onPersistentStateChange: (persistentState: string) => {
         if (isDraggingRef.current || PRINCESS_STATE_GROUPS.INTERACTION.includes(stateRef.current)) return;
-        stateControllerRef.current?.transition(
-          selectContextIdleAnimation(contextProfileRef.current, persistentState),
-          { source: 'presence' },
-        );
+        const behavior = selectContextCompanionBehavior(contextProfileRef.current, persistentState);
+        stateControllerRef.current?.requestBehavior({
+          ...behavior,
+          source: persistentState === 'activeIdle'
+            ? COMPANION_BEHAVIOR_SOURCES.CONTEXT
+            : COMPANION_BEHAVIOR_SOURCES.INACTIVITY,
+          interruptible: persistentState !== 'sleeping',
+          force: persistentState !== 'activeIdle',
+        });
       },
       onWake: () => {
         if (isDraggingRef.current) return;
-        stateControllerRef.current?.transition(PRINCESS_STATES.CURIOUS, {
-          source: 'wake',
+        const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
+        stateControllerRef.current?.requestBehavior({
+          emotion: COMPANION_EMOTIONS.ATTENTIVE,
+          pose: PRINCESS_STATES.STANDING_ATTENTIVE,
+          source: COMPANION_BEHAVIOR_SOURCES.INTERACTION,
+          minDuration: COMPANION_BEHAVIOR_TIMING.wake.minimumHold,
           duration: PRINCESS_PRESENCE_TIMING.wakeDuration,
-          completionState: PRINCESS_STATES.IDLE,
+          completionState: completionBehavior.pose,
+          completionSource: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+          resolveCompletionEmotion: () => completionBehavior.emotion,
         });
       },
       onDebug: (entry: unknown) => {
@@ -492,7 +570,14 @@ export default function PrincessPet({
   useEffect(() => {
     contextProfileRef.current = contextProfile;
     presenceControllerRef.current?.setContext(contextProfile);
-  }, [contextProfile]);
+    if (!debugBehaviorOverride && !isDraggingRef.current) {
+      stateControllerRef.current?.requestBehavior({
+        ...getCompanionModuleBehavior(contextProfile.id),
+        source: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+        minDuration: COMPANION_BEHAVIOR_TIMING.stateMinimumDuration.context,
+      });
+    }
+  }, [contextProfile, debugBehaviorOverride]);
 
   const currentFrame = useMemo(() => {
     if (prefersReducedMotion) return normalFrames[0];
@@ -525,6 +610,8 @@ export default function PrincessPet({
     clearTimer(quietInteractionTimeoutRef);
     clearTimer(interactionWakeTimeoutRef);
     clearTimer(dragResumeTimeoutRef);
+    clearTimer(hoverDebounceTimeoutRef);
+    clearTimer(hoverReturnTimeoutRef);
   }, [clearTimer]);
 
   const clearPetTimers = useCallback(() => {
@@ -608,14 +695,21 @@ export default function PrincessPet({
   }, [persistScaleSoon]);
 
   const playAffection = useCallback(() => {
-    if (prefersReducedMotion || isDraggingRef.current || stateRef.current !== PRINCESS_STATES.IDLE) return false;
+    if (prefersReducedMotion || isDraggingRef.current || !canStartDirectInteraction(stateRef.current)) return false;
 
     const now = Date.now();
     clearTimer(behaviorTimeoutRef);
     setMotionDuration(0);
-    const started = stateControllerRef.current?.requestAffection({
+    const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
+    const started = stateControllerRef.current?.requestBehavior({
+      emotion: COMPANION_EMOTIONS.HAPPY,
+      pose: PRINCESS_STATES.AFFECTION,
+      source: COMPANION_BEHAVIOR_SOURCES.INTERACTION,
       duration: getRandomBetween(PET_BEHAVIOR_TIMING.affectionDuration),
-      cooldown: PET_BEHAVIOR_TIMING.affectionCooldown,
+      minDuration: COMPANION_BEHAVIOR_TIMING.click.minimumHold,
+      completionState: completionBehavior.pose,
+      completionSource: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+      resolveCompletionEmotion: () => completionBehavior.emotion,
       onComplete: () => {
         scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
       },
@@ -636,13 +730,20 @@ export default function PrincessPet({
   }, [playAffection]);
 
   const playWave = useCallback(() => {
-    if (prefersReducedMotion || isDraggingRef.current || stateRef.current !== PRINCESS_STATES.IDLE) return false;
+    if (prefersReducedMotion || isDraggingRef.current || !canStartDirectInteraction(stateRef.current)) return false;
 
     clearTimer(behaviorTimeoutRef);
     setMotionDuration(0);
-    const started = stateControllerRef.current?.transition(PRINCESS_STATES.WAVE, {
-      source: 'interaction',
+    const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
+    const started = stateControllerRef.current?.requestBehavior({
+      emotion: COMPANION_EMOTIONS.HAPPY,
+      pose: PRINCESS_STATES.WAVE,
+      source: COMPANION_BEHAVIOR_SOURCES.INTERACTION,
       duration: getRandomBetween(PET_BEHAVIOR_TIMING.waveDuration),
+      minDuration: COMPANION_BEHAVIOR_TIMING.click.minimumHold,
+      completionState: completionBehavior.pose,
+      completionSource: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+      resolveCompletionEmotion: () => completionBehavior.emotion,
       onComplete: () => {
         if (playPendingAffection()) return;
         scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
@@ -657,13 +758,20 @@ export default function PrincessPet({
   }, [clearTimer, playPendingAffection, prefersReducedMotion]);
 
   const playHappy = useCallback(() => {
-    if (prefersReducedMotion || isDraggingRef.current || stateRef.current !== PRINCESS_STATES.IDLE) return false;
+    if (prefersReducedMotion || isDraggingRef.current || !canStartDirectInteraction(stateRef.current)) return false;
 
     clearTimer(behaviorTimeoutRef);
     setMotionDuration(0);
-    const started = stateControllerRef.current?.transition(PRINCESS_STATES.HAPPY, {
-      source: 'interaction',
+    const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
+    const started = stateControllerRef.current?.requestBehavior({
+      emotion: COMPANION_EMOTIONS.HAPPY,
+      pose: PRINCESS_STATES.SITTING_SMILE,
+      source: COMPANION_BEHAVIOR_SOURCES.INTERACTION,
       duration: getRandomBetween(PET_BEHAVIOR_TIMING.happyDuration),
+      minDuration: COMPANION_BEHAVIOR_TIMING.click.minimumHold,
+      completionState: completionBehavior.pose,
+      completionSource: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+      resolveCompletionEmotion: () => completionBehavior.emotion,
       onComplete: () => {
         if (playPendingAffection()) return;
         scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
@@ -678,14 +786,20 @@ export default function PrincessPet({
   }, [clearTimer, playPendingAffection, prefersReducedMotion]);
 
   const playCurious = useCallback(() => {
-    if (prefersReducedMotion || isDraggingRef.current || stateRef.current !== PRINCESS_STATES.IDLE) return false;
+    if (prefersReducedMotion || isDraggingRef.current || !canStartDirectInteraction(stateRef.current)) return false;
 
     const now = Date.now();
     clearTimer(behaviorTimeoutRef);
     setMotionDuration(0);
-    const started = stateControllerRef.current?.transition(PRINCESS_STATES.CURIOUS, {
-      source: 'interaction',
+    const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
+    const started = stateControllerRef.current?.requestBehavior({
+      emotion: COMPANION_EMOTIONS.CURIOUS,
+      pose: PRINCESS_STATES.CURIOUS,
+      source: COMPANION_BEHAVIOR_SOURCES.INTERACTION,
       duration: getRandomBetween(PET_BEHAVIOR_TIMING.curiousDuration),
+      completionState: completionBehavior.pose,
+      completionSource: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+      resolveCompletionEmotion: () => completionBehavior.emotion,
       onComplete: () => {
         if (playPendingAffection()) return;
         scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
@@ -776,7 +890,7 @@ export default function PrincessPet({
       customEventAllowedAtRef.current = now + CUSTOM_EVENT_COOLDOWN;
     }
 
-    if (currentState === PRINCESS_STATES.IDLE) {
+    if (canStartDirectInteraction(currentState)) {
       return playAffection();
     }
 
@@ -797,7 +911,7 @@ export default function PrincessPet({
       waveAllowedAtRef.current = now + PET_BEHAVIOR_TIMING.waveCooldown;
     }
 
-    if (currentState === 'idle') {
+    if (canStartDirectInteraction(currentState)) {
       return playWave();
     }
 
@@ -887,9 +1001,9 @@ export default function PrincessPet({
       customEventAllowedAtRef.current = now + CUSTOM_EVENT_COOLDOWN;
     }
 
-    if (currentState !== 'idle' && !canDefer) return false;
+    if (!canStartDirectInteraction(currentState) && !canDefer) return false;
 
-    if (currentState === 'idle') {
+    if (canStartDirectInteraction(currentState)) {
       return playHappy();
     }
 
@@ -912,7 +1026,7 @@ export default function PrincessPet({
     if (now - lastPlayfulInteractionAtRef.current < PET_BEHAVIOR_TIMING.curiousPlayfulGap) return false;
     if (source === 'customEvent' && now < customEventAllowedAtRef.current) return false;
 
-    if (currentState === 'idle') {
+    if (canStartDirectInteraction(currentState)) {
       if (source === 'customEvent') {
         customEventAllowedAtRef.current = now + CUSTOM_EVENT_COOLDOWN;
       }
@@ -991,11 +1105,8 @@ export default function PrincessPet({
     if (!visible) return undefined;
     const routeConfig = resolveCompanionRoute(window.location.pathname, window.location.hash);
     bubbleControllerRef.current?.show(routeConfig);
-    if (!debugPreviewState && !isDraggingRef.current && getPrincessStatePriority(stateRef.current) <= 1) {
-      stateControllerRef.current?.transition(routeConfig.state, { source: 'presence' });
-    }
     return undefined;
-  }, [debugPreviewState, navigationKey, visible]);
+  }, [navigationKey, visible]);
 
   useEffect(() => () => bubbleControllerRef.current?.dispose(), []);
 
@@ -1100,7 +1211,7 @@ export default function PrincessPet({
   }, [blinkFrame, clearTimer, prefersReducedMotion, visible]);
 
   useEffect(() => {
-    if (prefersReducedMotion || !visible || !autoBehaviorEnabled || debugPreviewState) return undefined;
+    if (prefersReducedMotion || !visible || !autoBehaviorEnabled || debugBehaviorOverride) return undefined;
 
     const scheduleBehavior = (delayRange: readonly [number, number]) => {
       clearTimer(behaviorTimeoutRef);
@@ -1281,12 +1392,12 @@ export default function PrincessPet({
     requestWave,
     setIdleState,
     autoBehaviorEnabled,
-    debugPreviewState,
+    debugBehaviorOverride,
     visible,
   ]);
 
   useEffect(() => {
-    if (prefersReducedMotion || !visible || !eventBridge || debugPreviewState) return undefined;
+    if (prefersReducedMotion || !visible || !eventBridge || debugBehaviorOverride) return undefined;
 
     return eventBridge.subscribe((request) => {
       if (isDraggingRef.current) return false;
@@ -1303,6 +1414,22 @@ export default function PrincessPet({
       if (request.event.type === 'navigator_navigation_completed') {
         noteUserInteraction({ immediate: true, type: 'primaryNavigation' });
       }
+      const companionEventType = getBridgeCompanionEvent(request.event.type);
+      if (companionEventType) {
+        const behavior = getCompanionEventBehavior(companionEventType);
+        const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
+        if (!behavior) return false;
+        return stateControllerRef.current?.requestBehavior({
+          ...behavior,
+          source: COMPANION_BEHAVIOR_SOURCES.SYSTEM,
+          duration: request.duration || COMPANION_BEHAVIOR_TIMING.eventDuration[companionEventType],
+          minDuration: COMPANION_BEHAVIOR_TIMING.stateMinimumDuration.system,
+          completionState: completionBehavior.pose,
+          completionSource: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+          resolveCompletionEmotion: () => completionBehavior.emotion,
+        }) || false;
+      }
+      if (request.event.type === 'navigator_response_completed') return false;
       if (request.event.type === 'navigator_response_aborted' || (request.event.type === 'nexon_fusion_state' && request.event.fusion?.phase === 'aborted')) {
         const navigatorTransientStates = new Set(['curious', 'sit', 'happy', 'quiet']);
         if (!navigatorTransientStates.has(stateRef.current)) return false;
@@ -1314,6 +1441,15 @@ export default function PrincessPet({
       }
       return stateControllerRef.current?.transition(request.state, {
         source: request.canWakeSleeping && PRINCESS_STATE_GROUPS.SLEEP.includes(stateRef.current) ? 'wake' : 'websiteEvent',
+        behaviorSource: request.priority >= 5
+          ? COMPANION_BEHAVIOR_SOURCES.SYSTEM
+          : COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+        priority: request.priority >= 5
+          ? COMPANION_BEHAVIOR_PRIORITY.system
+          : COMPANION_BEHAVIOR_PRIORITY.context,
+        minDuration: request.priority >= 5
+          ? COMPANION_BEHAVIOR_TIMING.stateMinimumDuration.system
+          : COMPANION_BEHAVIOR_TIMING.stateMinimumDuration.context,
         duration: request.duration,
         resolveCompletionState: () => selectContextIdleAnimation(
           contextProfileRef.current,
@@ -1321,7 +1457,88 @@ export default function PrincessPet({
         ),
       }) || false;
     });
-  }, [debugPreviewState, eventBridge, noteUserInteraction, prefersReducedMotion, visible]);
+  }, [debugBehaviorOverride, eventBridge, noteUserInteraction, prefersReducedMotion, visible]);
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    const restoreContextBehavior = () => {
+      const persistentState = presenceControllerRef.current?.getPersistentState() || 'activeIdle';
+      const behavior = getCompanionInactivityBehavior(persistentState, contextProfileRef.current.id);
+      return stateControllerRef.current?.requestBehavior({
+        ...behavior,
+        source: persistentState === 'activeIdle'
+          ? COMPANION_BEHAVIOR_SOURCES.CONTEXT
+          : COMPANION_BEHAVIOR_SOURCES.INACTIVITY,
+        force: true,
+      }) || false;
+    };
+    const handleCompanionBehavior = (event: Event) => {
+      const detail = normalizeCompanionEventDetail((event as CustomEvent).detail);
+      if (!detail) return;
+      if (detail.type === 'reset') {
+        stateControllerRef.current?.cancelCompletion();
+        restoreContextBehavior();
+        return;
+      }
+      const behavior = getCompanionEventBehavior(detail.type);
+      const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
+      if (!behavior) return;
+      stateControllerRef.current?.requestBehavior({
+        ...behavior,
+        source: COMPANION_BEHAVIOR_SOURCES.SYSTEM,
+        duration: detail.duration,
+        minDuration: COMPANION_BEHAVIOR_TIMING.stateMinimumDuration.system,
+        completionState: completionBehavior.pose,
+        completionSource: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+        resolveCompletionEmotion: () => completionBehavior.emotion,
+      });
+    };
+
+    window.addEventListener(COMPANION_BEHAVIOR_EVENT, handleCompanionBehavior);
+
+    const params = new URLSearchParams(window.location.search);
+    const debugModule = params.get('princessModule');
+    const debugInactivity = params.get('princessInactivity');
+    const debugEvent = params.get('princessEvent') as CompanionSystemEventType | null;
+    const debugEmotion = params.get('princessEmotion') as CompanionEmotion | null;
+    if (debugModule) {
+      stateControllerRef.current?.requestBehavior({
+        ...getCompanionModuleBehavior(debugModule),
+        source: COMPANION_BEHAVIOR_SOURCES.DEBUG,
+      });
+    }
+    if (debugInactivity) {
+      const persistentState = ({ resting: 'calmIdle', sleepy: 'resting', sleep: 'sleeping' } as Record<string, string>)[debugInactivity];
+      if (persistentState) {
+        stateControllerRef.current?.requestBehavior({
+          ...getCompanionInactivityBehavior(persistentState, contextProfileRef.current.id),
+          source: COMPANION_BEHAVIOR_SOURCES.DEBUG,
+          interruptible: persistentState !== 'sleeping',
+        });
+      }
+    }
+    if (debugEmotion && Object.values(COMPANION_EMOTIONS).includes(debugEmotion)) {
+      stateControllerRef.current?.requestBehavior({
+        emotion: debugEmotion,
+        pose: stateRef.current,
+        source: COMPANION_BEHAVIOR_SOURCES.DEBUG,
+      });
+    }
+    if (debugEvent) triggerCompanionEvent({ type: debugEvent });
+
+    if (import.meta.env.DEV) {
+      const debugWindow = window as Window & { nexaeonCompanion?: { trigger: typeof triggerCompanionEvent } };
+      debugWindow.nexaeonCompanion = { trigger: triggerCompanionEvent };
+    }
+
+    return () => {
+      window.removeEventListener(COMPANION_BEHAVIOR_EVENT, handleCompanionBehavior);
+      if (import.meta.env.DEV) {
+        const debugWindow = window as Window & { nexaeonCompanion?: { trigger: typeof triggerCompanionEvent } };
+        delete debugWindow.nexaeonCompanion;
+      }
+    };
+  }, [visible]);
 
   useEffect(() => {
     if (prefersReducedMotion || !visible || !interactionEnabled) return undefined;
@@ -1372,8 +1589,10 @@ export default function PrincessPet({
     if (!visible) return undefined;
 
     const handlePetSittingSmile = () => {
-      stateControllerRef.current?.transition(PRINCESS_STATES.SITTING_SMILE, {
-        source: 'websiteEvent',
+      stateControllerRef.current?.requestBehavior({
+        emotion: COMPANION_EMOTIONS.HAPPY,
+        pose: PRINCESS_STATES.SITTING_SMILE,
+        source: COMPANION_BEHAVIOR_SOURCES.INTERACTION,
       });
     };
 
@@ -1433,13 +1652,13 @@ export default function PrincessPet({
     const handleVisibility = () => controller.setVisibility(!document.hidden);
     document.addEventListener('visibilitychange', handleVisibility);
     handleVisibility();
-    if (visible && autoBehaviorEnabled && !debugPreviewState) controller.start();
+    if (visible && autoBehaviorEnabled && !debugBehaviorOverride) controller.start();
     else controller.stop();
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       controller.stop();
     };
-  }, [autoBehaviorEnabled, debugPreviewState, visible]);
+  }, [autoBehaviorEnabled, debugBehaviorOverride, visible]);
 
   useEffect(() => () => {
     scheduleBehaviorRef.current = null;
@@ -1451,6 +1670,10 @@ export default function PrincessPet({
   const handlePointerEnter = useCallback(() => {
     if (!interactionEnabled || isDraggingRef.current) return;
 
+    pointerHoveringRef.current = true;
+    clearTimer(hoverReturnTimeoutRef);
+    clearTimer(hoverDebounceTimeoutRef);
+
     if (stateRef.current === 'quiet') {
       clearTimer(quietInteractionTimeoutRef);
       quietInteractionTimeoutRef.current = window.setTimeout(() => {
@@ -1458,10 +1681,20 @@ export default function PrincessPet({
           finishQuiet();
         }
       }, getRandomBetween(QUIET_HOVER_WAKE_DELAY));
-      return;
     }
 
-  }, [clearTimer, finishQuiet, interactionEnabled]);
+    hoverDebounceTimeoutRef.current = window.setTimeout(() => {
+      hoverDebounceTimeoutRef.current = null;
+      if (!pointerHoveringRef.current || isDraggingRef.current) return;
+      noteUserInteraction({ immediate: true, type: 'princessHover' });
+      stateControllerRef.current?.requestBehavior({
+        emotion: COMPANION_EMOTIONS.ATTENTIVE,
+        pose: PRINCESS_STATES.STANDING_ATTENTIVE,
+        source: COMPANION_BEHAVIOR_SOURCES.INTERACTION,
+        minDuration: COMPANION_BEHAVIOR_TIMING.hover.minimumHold,
+      });
+    }, COMPANION_BEHAVIOR_TIMING.hover.debounce);
+  }, [clearTimer, finishQuiet, interactionEnabled, noteUserInteraction]);
 
   const handlePetClick = useCallback(() => {
     if (!interactionEnabled || prefersReducedMotion || isDraggingRef.current) return;
@@ -1632,9 +1865,16 @@ export default function PrincessPet({
     isDraggingRef.current = true;
     setIsDragging(true);
     clearTimer(longPressTimeoutRef);
+    clearTimer(hoverDebounceTimeoutRef);
+    clearTimer(hoverReturnTimeoutRef);
     clearBehaviorTimers();
     pendingInteractionRef.current = null;
-    stateControllerRef.current?.startDrag();
+    stateControllerRef.current?.startDrag(PRINCESS_STATES.STANDING_ATTENTIVE, {
+      emotion: COMPANION_EMOTIONS.ATTENTIVE,
+      behaviorSource: COMPANION_BEHAVIOR_SOURCES.INTERACTION,
+      priority: COMPANION_BEHAVIOR_PRIORITY.interaction,
+      minDuration: COMPANION_BEHAVIOR_TIMING.drag.minimumHold,
+    });
     setFrameIndex(0);
     setBlinkSrc(null);
     setMotionDuration(0);
@@ -1643,34 +1883,41 @@ export default function PrincessPet({
   const endDrag = useCallback((nextPosition: PetPosition, options: { resume?: boolean } = {}) => {
     isDraggingRef.current = false;
     setIsDragging(false);
-    stateControllerRef.current?.endDrag();
+    stateControllerRef.current?.endDrag(PRINCESS_STATES.STANDING_ATTENTIVE, {
+      emotion: COMPANION_EMOTIONS.ATTENTIVE,
+      behaviorSource: COMPANION_BEHAVIOR_SOURCES.INTERACTION,
+      priority: COMPANION_BEHAVIOR_PRIORITY.interaction,
+      minDuration: COMPANION_BEHAVIOR_TIMING.drag.minimumHold,
+    });
     positionRef.current = nextPosition;
     setPosition(nextPosition);
     writeStoredPosition(nextPosition);
     presenceControllerRef.current?.evaluate('drag_complete');
-    stateControllerRef.current?.transition(
-      selectContextIdleAnimation(contextProfileRef.current, presenceControllerRef.current?.getPersistentState()),
-      { source: 'presence' },
-    );
-
-    if (prefersReducedMotion || options.resume === false) {
-      scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
-      return;
-    }
 
     clearTimer(dragResumeTimeoutRef);
+    const restoreDelay = options.resume === false || prefersReducedMotion
+      ? 0
+      : COMPANION_BEHAVIOR_TIMING.drag.returnDelay;
     dragResumeTimeoutRef.current = window.setTimeout(() => {
       dragResumeTimeoutRef.current = null;
-      if (Math.random() < 0.4 && requestAffection('drag')) return;
-      if (Math.random() < 0.3 && requestCurious('drag')) return;
+      const persistentState = presenceControllerRef.current?.getPersistentState() || 'activeIdle';
+      stateControllerRef.current?.requestBehavior({
+        ...getCompanionInactivityBehavior(persistentState, contextProfileRef.current.id),
+        source: persistentState === 'activeIdle'
+          ? COMPANION_BEHAVIOR_SOURCES.CONTEXT
+          : COMPANION_BEHAVIOR_SOURCES.INACTIVITY,
+      });
       scheduleBehaviorRef.current?.(PET_BEHAVIOR_TIMING.idleNextBehaviorDelay);
-    }, getRandomBetween(PET_BEHAVIOR_TIMING.dragResumeDelay));
-  }, [clearTimer, prefersReducedMotion, requestAffection, requestCurious, setIdleState]);
+    }, restoreDelay);
+  }, [clearTimer, prefersReducedMotion]);
 
   useEffect(() => {
     if (visible) {
-      if (debugPreviewState) return;
-      setIdleState();
+      if (debugBehaviorOverride) return;
+      stateControllerRef.current?.requestBehavior({
+        ...getCompanionModuleBehavior(contextProfileRef.current.id),
+        source: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+      });
       return;
     }
 
@@ -1692,17 +1939,22 @@ export default function PrincessPet({
     setIsDragging(false);
     stateControllerRef.current?.endDrag();
     clearPetTimers();
-    setIdleState();
-  }, [clearPetTimers, debugPreviewState, setIdleState, visible]);
+    stateControllerRef.current?.transition(PRINCESS_STATES.IDLE, { source: 'reducedMotion' });
+  }, [clearPetTimers, debugBehaviorOverride, visible]);
 
   useEffect(() => {
-    if (autoBehaviorEnabled || !visible || debugPreviewState) return;
+    if (autoBehaviorEnabled || !visible || debugBehaviorOverride) return;
 
     pendingInteractionRef.current = null;
     clearBehaviorTimers();
     stateControllerRef.current?.cancelCompletion();
-    if (!isDraggingRef.current) setIdleState();
-  }, [autoBehaviorEnabled, clearBehaviorTimers, debugPreviewState, setIdleState, visible]);
+    if (!isDraggingRef.current) {
+      stateControllerRef.current?.requestBehavior({
+        ...getCompanionModuleBehavior(contextProfileRef.current.id),
+        source: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+      });
+    }
+  }, [autoBehaviorEnabled, clearBehaviorTimers, debugBehaviorOverride, visible]);
 
   useEffect(() => {
     if (interactionEnabled) return;
@@ -1753,7 +2005,11 @@ export default function PrincessPet({
       clearTimer(dragResumeTimeoutRef);
       dragResumeTimeoutRef.current = window.setTimeout(() => {
         dragResumeTimeoutRef.current = null;
-        stateControllerRef.current?.transition(PRINCESS_STATES.IDLE, { source: 'drag' });
+        stateControllerRef.current?.requestBehavior({
+          ...getCompanionModuleBehavior(contextProfileRef.current.id),
+          source: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+          force: true,
+        });
       }, 0);
       return;
     }
@@ -1905,7 +2161,21 @@ export default function PrincessPet({
   }, [finishPointerSession]);
 
   const handlePointerLeave = useCallback(() => {
+    pointerHoveringRef.current = false;
     clearTimer(longPressTimeoutRef);
+    clearTimer(hoverDebounceTimeoutRef);
+    clearTimer(hoverReturnTimeoutRef);
+    hoverReturnTimeoutRef.current = window.setTimeout(() => {
+      hoverReturnTimeoutRef.current = null;
+      if (pointerHoveringRef.current || isDraggingRef.current) return;
+      const persistentState = presenceControllerRef.current?.getPersistentState() || 'activeIdle';
+      stateControllerRef.current?.requestBehavior({
+        ...getCompanionInactivityBehavior(persistentState, contextProfileRef.current.id),
+        source: persistentState === 'activeIdle'
+          ? COMPANION_BEHAVIOR_SOURCES.CONTEXT
+          : COMPANION_BEHAVIOR_SOURCES.INACTIVITY,
+      });
+    }, COMPANION_BEHAVIOR_TIMING.hover.returnDelay);
   }, [clearTimer]);
 
   const handlePetWheel = useCallback((event: WheelEvent) => {
@@ -1957,6 +2227,7 @@ export default function PrincessPet({
 
   const rootStyle = {
     transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+    '--princess-pose-transition-duration': `${COMPANION_BEHAVIOR_TIMING.transition}ms`,
   } as CSSProperties;
 
   const walkStyle = {
@@ -2005,6 +2276,7 @@ export default function PrincessPet({
 
   const imageClassName = [
     styles.image,
+    normalFrames.length === 1 ? styles.stablePoseImage : '',
     petState === 'walkLeft' ? styles.flipped : '',
   ].filter(Boolean).join(' ');
   const debugInfo = PET_DEBUG
@@ -2024,6 +2296,9 @@ export default function PrincessPet({
       className={[styles.root, isDragging ? styles.dragging : ''].filter(Boolean).join(' ')}
       style={rootStyle}
       data-pet-state={petState}
+      data-pet-emotion={emotion}
+      data-pet-behavior-source={behaviorSource}
+      data-pet-behavior-priority={behaviorPriority}
       data-pet-dragging={isDragging ? 'true' : 'false'}
       data-pet-scale={scale.toFixed(2)}
       data-pet-auto-behavior={autoBehaviorEnabled ? 'true' : 'false'}
@@ -2055,6 +2330,7 @@ export default function PrincessPet({
                 onClick={handleNativeClick}
               >
                 <img
+                  key={normalFrames.length === 1 ? currentFrame : 'animated-frame'}
                   className={imageClassName}
                   src={currentFrame}
                   alt=""

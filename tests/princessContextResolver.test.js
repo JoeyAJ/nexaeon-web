@@ -57,11 +57,10 @@ test('unknown context profiles use conservative generic defaults', () => {
   assert.equal(getPrincessContextProfile('missing'), PRINCESS_CONTEXT_PROFILES.generic);
 });
 
-test('invalid animation keys safely fall back to idle', () => {
-  assert.equal(selectContextIdleAnimation({ idleAnimationPool: ['invalid'] }, 'activeIdle'), 'idle');
-  assert.equal(selectContextIdleAnimation({ idleAnimationPool: ['invalid', 'sit'] }, 'calmIdle'), 'sit');
-  assert.equal(selectContextIdleAnimation(PRINCESS_CONTEXT_PROFILES.home, 'calmIdle'), 'sitting_smile');
-  assert.equal(selectContextIdleAnimation(PRINCESS_CONTEXT_PROFILES.research, 'resting'), 'rest');
+test('context and inactivity states resolve to the centralized companion behavior mapping', () => {
+  assert.equal(selectContextIdleAnimation({ id: 'missing' }, 'activeIdle'), 'resting_awake');
+  assert.equal(selectContextIdleAnimation(PRINCESS_CONTEXT_PROFILES.home, 'calmIdle'), 'resting_awake');
+  assert.equal(selectContextIdleAnimation(PRINCESS_CONTEXT_PROFILES.research, 'resting'), 'sleep');
   assert.equal(selectContextIdleAnimation(PRINCESS_CONTEXT_PROFILES.knowledge, 'sleeping'), 'sleeping_prone');
 });
 
