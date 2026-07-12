@@ -4,6 +4,9 @@ export const PRINCESS_STATES = Object.freeze({
   WALK_RIGHT: 'walkRight',
   SIT: 'sit',
   SITTING_SMILE: 'sitting_smile',
+  RESTING_AWAKE: 'resting_awake',
+  STANDING_ATTENTIVE: 'standing_attentive',
+  ATTENTIVE_PORTRAIT: 'attentive_portrait',
   WAVE: 'wave',
   HAPPY: 'happy',
   CURIOUS: 'curious',
@@ -21,6 +24,8 @@ export const PRINCESS_STATE_GROUPS = Object.freeze({
     PRINCESS_STATES.WALK_RIGHT,
     PRINCESS_STATES.SIT,
     PRINCESS_STATES.SITTING_SMILE,
+    PRINCESS_STATES.STANDING_ATTENTIVE,
+    PRINCESS_STATES.ATTENTIVE_PORTRAIT,
   ]),
   INTERACTION: Object.freeze([
     PRINCESS_STATES.WAVE,
@@ -31,6 +36,7 @@ export const PRINCESS_STATE_GROUPS = Object.freeze({
   LOW_ACTIVITY: Object.freeze([
     PRINCESS_STATES.QUIET,
     PRINCESS_STATES.REST,
+    PRINCESS_STATES.RESTING_AWAKE,
   ]),
   SLEEP: Object.freeze([PRINCESS_STATES.SLEEP, PRINCESS_STATES.SLEEPING_PRONE]),
 });
@@ -51,6 +57,7 @@ export function getPrincessStatePriority(state, isDragging = false) {
 export function canTransitionPrincess({ current, next, isDragging = false, source = 'automatic' }) {
   if (!KNOWN_STATES.has(current) || !KNOWN_STATES.has(next)) return false;
   if (current === next) return false;
+  if (source === 'debug') return true;
   if (isDragging && source !== 'drag' && source !== 'reducedMotion') return false;
 
   if (RELEASE_SOURCES.has(source)) {

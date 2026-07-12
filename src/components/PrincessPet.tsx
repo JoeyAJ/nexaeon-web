@@ -60,6 +60,14 @@ type PetScale = number;
 type NaturalBehavior = 'idle' | 'walk' | 'sit' | 'curious' | 'wave' | 'happy' | 'rest' | 'quiet' | 'sleep';
 type LowPowerState = 'rest' | 'quiet' | 'sleep';
 
+const DEV_PREVIEW_STATE_PARAM = 'princessState';
+const DEV_PREVIEW_STATES = new Set<PetState>([
+  'resting_awake',
+  'standing_attentive',
+  'sitting_smile',
+  'attentive_portrait',
+]);
+
 const PET_DEBUG = false;
 
 const PET_BEHAVIOR_TIMING = {
@@ -157,6 +165,12 @@ const PET_INTERACTION_LABELS = {
   ko: { enabled: 'Princess와 상호작용하거나 드래그', disabled: 'Princess 드래그' },
   en: { enabled: 'Interact with or drag Princess', disabled: 'Drag Princess' },
 } as const;
+
+function getDevPreviewState(): PetState | null {
+  if (typeof window === 'undefined') return null;
+  const requestedState = new URLSearchParams(window.location.search).get(DEV_PREVIEW_STATE_PARAM) as PetState | null;
+  return requestedState && DEV_PREVIEW_STATES.has(requestedState) ? requestedState : null;
+}
 
 function usePrefersReducedMotion() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -354,8 +368,9 @@ export default function PrincessPet({
   contextProfile = PRINCESS_CONTEXT_PROFILES.generic,
 }: PrincessPetProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
+  const debugPreviewState = useMemo(getDevPreviewState, []);
   const [initialLayout] = useState(() => getInitialPetLayout(contextProfile.preferredAnchor));
-  const [petState, setPetState] = useState<PetState>('idle');
+  const [petState, setPetState] = useState<PetState>(debugPreviewState || 'idle');
   const animation = princessAnimations[petState];
   const normalFrames = animation.frames;
   const blinkFrame = petState === 'idle' ? princessAnimations.idle.blinkFrames?.[0] || null : null;
@@ -373,7 +388,7 @@ export default function PrincessPet({
   const offsetXRef = useRef(0);
   const positionRef = useRef(position);
   const scaleRef = useRef(scale);
-  const stateRef = useRef<PetState>('idle');
+  const stateRef = useRef<PetState>(debugPreviewState || 'idle');
   const isDraggingRef = useRef(false);
   const intervalRef = useRef<number | null>(null);
   const blinkTimeoutRef = useRef<number | null>(null);
@@ -438,7 +453,7 @@ export default function PrincessPet({
 
   if (stateControllerRef.current === null) {
     stateControllerRef.current = createPrincessStateController({
-      initialState: PRINCESS_STATES.IDLE,
+      initialState: debugPreviewState || PRINCESS_STATES.IDLE,
       onStateChange: (nextState: PetState) => {
         stateRef.current = nextState;
         setPetState(nextState);
@@ -976,11 +991,11 @@ export default function PrincessPet({
     if (!visible) return undefined;
     const routeConfig = resolveCompanionRoute(window.location.pathname, window.location.hash);
     bubbleControllerRef.current?.show(routeConfig);
-    if (!isDraggingRef.current && getPrincessStatePriority(stateRef.current) <= 1) {
+    if (!debugPreviewState && !isDraggingRef.current && getPrincessStatePriority(stateRef.current) <= 1) {
       stateControllerRef.current?.transition(routeConfig.state, { source: 'presence' });
     }
     return undefined;
-  }, [navigationKey, visible]);
+  }, [debugPreviewState, navigationKey, visible]);
 
   useEffect(() => () => bubbleControllerRef.current?.dispose(), []);
 
@@ -1085,7 +1100,7 @@ export default function PrincessPet({
   }, [blinkFrame, clearTimer, prefersReducedMotion, visible]);
 
   useEffect(() => {
-    if (prefersReducedMotion || !visible || !autoBehaviorEnabled) return undefined;
+    if (prefersReducedMotion || !visible || !autoBehaviorEnabled || debugPreviewState) return undefined;
 
     const scheduleBehavior = (delayRange: readonly [number, number]) => {
       clearTimer(behaviorTimeoutRef);
@@ -1266,11 +1281,12 @@ export default function PrincessPet({
     requestWave,
     setIdleState,
     autoBehaviorEnabled,
+    debugPreviewState,
     visible,
   ]);
 
   useEffect(() => {
-    if (prefersReducedMotion || !visible || !eventBridge) return undefined;
+    if (prefersReducedMotion || !visible || !eventBridge || debugPreviewState) return undefined;
 
     return eventBridge.subscribe((request) => {
       if (isDraggingRef.current) return false;
@@ -1305,7 +1321,7 @@ export default function PrincessPet({
         ),
       }) || false;
     });
-  }, [eventBridge, noteUserInteraction, prefersReducedMotion, visible]);
+  }, [debugPreviewState, eventBridge, noteUserInteraction, prefersReducedMotion, visible]);
 
   useEffect(() => {
     if (prefersReducedMotion || !visible || !interactionEnabled) return undefined;
@@ -1417,13 +1433,13 @@ export default function PrincessPet({
     const handleVisibility = () => controller.setVisibility(!document.hidden);
     document.addEventListener('visibilitychange', handleVisibility);
     handleVisibility();
-    if (visible && autoBehaviorEnabled) controller.start();
+    if (visible && autoBehaviorEnabled && !debugPreviewState) controller.start();
     else controller.stop();
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       controller.stop();
     };
-  }, [autoBehaviorEnabled, visible]);
+  }, [autoBehaviorEnabled, debugPreviewState, visible]);
 
   useEffect(() => () => {
     scheduleBehaviorRef.current = null;
@@ -1653,6 +1669,7 @@ export default function PrincessPet({
 
   useEffect(() => {
     if (visible) {
+      if (debugPreviewState) return;
       setIdleState();
       return;
     }
@@ -1676,16 +1693,16 @@ export default function PrincessPet({
     stateControllerRef.current?.endDrag();
     clearPetTimers();
     setIdleState();
-  }, [clearPetTimers, setIdleState, visible]);
+  }, [clearPetTimers, debugPreviewState, setIdleState, visible]);
 
   useEffect(() => {
-    if (autoBehaviorEnabled || !visible) return;
+    if (autoBehaviorEnabled || !visible || debugPreviewState) return;
 
     pendingInteractionRef.current = null;
     clearBehaviorTimers();
     stateControllerRef.current?.cancelCompletion();
     if (!isDraggingRef.current) setIdleState();
-  }, [autoBehaviorEnabled, clearBehaviorTimers, setIdleState, visible]);
+  }, [autoBehaviorEnabled, clearBehaviorTimers, debugPreviewState, setIdleState, visible]);
 
   useEffect(() => {
     if (interactionEnabled) return;
@@ -1961,6 +1978,12 @@ export default function PrincessPet({
           ? styles.sitAlive
           : petState === 'sitting_smile'
             ? styles.sittingSmileAlive
+          : petState === 'resting_awake'
+            ? styles.restingAwakeAlive
+          : petState === 'standing_attentive'
+            ? styles.standingAttentiveAlive
+          : petState === 'attentive_portrait'
+            ? styles.attentivePortraitAlive
           : petState === 'wave'
             ? styles.waveAlive
             : petState === 'happy'
@@ -2006,6 +2029,7 @@ export default function PrincessPet({
       data-pet-auto-behavior={autoBehaviorEnabled ? 'true' : 'false'}
       data-pet-interaction={interactionEnabled ? 'true' : 'false'}
       data-princess-context={contextProfile.id}
+      data-pet-debug-state={debugPreviewState || undefined}
     >
       {routeBubble && getPrincessStatePriority(petState, isDragging) <= 1 ? (
         <div className={styles.routeBubble} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-route-bubble">

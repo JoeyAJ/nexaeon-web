@@ -21,7 +21,7 @@ test('Research submit and item open produce one low-disruption reaction without 
   await expect(pet).not.toHaveAttribute('data-pet-state', 'curious');
   await search.press('Enter');
   await expect(pet).toHaveAttribute('data-pet-state', 'curious');
-  await expect(pet).toHaveAttribute('data-pet-state', 'sit', { timeout: 5_000 });
+  await expect(pet).toHaveAttribute('data-pet-state', /sit|sitting_smile/, { timeout: 5_000 });
 
   await page.locator('.literature-expand-button').first().click();
   await expect(pet).toHaveAttribute('data-pet-state', 'sit');

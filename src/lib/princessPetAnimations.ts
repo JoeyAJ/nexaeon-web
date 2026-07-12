@@ -70,6 +70,66 @@ export const princessAnimations = {
       '/pet/princess/frames/princess-sitting-smile.webp',
     ],
   },
+  resting_awake: {
+    name: 'resting_awake',
+    label: 'Resting Awake / 清醒休息',
+    localizedLabel: {
+      zh: '清醒休息',
+      ko: '깨어서 휴식',
+      en: 'Resting Awake',
+    },
+    ariaLabel: {
+      zh: 'Princess 正清醒地安靜休息',
+      ko: 'Princess가 깨어서 조용히 쉬고 있음',
+      en: 'Princess resting quietly while awake',
+    },
+    fps: 1,
+    loop: true,
+    preload: false,
+    frames: [
+      '/pet/princess/frames/princess-resting-awake-closeup.png',
+    ],
+  },
+  standing_attentive: {
+    name: 'standing_attentive',
+    label: 'Standing Attentive / 站立專注',
+    localizedLabel: {
+      zh: '站立專注',
+      ko: '집중해서 서 있기',
+      en: 'Standing Attentive',
+    },
+    ariaLabel: {
+      zh: 'Princess 正站著專注看向你',
+      ko: 'Princess가 서서 당신을 집중해 바라보고 있음',
+      en: 'Princess standing attentively and looking toward you',
+    },
+    fps: 1,
+    loop: true,
+    preload: false,
+    frames: [
+      '/pet/princess/frames/princess-standing-attentive.png',
+    ],
+  },
+  attentive_portrait: {
+    name: 'attentive_portrait',
+    label: 'Attentive Portrait / 專注半身像',
+    localizedLabel: {
+      zh: '專注半身像',
+      ko: '집중하는 상반신 모습',
+      en: 'Attentive Portrait',
+    },
+    ariaLabel: {
+      zh: 'Princess 以專注的半身姿勢看向你',
+      ko: 'Princess가 상반신 자세로 당신을 집중해 바라보고 있음',
+      en: 'Princess looking toward you in an attentive portrait pose',
+    },
+    fps: 1,
+    loop: true,
+    preload: false,
+    frames: [
+      '/pet/princess/frames/princess-attentive-portrait.png',
+    ],
+  },
   wave: {
     name: 'wave',
     label: 'Paw / Wave / 抬手打招呼',
