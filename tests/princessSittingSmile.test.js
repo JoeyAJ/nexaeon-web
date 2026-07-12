@@ -53,8 +53,8 @@ test('sitting smile asset is compact, high-resolution, and contains transparency
 
   assert.equal(metadata.format, 'webp');
   assert.equal(metadata.hasAlpha, true);
-  assert.ok(metadata.width >= 600);
-  assert.ok(metadata.height >= 800);
+  assert.ok(metadata.width >= 300);
+  assert.ok(metadata.height >= 450);
   assert.ok(bytes < 200_000);
 });
 

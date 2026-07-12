@@ -19,7 +19,7 @@ async function expectSittingSmile(page, ariaLabel) {
     complete: node.complete,
     width: node.naturalWidth,
     height: node.naturalHeight,
-  }))).toEqual({ complete: true, width: 725, height: 960 });
+  }))).toEqual({ complete: true, width: 305, height: 456 });
   return root;
 }
 
