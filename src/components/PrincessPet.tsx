@@ -43,8 +43,10 @@ import {
   PRINCESS_STATE_GROUPS,
   classifyPrincessPointerGesture,
   createPrincessStateController,
+  getPrincessStatePriority,
 } from '../lib/princessStateController.js';
 import styles from './PrincessPet.module.css';
+import { createCompanionBubbleController, getCompanionRouteMessage, resolveCompanionRoute } from '../lib/companionRouteConfig.js';
 
 type PetState = keyof typeof princessAnimations;
 type WalkState = 'walkLeft' | 'walkRight';
@@ -364,6 +366,7 @@ export default function PrincessPet({
   const [position, setPosition] = useState<PetPosition>(initialLayout.position);
   const [scale, setScale] = useState<PetScale>(initialLayout.scale);
   const [isDragging, setIsDragging] = useState(false);
+  const [routeBubble, setRouteBubble] = useState<ReturnType<typeof resolveCompanionRoute> | null>(null);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const interactiveRef = useRef<HTMLButtonElement | null>(null);
@@ -423,6 +426,15 @@ export default function PrincessPet({
   const presenceControllerRef = useRef<ReturnType<typeof createPrincessPresenceController> | null>(null);
   const contextProfileRef = useRef(contextProfile);
   const suppressRouteReactionAfterDragRef = useRef(false);
+  const routeBubbleVisibleRef = useRef(false);
+  const bubbleControllerRef = useRef<ReturnType<typeof createCompanionBubbleController> | null>(null);
+
+  if (bubbleControllerRef.current === null) {
+    bubbleControllerRef.current = createCompanionBubbleController({ onChange: (next) => {
+      routeBubbleVisibleRef.current = Boolean(next);
+      setRouteBubble(next);
+    } });
+  }
 
   if (stateControllerRef.current === null) {
     stateControllerRef.current = createPrincessStateController({
@@ -931,6 +943,7 @@ export default function PrincessPet({
   }, []);
 
   const canStartLowPowerState = useCallback((state: LowPowerState, now: number) => {
+    if (routeBubbleVisibleRef.current) return false;
     const pageElapsed = now - pageLoadedAtRef.current;
     const userInactive = now - lastUserInteractionAtRef.current;
     const afterSleepGap = now - sleepEndedAtRef.current >= POST_SLEEP_LOW_POWER_GAP;
@@ -958,6 +971,18 @@ export default function PrincessPet({
       && now - sleepEndedAtRef.current >= POST_SLEEP_LOW_POWER_GAP
       && now - lastPlayfulInteractionAtRef.current >= PET_BEHAVIOR_TIMING.interactionCooldown;
   }, []);
+
+  useEffect(() => {
+    if (!visible) return undefined;
+    const routeConfig = resolveCompanionRoute(window.location.pathname, window.location.hash);
+    bubbleControllerRef.current?.show(routeConfig);
+    if (!isDraggingRef.current && getPrincessStatePriority(stateRef.current) <= 1) {
+      stateControllerRef.current?.transition(routeConfig.state, { source: 'presence' });
+    }
+    return undefined;
+  }, [navigationKey, visible]);
+
+  useEffect(() => () => bubbleControllerRef.current?.dispose(), []);
 
   useEffect(() => {
     const frames = Object.values(princessAnimations).filter((item) => !('preload' in item) || item.preload !== false).flatMap((item) => [
@@ -1982,6 +2007,11 @@ export default function PrincessPet({
       data-pet-interaction={interactionEnabled ? 'true' : 'false'}
       data-princess-context={contextProfile.id}
     >
+      {routeBubble && getPrincessStatePriority(petState, isDragging) <= 1 ? (
+        <div className={styles.routeBubble} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-route-bubble">
+          {getCompanionRouteMessage(routeBubble, lang)}
+        </div>
+      ) : null}
       <div className={styles.walkOffsetLayer} style={walkStyle}>
         <div className={styles.scaleLayer} style={scaleStyle}>
           <div className={aliveClassName} data-state={petState}>

@@ -82,6 +82,14 @@ test('sleep cannot be interrupted by an automatic idle transition', () => {
   }), true);
 });
 
+test('automatic behavior can resume after the route sitting-smile state', () => {
+  assert.equal(canTransitionPrincess({
+    current: PRINCESS_STATES.SITTING_SMILE,
+    next: PRINCESS_STATES.SIT,
+    source: 'automatic',
+  }), true);
+});
+
 test('sleeping prone is a recognized low-priority sleep state that wakes normally', () => {
   const controller = createPrincessStateController();
 

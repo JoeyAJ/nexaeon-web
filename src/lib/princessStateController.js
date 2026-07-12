@@ -72,7 +72,7 @@ export function canTransitionPrincess({ current, next, isDragging = false, sourc
 
   // Automatic behavior may only claim the machine from a settled idle state.
   if (source === 'automatic') {
-    return current === PRINCESS_STATES.IDLE;
+    return current === PRINCESS_STATES.IDLE || current === PRINCESS_STATES.SITTING_SMILE;
   }
 
   // Active animations finish before another interaction starts; higher-priority
