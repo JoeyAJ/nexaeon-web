@@ -10,7 +10,7 @@ export const PRINCESS_CONTEXT_IDS = Object.freeze({
   GENERIC: 'generic',
 });
 
-const ANIMATION_KEYS = new Set(['idle', 'sit', 'rest', 'sleep']);
+const ANIMATION_KEYS = new Set(['idle', 'sit', 'sitting_smile', 'rest', 'sleep']);
 
 const profile = (value) => Object.freeze({
   ...value,
@@ -20,15 +20,15 @@ const profile = (value) => Object.freeze({
 });
 
 export const PRINCESS_CONTEXT_PROFILES = Object.freeze({
-  home: profile({ id: 'home', preferredPersistentStates: ['activeIdle', 'calmIdle'], idleAnimationPool: ['idle', 'sit'], presenceBias: { calm: 1.2, rest: 1.25, sleep: 1.5 }, restBias: 0.8, attentionBias: 1.2, reactionCooldownMultiplier: 0.9, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
-  identity: profile({ id: 'identity', preferredPersistentStates: ['calmIdle', 'activeIdle'], idleAnimationPool: ['sit', 'idle'], presenceBias: { calm: 0.85, rest: 1, sleep: 1.15 }, restBias: 1, attentionBias: 0.75, reactionCooldownMultiplier: 1.2, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
-  research: profile({ id: 'research', preferredPersistentStates: ['calmIdle', 'resting'], idleAnimationPool: ['sit', 'idle'], presenceBias: { calm: 0.75, rest: 0.85, sleep: 1.2 }, restBias: 1.2, attentionBias: 0.65, reactionCooldownMultiplier: 1.3, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
-  coaching: profile({ id: 'coaching', preferredPersistentStates: ['activeIdle', 'calmIdle'], idleAnimationPool: ['idle', 'sit'], presenceBias: { calm: 1, rest: 1.05, sleep: 1.2 }, restBias: 0.9, attentionBias: 1.05, reactionCooldownMultiplier: 1, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
-  knowledge: profile({ id: 'knowledge', preferredPersistentStates: ['calmIdle', 'resting', 'sleeping'], idleAnimationPool: ['sit', 'idle'], presenceBias: { calm: 0.7, rest: 0.8, sleep: 0.95 }, restBias: 1.25, attentionBias: 0.55, reactionCooldownMultiplier: 1.35, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
-  prototype: profile({ id: 'prototype', preferredPersistentStates: ['activeIdle', 'calmIdle'], idleAnimationPool: ['idle', 'sit'], presenceBias: { calm: 1.15, rest: 1.2, sleep: 1.35 }, restBias: 0.75, attentionBias: 1.2, reactionCooldownMultiplier: 0.9, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
-  action: profile({ id: 'action', preferredPersistentStates: ['activeIdle', 'calmIdle'], idleAnimationPool: ['idle', 'sit'], presenceBias: { calm: 1.2, rest: 1.25, sleep: 1.4 }, restBias: 0.7, attentionBias: 1.15, reactionCooldownMultiplier: 0.9, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
-  navigator: profile({ id: 'navigator', preferredPersistentStates: ['calmIdle', 'activeIdle'], idleAnimationPool: ['sit', 'idle'], presenceBias: { calm: 0.8, rest: 1.1, sleep: 1.25 }, restBias: 0.9, attentionBias: 0.8, reactionCooldownMultiplier: 1.1, preferredAnchor: 'bottomLeft', allowAutoSleep: true }),
-  generic: profile({ id: 'generic', preferredPersistentStates: ['calmIdle', 'activeIdle'], idleAnimationPool: ['idle', 'sit'], presenceBias: { calm: 0.9, rest: 1, sleep: 1 }, restBias: 1, attentionBias: 0.8, reactionCooldownMultiplier: 1, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
+  home: profile({ id: 'home', preferredPersistentStates: ['activeIdle', 'calmIdle'], idleAnimationPool: ['idle', 'sitting_smile', 'sit'], presenceBias: { calm: 1.2, rest: 1.25, sleep: 1.5 }, restBias: 0.8, attentionBias: 1.2, reactionCooldownMultiplier: 0.9, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
+  identity: profile({ id: 'identity', preferredPersistentStates: ['calmIdle', 'activeIdle'], idleAnimationPool: ['sitting_smile', 'sit', 'idle'], presenceBias: { calm: 0.85, rest: 1, sleep: 1.15 }, restBias: 1, attentionBias: 0.75, reactionCooldownMultiplier: 1.2, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
+  research: profile({ id: 'research', preferredPersistentStates: ['calmIdle', 'resting'], idleAnimationPool: ['sitting_smile', 'sit', 'idle'], presenceBias: { calm: 0.75, rest: 0.85, sleep: 1.2 }, restBias: 1.2, attentionBias: 0.65, reactionCooldownMultiplier: 1.3, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
+  coaching: profile({ id: 'coaching', preferredPersistentStates: ['activeIdle', 'calmIdle'], idleAnimationPool: ['idle', 'sitting_smile', 'sit'], presenceBias: { calm: 1, rest: 1.05, sleep: 1.2 }, restBias: 0.9, attentionBias: 1.05, reactionCooldownMultiplier: 1, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
+  knowledge: profile({ id: 'knowledge', preferredPersistentStates: ['calmIdle', 'resting', 'sleeping'], idleAnimationPool: ['sitting_smile', 'sit', 'idle'], presenceBias: { calm: 0.7, rest: 0.8, sleep: 0.95 }, restBias: 1.25, attentionBias: 0.55, reactionCooldownMultiplier: 1.35, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
+  prototype: profile({ id: 'prototype', preferredPersistentStates: ['activeIdle', 'calmIdle'], idleAnimationPool: ['idle', 'sitting_smile', 'sit'], presenceBias: { calm: 1.15, rest: 1.2, sleep: 1.35 }, restBias: 0.75, attentionBias: 1.2, reactionCooldownMultiplier: 0.9, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
+  action: profile({ id: 'action', preferredPersistentStates: ['activeIdle', 'calmIdle'], idleAnimationPool: ['idle', 'sitting_smile', 'sit'], presenceBias: { calm: 1.2, rest: 1.25, sleep: 1.4 }, restBias: 0.7, attentionBias: 1.15, reactionCooldownMultiplier: 0.9, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
+  navigator: profile({ id: 'navigator', preferredPersistentStates: ['calmIdle', 'activeIdle'], idleAnimationPool: ['sitting_smile', 'sit', 'idle'], presenceBias: { calm: 0.8, rest: 1.1, sleep: 1.25 }, restBias: 0.9, attentionBias: 0.8, reactionCooldownMultiplier: 1.1, preferredAnchor: 'bottomLeft', allowAutoSleep: true }),
+  generic: profile({ id: 'generic', preferredPersistentStates: ['calmIdle', 'activeIdle'], idleAnimationPool: ['sitting_smile', 'idle', 'sit'], presenceBias: { calm: 0.9, rest: 1, sleep: 1 }, restBias: 1, attentionBias: 0.8, reactionCooldownMultiplier: 1, preferredAnchor: 'bottomRight', allowAutoSleep: true }),
 });
 
 export function resolvePrincessContext({ pathname = '/', routeKey, locale, viewportCategory } = {}) {
@@ -62,6 +62,7 @@ export function selectContextIdleAnimation(contextProfile, persistentState) {
   const pool = Array.isArray(contextProfile?.idleAnimationPool)
     ? contextProfile.idleAnimationPool.filter((key) => ANIMATION_KEYS.has(key))
     : [];
+  if (persistentState === 'calmIdle' && pool.includes('sitting_smile')) return 'sitting_smile';
   if (persistentState === 'calmIdle' && pool.includes('sit')) return 'sit';
   return pool[0] || 'idle';
 }

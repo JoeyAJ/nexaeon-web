@@ -36,7 +36,7 @@ export function getPersistentStateForInactivity(inactiveFor, timing = PRINCESS_P
 }
 
 export function getAnimationStateForPersistent(persistentState) {
-  if (persistentState === PRINCESS_PERSISTENT_STATES.CALM_IDLE) return 'sit';
+  if (persistentState === PRINCESS_PERSISTENT_STATES.CALM_IDLE) return 'sitting_smile';
   if (persistentState === PRINCESS_PERSISTENT_STATES.RESTING) return 'rest';
   if (persistentState === PRINCESS_PERSISTENT_STATES.SLEEPING) return 'sleeping_prone';
   return 'idle';

@@ -3,6 +3,7 @@ export const PRINCESS_STATES = Object.freeze({
   WALK_LEFT: 'walkLeft',
   WALK_RIGHT: 'walkRight',
   SIT: 'sit',
+  SITTING_SMILE: 'sitting_smile',
   WAVE: 'wave',
   HAPPY: 'happy',
   CURIOUS: 'curious',
@@ -19,6 +20,7 @@ export const PRINCESS_STATE_GROUPS = Object.freeze({
     PRINCESS_STATES.WALK_LEFT,
     PRINCESS_STATES.WALK_RIGHT,
     PRINCESS_STATES.SIT,
+    PRINCESS_STATES.SITTING_SMILE,
   ]),
   INTERACTION: Object.freeze([
     PRINCESS_STATES.WAVE,

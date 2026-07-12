@@ -60,6 +60,7 @@ test('unknown context profiles use conservative generic defaults', () => {
 test('invalid animation keys safely fall back to idle', () => {
   assert.equal(selectContextIdleAnimation({ idleAnimationPool: ['invalid'] }, 'activeIdle'), 'idle');
   assert.equal(selectContextIdleAnimation({ idleAnimationPool: ['invalid', 'sit'] }, 'calmIdle'), 'sit');
+  assert.equal(selectContextIdleAnimation(PRINCESS_CONTEXT_PROFILES.home, 'calmIdle'), 'sitting_smile');
   assert.equal(selectContextIdleAnimation(PRINCESS_CONTEXT_PROFILES.research, 'resting'), 'rest');
   assert.equal(selectContextIdleAnimation(PRINCESS_CONTEXT_PROFILES.knowledge, 'sleeping'), 'sleeping_prone');
 });

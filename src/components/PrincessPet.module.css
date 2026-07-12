@@ -54,6 +54,11 @@
     princess-sit-breathe 6.8s ease-in-out infinite alternate;
 }
 
+.sittingSmileAlive {
+  animation: princess-sitting-smile-breathe 5.4s ease-in-out infinite alternate;
+  transform-origin: 50% 92%;
+}
+
 .restAlive {
   animation:
     princess-rest-breathe 7.8s ease-in-out infinite alternate;
@@ -148,6 +153,10 @@
   width: 155%;
 }
 
+.aliveLayer[data-state="sitting_smile"] .frameLayer {
+  width: 112%;
+}
+
 .aliveLayer[data-state="happy"] .frameLayer {
   width: 100%;
 }
@@ -180,6 +189,16 @@
 
   100% {
     transform: translateY(-2px) scale(1.006);
+  }
+}
+
+@keyframes princess-sitting-smile-breathe {
+  0% {
+    transform: translateY(0) scale(0.997);
+  }
+
+  100% {
+    transform: translateY(-1px) scale(1.005);
   }
 }
 

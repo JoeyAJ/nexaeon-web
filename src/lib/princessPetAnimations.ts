@@ -46,6 +46,30 @@ export const princessAnimations = {
       '/pet/princess/frames/frame-051.png',
     ],
   },
+  sitting_smile: {
+    name: 'sitting_smile',
+    label: 'Sitting Smile / 坐著微笑',
+    localizedLabel: {
+      zh: '坐著微笑',
+      ko: '앉아서 미소',
+      en: 'Sitting Smile',
+    },
+    ariaLabel: {
+      zh: '公主正坐著微笑陪伴你',
+      ko: '공주가 앉아서 미소 지으며 함께하고 있음',
+      en: 'Princess sitting and smiling gently',
+    },
+    animationClass: 'sittingSmileAlive',
+    priority: 1,
+    transition: 'settled-idle',
+    fallback: 'sit',
+    fps: 1,
+    loop: true,
+    preload: false,
+    frames: [
+      '/pet/princess/frames/princess-sitting-smile.webp',
+    ],
+  },
   wave: {
     name: 'wave',
     label: 'Paw / Wave / 抬手打招呼',

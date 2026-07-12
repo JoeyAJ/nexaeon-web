@@ -9,7 +9,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import { PET_AFFECTION_EVENT, PET_CURIOUS_EVENT, PET_HAPPY_EVENT } from '../lib/petEvents.js';
+import {
+  PET_AFFECTION_EVENT,
+  PET_CURIOUS_EVENT,
+  PET_HAPPY_EVENT,
+  PET_SITTING_SMILE_EVENT,
+} from '../lib/petEvents.js';
 import {
   clampPrincessPosition,
   clearPrincessPosition,
@@ -1325,6 +1330,19 @@ export default function PrincessPet({
   useEffect(() => {
     if (!visible) return undefined;
 
+    const handlePetSittingSmile = () => {
+      stateControllerRef.current?.transition(PRINCESS_STATES.SITTING_SMILE, {
+        source: 'websiteEvent',
+      });
+    };
+
+    window.addEventListener(PET_SITTING_SMILE_EVENT, handlePetSittingSmile);
+    return () => window.removeEventListener(PET_SITTING_SMILE_EVENT, handlePetSittingSmile);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return undefined;
+
     let lastScrollAt = 0;
     const isPassiveControl = (event: Event) => (
       event.target instanceof Element
@@ -1916,6 +1934,8 @@ export default function PrincessPet({
         ? styles.idleAlive
         : petState === 'sit'
           ? styles.sitAlive
+          : petState === 'sitting_smile'
+            ? styles.sittingSmileAlive
           : petState === 'wave'
             ? styles.waveAlive
             : petState === 'happy'

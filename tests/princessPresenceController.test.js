@@ -219,7 +219,7 @@ test('storage access failures and SSR window access are safe', () => {
 
 test('persistent sleeping maps onto the dedicated prone sleeping animation', () => {
   assert.equal(getAnimationStateForPersistent('activeIdle'), 'idle');
-  assert.equal(getAnimationStateForPersistent('calmIdle'), 'sit');
+  assert.equal(getAnimationStateForPersistent('calmIdle'), 'sitting_smile');
   assert.equal(getAnimationStateForPersistent('resting'), 'rest');
   assert.equal(getAnimationStateForPersistent('sleeping'), 'sleeping_prone');
 });
