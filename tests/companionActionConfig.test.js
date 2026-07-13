@@ -30,7 +30,7 @@ test('Navigator handoff is allowlisted and localized without accepting unsafe ro
   assert.equal(handoff.currentRoute, '/');
   assert.equal(handoff.selectedAction, 'ask-researchscript');
   assert.equal(handoff.source, 'princess-companion');
-  assert.equal(getCompanionSuggestedPrompt('research', 'zh'), '請整理 NexAeon 目前公開的研究方向與相關資料。');
+  assert.equal(getCompanionSuggestedPrompt('research', 'zh'), '請根據目前研究模塊，幫我判斷下一步最值得推進的研究工作。');
 });
 
 test('Navigator consumes route-state handoff once and preserves router state', () => {
@@ -50,7 +50,7 @@ test('Navigator consumes route-state handoff once and preserves router state', (
     },
   };
   const consumed = consumeCompanionNavigatorHandoff(target);
-  assert.match(consumed.prompt, /prototypes and demos/i);
+  assert.match(consumed.prompt, /testable MVP/i);
   assert.equal(target.history.state.nexaeonDepth, 2);
   assert.equal(target.history.state[COMPANION_NAVIGATOR_HANDOFF_KEY], undefined);
   assert.equal(consumeCompanionNavigatorHandoff(target), null);

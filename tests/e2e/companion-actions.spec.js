@@ -60,7 +60,7 @@ test('Navigator handoff prefills a localized prompt without submitting it', asyn
   await page.locator('[data-action-id="ask-research"]').click();
   await expect(page).toHaveURL(/\/identity\/nexaeon-navigator$/);
   const input = page.locator('#navigator-agent-query');
-  await expect(input).toHaveValue('請整理 NexAeon 目前公開的研究方向與相關資料。');
+  await expect(input).toHaveValue('請根據目前研究模塊，幫我判斷下一步最值得推進的研究工作。');
   await expect(input).toBeFocused();
   await expect(page.locator('.agent-message-user')).toHaveCount(0);
   expect(chatRequests).toBe(0);
