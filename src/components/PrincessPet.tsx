@@ -54,6 +54,8 @@ import {
   createPrincessStateController,
 } from '../lib/princessStateController.js';
 import styles from './PrincessPet.module.css';
+import CompanionActionPanel from './CompanionActionPanel.jsx';
+import { getCompanionActions } from '../lib/companionActionConfig.js';
 import {
   getAccessoryAnchor,
   getCompanionDisplayedAsset,
@@ -231,6 +233,8 @@ function canStartDirectInteraction(state: PetState): boolean {
     PRINCESS_STATES.RESTING_AWAKE,
     PRINCESS_STATES.STANDING_ATTENTIVE,
     PRINCESS_STATES.ATTENTIVE_PORTRAIT,
+    PRINCESS_STATES.CURIOUS,
+    PRINCESS_STATES.HAPPY,
     PRINCESS_STATES.REST,
   ].includes(state);
 }
@@ -428,6 +432,10 @@ type PrincessPetProps = {
   eventBridge?: PrincessEventBridge;
   contextProfile?: (typeof PRINCESS_CONTEXT_PROFILES)[keyof typeof PRINCESS_CONTEXT_PROFILES];
   introActive?: boolean;
+  actionPanelOpen?: boolean;
+  actionPanelBlocked?: boolean;
+  onActionPanelOpenChange?: (open: boolean) => void;
+  onCompanionAction?: (action: ReturnType<typeof getCompanionActions>[number], moduleKey: string) => void;
 };
 
 export default function PrincessPet({
@@ -446,6 +454,10 @@ export default function PrincessPet({
   eventBridge,
   contextProfile = PRINCESS_CONTEXT_PROFILES.generic,
   introActive = false,
+  actionPanelOpen = false,
+  actionPanelBlocked = false,
+  onActionPanelOpenChange,
+  onCompanionAction,
 }: PrincessPetProps) {
   const systemPrefersReducedMotion = usePrefersReducedMotion();
   const effectiveMotionLevel = resolveEffectiveMotionLevel(motionLevel, systemPrefersReducedMotion);
@@ -481,6 +493,7 @@ export default function PrincessPet({
   const [introPhase, setIntroPhase] = useState(introActive ? 'dormant' : 'active');
   const [introMaterializeProgress, setIntroMaterializeProgress] = useState(0);
   const [introEmergenceProgress, setIntroEmergenceProgress] = useState(0);
+  const companionActions = useMemo(() => getCompanionActions(contextProfile.id, lang), [contextProfile.id, lang]);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const interactiveRef = useRef<HTMLButtonElement | null>(null);
@@ -530,6 +543,7 @@ export default function PrincessPet({
   const previousNavigationKeyRef = useRef(navigationKey);
   const previousResetPositionTokenRef = useRef(resetPositionToken);
   const previousResetSizeTokenRef = useRef(resetSizeToken);
+  const previousActionPanelOpenRef = useRef(actionPanelOpen);
   const scheduleBehaviorRef = useRef<((delayRange: readonly [number, number]) => void) | null>(null);
   const dragSessionRef = useRef<{
     pointerId: number;
@@ -1091,7 +1105,9 @@ export default function PrincessPet({
     if (prefersReducedMotion || isDraggingRef.current) return false;
 
     const currentState = stateRef.current;
-    if (currentState === 'wave' || currentState === 'happy') return false;
+    if (currentState === 'wave' || (
+      currentState === 'happy' && behaviorSource === COMPANION_BEHAVIOR_SOURCES.INTERACTION
+    )) return false;
 
     const now = Date.now();
     if (source !== 'greeting') {
@@ -1111,7 +1127,7 @@ export default function PrincessPet({
     }
 
     return false;
-  }, [playWave, prefersReducedMotion]);
+  }, [behaviorSource, playWave, prefersReducedMotion]);
 
   const requestHappy = useCallback((source: 'interaction' | 'customEvent' | 'initial' | 'natural') => {
     if (prefersReducedMotion || isDraggingRef.current) return false;
@@ -1870,6 +1886,29 @@ export default function PrincessPet({
     };
   }, [autoBehaviorEnabled, debugBehaviorOverride, visible]);
 
+  useEffect(() => {
+    const controller = presenceControllerRef.current;
+    if (!controller) return;
+    const wasOpen = previousActionPanelOpenRef.current;
+    previousActionPanelOpenRef.current = actionPanelOpen;
+    if (actionPanelOpen) {
+      setRouteBubble(null);
+      clearTimer(hoverDebounceTimeoutRef);
+      clearTimer(hoverReturnTimeoutRef);
+      noteUserInteraction({ immediate: true, type: 'companionActionPanel' });
+      controller.stop();
+      return;
+    }
+    if (wasOpen && visible && autoBehaviorEnabled && !debugBehaviorOverride) {
+      controller.noteActivity('companionActionPanelClosed');
+      controller.start();
+    }
+  }, [actionPanelOpen, autoBehaviorEnabled, clearTimer, debugBehaviorOverride, noteUserInteraction, visible]);
+
+  useEffect(() => {
+    if (!actionPanelBlocked) lastPointerClickAtRef.current = 0;
+  }, [actionPanelBlocked]);
+
   useEffect(() => () => {
     scheduleBehaviorRef.current = null;
     clearPetTimers();
@@ -1987,8 +2026,9 @@ export default function PrincessPet({
     singleClickTimeoutRef.current = window.setTimeout(() => {
       singleClickTimeoutRef.current = null;
       handlePetClick();
+      onActionPanelOpenChange?.(true);
     }, SINGLE_CLICK_DELAY);
-  }, [clearTimer, handlePetClick]);
+  }, [clearTimer, handlePetClick, onActionPanelOpenChange]);
 
   const resetPosition = useCallback(() => {
     clearPrincessPosition(getPrincessStorage(typeof window === 'undefined' ? null : window));
@@ -2073,6 +2113,7 @@ export default function PrincessPet({
   }, []);
 
   const beginDrag = useCallback(() => {
+    onActionPanelOpenChange?.(false);
     noteUserInteraction({ immediate: true, type: 'princessDragStart' });
     isDraggingRef.current = true;
     introDockedRef.current = false;
@@ -2092,7 +2133,7 @@ export default function PrincessPet({
     setFrameIndex(0);
     setBlinkSrc(null);
     setMotionDuration(0);
-  }, [clearBehaviorTimers, clearTimer, noteUserInteraction]);
+  }, [clearBehaviorTimers, clearTimer, noteUserInteraction, onActionPanelOpenChange]);
 
   const endDrag = useCallback((nextPosition: PetPosition, options: { resume?: boolean } = {}) => {
     isDraggingRef.current = false;
@@ -2440,8 +2481,20 @@ export default function PrincessPet({
       return;
     }
 
-    if (interactionEnabled) handlePetClick();
-  }, [handlePetClick, interactionEnabled]);
+    if (interactionEnabled) {
+      handlePetClick();
+      onActionPanelOpenChange?.(true);
+    }
+  }, [handlePetClick, interactionEnabled, onActionPanelOpenChange]);
+
+  const closeActionPanel = useCallback(({ returnFocus = false } = {}) => {
+    onActionPanelOpenChange?.(false);
+    if (returnFocus) window.requestAnimationFrame(() => interactiveRef.current?.focus());
+  }, [onActionPanelOpenChange]);
+
+  const runCompanionAction = useCallback((action: ReturnType<typeof getCompanionActions>[number]) => {
+    onCompanionAction?.(action, contextProfile.id);
+  }, [contextProfile.id, onCompanionAction]);
 
   const handleFrameError = useCallback((event: SyntheticEvent<HTMLImageElement>) => {
     const fallbackFrame = princessAnimations.idle.frames[0];
@@ -2575,11 +2628,20 @@ export default function PrincessPet({
       data-companion-accessory={accessoryVisible ? accessory : 'none'}
       data-companion-visual-variant={interactionVariant}
     >
+      {actionPanelOpen && introPhase === 'active' && !isDragging ? (
+        <CompanionActionPanel
+          actions={companionActions}
+          lang={lang}
+          motionLevel={effectiveMotionLevel}
+          onAction={runCompanionAction}
+          onClose={closeActionPanel}
+        />
+      ) : null}
       {introPhase === 'greeting' ? (
         <div className={styles.introGreeting} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-intro-greeting">
           {INTRO_GREETING[lang] || INTRO_GREETING.en}
         </div>
-      ) : routeBubble && introPhase === 'active' && !isDragging ? (
+      ) : routeBubble && !actionPanelOpen && introPhase === 'active' && !isDragging ? (
         <div ref={bubbleRef} className={styles.routeBubble} style={bubbleStyle} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-route-bubble">
           {getCompanionRouteMessage(routeBubble, lang)}
         </div>

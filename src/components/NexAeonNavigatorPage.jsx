@@ -8,6 +8,11 @@ import {
   getAgentLocale,
   getPublicAgents,
 } from '../data/agentRegistry.js';
+import {
+  COMPANION_NAVIGATOR_CLEAR_EVENT,
+  COMPANION_NAVIGATOR_FOCUS_EVENT,
+  consumeCompanionNavigatorHandoff,
+} from '../lib/companionActionConfig.js';
 
 const MAX_HISTORY_ITEMS = 4;
 const MAX_HISTORY_ITEM_CHARS = 1000;
@@ -352,10 +357,13 @@ function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
 
 export default function NexAeonNavigatorPage({ item, common, lang, navigate, eventBridge, activityAdapter, fusionOrchestrator }) {
   const ui = ASSISTANT_UI[lang] || ASSISTANT_UI.en;
-  const [query, setQuery] = useState('');
+  const [companionHandoff] = useState(() => consumeCompanionNavigatorHandoff(window));
+  const [query, setQuery] = useState(() => companionHandoff?.prompt?.slice(0, 500) || '');
   const [messages, setMessages] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
+  const inputRef = useRef(null);
+  const companionPrefillRef = useRef(Boolean(companionHandoff?.prompt));
   const abortRef = useRef(null);
   const activeRequestRef = useRef(false);
   const submissionLockRef = useRef(false);
@@ -366,6 +374,26 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
   const isComposingRef = useRef(false);
   const activeFusionTokenRef = useRef(null);
   const citationFusionSequenceRef = useRef(0);
+
+  useEffect(() => {
+    if (!companionHandoff?.prompt) return;
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }, [companionHandoff]);
+
+  useEffect(() => {
+    const focusInput = () => inputRef.current?.focus();
+    const clearPrefill = () => {
+      if (companionPrefillRef.current) setQuery('');
+      companionPrefillRef.current = false;
+      window.requestAnimationFrame(() => inputRef.current?.focus());
+    };
+    window.addEventListener(COMPANION_NAVIGATOR_FOCUS_EVENT, focusInput);
+    window.addEventListener(COMPANION_NAVIGATOR_CLEAR_EVENT, clearPrefill);
+    return () => {
+      window.removeEventListener(COMPANION_NAVIGATOR_FOCUS_EVENT, focusInput);
+      window.removeEventListener(COMPANION_NAVIGATOR_CLEAR_EVENT, clearPrefill);
+    };
+  }, []);
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) return undefined;
@@ -612,11 +640,15 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
         <label htmlFor="navigator-agent-query">{ui.inputLabel}</label>
         <div className="agent-search-row">
           <input
+            ref={inputRef}
             id="navigator-agent-query"
             type="search"
             value={query}
             maxLength={500}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              companionPrefillRef.current = false;
+              setQuery(event.target.value);
+            }}
             onCompositionStart={() => {
               isComposingRef.current = true;
             }}

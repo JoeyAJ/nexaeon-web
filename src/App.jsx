@@ -22,6 +22,13 @@ import { createPrincessModuleActivityAdapter } from './lib/princessModuleActivit
 import { hasSeenCompanionIntro } from './lib/companionIntro.js';
 import { createNexonFusionOrchestrator } from './lib/nexonFusionOrchestrator.ts';
 import { resolvePrincessContext } from './lib/princessContextResolver.js';
+import {
+  COMPANION_NAVIGATOR_CLEAR_EVENT,
+  COMPANION_NAVIGATOR_FOCUS_EVENT,
+  COMPANION_NAVIGATOR_HANDOFF_KEY,
+  COMPANION_NAVIGATOR_ROUTE,
+  createCompanionNavigatorHandoff,
+} from './lib/companionActionConfig.js';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
 const BACK_TO_TOP_TEXT = {
@@ -66,6 +73,8 @@ export default function App() {
   ));
   const [resetPositionToken, setResetPositionToken] = useState(0);
   const [resetSizeToken, setResetSizeToken] = useState(0);
+  const [companionActionPanelOpen, setCompanionActionPanelOpen] = useState(false);
+  const [companionSettingsOpen, setCompanionSettingsOpen] = useState(false);
   const [route, setRoute] = useState(() => ({
     ...parseRoute(window.location.pathname),
     hash: window.location.hash,
@@ -106,6 +115,7 @@ export default function App() {
     markInitialHistoryEntry();
 
     const onPopState = () => {
+      setCompanionActionPanelOpen(false);
       setRoute({
         ...parseRoute(window.location.pathname),
         hash: window.location.hash,
@@ -130,6 +140,7 @@ export default function App() {
   }, [route.kind, route.type, route.id, route.role, route.slug, route.replace, route.to]);
 
   const navigate = (path, options) => {
+    setCompanionActionPanelOpen(false);
     navigateTo(path, options);
     setRoute({
       ...parseRoute(window.location.pathname),
@@ -139,6 +150,44 @@ export default function App() {
 
   const navigateBack = (fallbackPath) => {
     goBack(fallbackPath);
+  };
+
+  const setActionPanelOpen = (open) => {
+    if (open && companionSettingsOpen) return;
+    setCompanionActionPanelOpen(open);
+  };
+
+  const setSettingsPanelOpen = (open) => {
+    if (open) setCompanionActionPanelOpen(false);
+    setCompanionSettingsOpen(open);
+  };
+
+  const handleCompanionAction = (action, moduleKey) => {
+    setCompanionActionPanelOpen(false);
+    if (action.type === 'navigate' && action.route) {
+      navigate(action.route);
+      return;
+    }
+    if (action.type === 'navigator') {
+      const handoff = createCompanionNavigatorHandoff({
+        currentModule: moduleKey,
+        currentRoute: `${window.location.pathname}${window.location.hash}`,
+        locale: lang,
+        selectedAction: action.id,
+        suggestedPromptKey: action.promptKey,
+      });
+      navigate(COMPANION_NAVIGATOR_ROUTE, { state: { [COMPANION_NAVIGATOR_HANDOFF_KEY]: handoff } });
+      return;
+    }
+    if (action.type === 'focus-input') {
+      window.dispatchEvent(new CustomEvent(COMPANION_NAVIGATOR_FOCUS_EVENT));
+      return;
+    }
+    if (action.type === 'clear-prefill') {
+      window.dispatchEvent(new CustomEvent(COMPANION_NAVIGATOR_CLEAR_EVENT));
+      return;
+    }
+    if (action.type === 'back') navigateBack('/');
   };
 
   const goHome = () => {
@@ -237,6 +286,9 @@ export default function App() {
 
   const updateCompanionSetting = (key, value) => {
     if (!(key in DEFAULT_COMPANION_PREFERENCES) || ['version', 'position', 'updatedAt'].includes(key)) return;
+    if ((key === 'visible' || key === 'interactionEnabled') && value === false) {
+      setCompanionActionPanelOpen(false);
+    }
 
     setCompanionSettings((current) => {
       if (current[key] === value) return current;
@@ -361,10 +413,16 @@ export default function App() {
         resetSizeToken={resetSizeToken}
         eventBridge={princessEventBridge}
         contextProfile={princessContext.profile}
+        actionPanelOpen={companionActionPanelOpen}
+        actionPanelBlocked={companionSettingsOpen}
+        onActionPanelOpenChange={setActionPanelOpen}
+        onCompanionAction={handleCompanionAction}
       />
       <PrincessCompanionControls
         lang={lang}
         settings={companionSettings}
+        isOpen={companionSettingsOpen}
+        onOpenChange={setSettingsPanelOpen}
         onSettingChange={updateCompanionSetting}
         onResetLayout={resetCompanionPositionAndSize}
         onResetAll={resetAllCompanionSettings}

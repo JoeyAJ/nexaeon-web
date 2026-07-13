@@ -40,9 +40,8 @@ function SettingSwitch({ checked, label, onChange, onLabel, offLabel }) {
   );
 }
 
-export default function PrincessCompanionControls({ lang = 'zh', settings, onSettingChange, onResetLayout, onResetAll }) {
+export default function PrincessCompanionControls({ lang = 'zh', settings, isOpen, onOpenChange, onSettingChange, onResetLayout, onResetAll }) {
   const copy = COPY[lang] || COPY.en;
-  const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
   const triggerRef = useRef(null);
 
@@ -50,12 +49,12 @@ export default function PrincessCompanionControls({ lang = 'zh', settings, onSet
     if (!isOpen) return undefined;
     const handleKeyDown = (event) => {
       if (event.key !== 'Escape') return;
-      setIsOpen(false);
+      onOpenChange(false);
       triggerRef.current?.focus();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, onOpenChange]);
 
   const runReset = (reset, confirmFirst = false) => {
     if (confirmFirst && !window.confirm(copy.resetConfirm)) return;
@@ -77,7 +76,7 @@ export default function PrincessCompanionControls({ lang = 'zh', settings, onSet
         <section className={styles.panel} role="dialog" aria-label={copy.title} id="princess-companion-controls-panel">
           <header className={styles.header}>
             <strong>{copy.title}</strong>
-            <button className={styles.closeButton} type="button" aria-label={copy.close} onClick={() => setIsOpen(false)}>×</button>
+            <button className={styles.closeButton} type="button" aria-label={copy.close} onClick={() => onOpenChange(false)}>×</button>
           </header>
 
           <div className={styles.switches}>
@@ -111,7 +110,7 @@ export default function PrincessCompanionControls({ lang = 'zh', settings, onSet
         </section>
       ) : null}
 
-      <button ref={triggerRef} data-princess-settings-trigger="true" className={styles.trigger} type="button" aria-label={copy.open} aria-expanded={isOpen} aria-controls="princess-companion-controls-panel" onClick={() => { setFeedback(''); setIsOpen((current) => !current); }}>
+      <button ref={triggerRef} data-princess-settings-trigger="true" className={styles.trigger} type="button" aria-label={copy.open} aria-expanded={isOpen} aria-controls="princess-companion-controls-panel" onClick={() => { setFeedback(''); onOpenChange(!isOpen); }}>
         <span aria-hidden="true">⚙</span>
       </button>
     </div>

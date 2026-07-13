@@ -89,13 +89,17 @@ export function markInitialHistoryEntry() {
 }
 
 export function navigateTo(path, options = {}) {
-  const { scroll = true } = options;
+  const { scroll = true, state = null } = options;
   const nextState = {
     nexaeonEntry: true,
     nexaeonDepth: getNavigationDepth() + 1,
+    ...(state && typeof state === 'object' ? state : {}),
   };
 
   if (getCurrentPath() === path) {
+    if (state && typeof state === 'object') {
+      window.history.replaceState({ ...(window.history.state || {}), ...state }, '', path);
+    }
     window.dispatchEvent(new PopStateEvent('popstate'));
     return;
   }
