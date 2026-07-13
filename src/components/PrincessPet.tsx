@@ -57,10 +57,12 @@ import styles from './PrincessPet.module.css';
 import {
   getAccessoryAnchor,
   getCompanionDisplayedAsset,
+  getCompanionInteractionVariant,
   createCompanionBubbleController,
   getCompanionBubblePosition,
   getCompanionRouteMessage,
   resolveCompanionRoute,
+  shouldShowCompanionAccessory,
 } from '../lib/companionRouteConfig.js';
 import {
   COMPANION_BEHAVIOR_PRIORITY,
@@ -2452,11 +2454,17 @@ export default function PrincessPet({
   const interactionLabel = PET_INTERACTION_LABELS[lang] || PET_INTERACTION_LABELS.en;
   const stateAriaLabel = 'ariaLabel' in animation ? animation.ariaLabel[lang] : null;
 
+  const moduleProfile = resolveCompanionRoute(
+    typeof window === 'undefined' ? '/' : window.location.pathname,
+    typeof window === 'undefined' ? '' : window.location.hash,
+  );
+
   const rootStyle = {
     transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
     '--princess-pose-transition-duration': `${COMPANION_BEHAVIOR_TIMING.transition}ms`,
     '--princess-intro-materialize': introMaterializeProgress,
     '--princess-intro-emergence': introEmergenceProgress,
+    '--princess-profile-visual-scale': moduleProfile?.visualScale || 1,
   } as CSSProperties;
 
   const walkStyle = {
@@ -2525,22 +2533,16 @@ export default function PrincessPet({
       `frame: ${currentFrame.split('/').pop()?.replace('.png', '') || currentFrame}`,
     ].join(' | ')
     : null;
-  const moduleProfile = resolveCompanionRoute(
-    typeof window === 'undefined' ? '/' : window.location.pathname,
-    typeof window === 'undefined' ? '' : window.location.hash,
-  );
-  const accessory = moduleProfile.accessory;
-  const isModuleBasePose = petState === moduleProfile.pose;
-  const preservesModuleVisual = isModuleBasePose || isModuleInactivity;
+  const accessory = moduleProfile.baseAccessory;
   const displayedFrame = getCompanionDisplayedAsset(moduleProfile, currentFrame, petState, behaviorSource);
+  const preservesModuleVisual = displayedFrame === moduleProfile.baseImage;
+  const interactionVariant = getCompanionInteractionVariant(moduleProfile, petState);
   const accessoryAnchor = accessory !== 'none' && preservesModuleVisual
     ? getAccessoryAnchor(accessory, moduleProfile.moduleKey, getViewportSize().width, MOBILE_BREAKPOINT)
     : null;
   const accessoryVisible = Boolean(
-    accessoriesEnabled
-    && accessoryAnchor
-    && introPhase === 'active'
-    && (isModuleInactivity || !['quiet', 'sleep', 'sleeping_prone'].includes(petState)),
+    accessoryAnchor
+    && shouldShowCompanionAccessory(moduleProfile, { petState, introPhase, accessoriesEnabled }),
   );
   const accessoryStyle = accessoryAnchor ? {
     '--accessory-left': `${accessoryAnchor.left}%`,
@@ -2571,6 +2573,7 @@ export default function PrincessPet({
       data-princess-intro-phase={introPhase}
       data-companion-module={moduleProfile.moduleKey}
       data-companion-accessory={accessoryVisible ? accessory : 'none'}
+      data-companion-visual-variant={interactionVariant}
     >
       {introPhase === 'greeting' ? (
         <div className={styles.introGreeting} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-intro-greeting">

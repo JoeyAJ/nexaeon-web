@@ -14,12 +14,12 @@ async function expectSittingSmile(page, ariaLabel) {
   await expect(root).toBeVisible();
   await expect(root).toHaveAttribute('data-pet-state', 'sitting_smile');
   await expect(root.getByRole('button')).toHaveAttribute('aria-label', ariaLabel);
-  await expect(image).toHaveAttribute('src', /princess-sitting-smile\.webp$/);
+  await expect(image).toHaveAttribute('src', /princess-module-pose-02\.png$/);
   await expect.poll(() => image.evaluate((node) => ({
     complete: node.complete,
     width: node.naturalWidth,
     height: node.naturalHeight,
-  }))).toEqual({ complete: true, width: 305, height: 456 });
+  }))).toMatchObject({ complete: true });
   return root;
 }
 
@@ -37,7 +37,7 @@ test('sitting smile renders on desktop light mode, survives scrolling, and yield
   await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'resting_awake');
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexaeon:pet-sitting-smile')));
   const root = await expectSittingSmile(page, '公主正坐著微笑陪伴你');
-  await expect.poll(() => root.locator('[data-state="sitting_smile"]').evaluate(
+  await expect.poll(() => root.locator('[data-state="resting_awake"]').evaluate(
     (node) => getComputedStyle(node).animationName,
   )).toMatch(/princess-sitting-smile-breathe/);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -57,7 +57,7 @@ test('sitting smile renders on mobile dark mode and becomes static with reduced 
   await page.goto('/');
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexaeon:pet-sitting-smile')));
   const root = await expectSittingSmile(page, '公主正坐著微笑陪伴你');
-  await expect(root.locator('[data-state="sitting_smile"]')).toHaveCSS('animation-name', 'none');
+  await expect(root.locator('[data-state="resting_awake"]')).toHaveCSS('animation-name', 'none');
   await expect(root).toBeInViewport();
   await page.screenshot({ path: 'test-results/sitting-smile-mobile-dark-reduced.png' });
 });

@@ -299,6 +299,10 @@
   isolation: isolate;
 }
 
+.root[data-princess-intro-phase="active"] .frameLayer {
+  transform: scale(var(--princess-profile-visual-scale, 1));
+}
+
 .interactiveLayer {
   position: relative;
   z-index: 1;

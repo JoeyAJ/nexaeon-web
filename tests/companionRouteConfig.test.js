@@ -2,14 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   COMPANION_MODULE_BUBBLE_SEEN_KEY,
+  companionAccessorySuitabilityRules,
+  companionImageSuitabilityRules,
+  companionInteractionFallbackRules,
   accessoryAnchorsByPose,
   companionModuleProfiles,
   createCompanionBubbleController,
   getCompanionBubblePosition,
   getAccessoryAnchor,
   getCompanionDisplayedAsset,
+  getCompanionInteractionVariant,
   getCompanionRouteMessage,
   resolveCompanionRoute,
+  shouldShowCompanionAccessory,
 } from '../src/lib/companionRouteConfig.js';
 
 function createStorage() {
@@ -22,18 +27,18 @@ test('real primary and child routes resolve to one centralized module profile', 
   for (const [path, hash, key] of cases) assert.equal(resolveCompanionRoute(path, hash).moduleKey, key);
 });
 
-test('Sprint 2-E emotion and accessory mapping stays within the requested scope', () => {
+test('module image profiles favor natural semantic matches over accessory coverage', () => {
   assert.deepEqual(Object.fromEntries(Object.entries(companionModuleProfiles).map(([key, value]) => [key, [value.emotion, value.accessory]])), {
-    home: ['calm', 'none'], identity: ['attentive', 'round-glasses'], research: ['curious', 'round-glasses'], coaching: ['happy', 'academic-cap'], knowledge: ['attentive', 'round-glasses'], prototype: ['curious', 'none'], action: ['attentive', 'none'], navigator: ['attentive', 'round-glasses'], fallback: ['calm', 'none'],
+    home: ['calm', 'none'], identity: ['attentive', 'none'], research: ['curious', 'none'], coaching: ['happy', 'academic-cap'], knowledge: ['attentive', 'none'], prototype: ['curious', 'none'], action: ['attentive', 'none'], navigator: ['attentive', 'none'], fallback: ['calm', 'none'],
   });
   assert.deepEqual(Object.keys(accessoryAnchorsByPose).sort(), ['academic-cap', 'round-glasses']);
+  assert.equal(Object.keys(companionImageSuitabilityRules).length, 8);
+  assert.deepEqual(companionAccessorySuitabilityRules['round-glasses'].modules, []);
+  assert.equal(companionInteractionFallbackRules.imageStrategy, 'preserve-module-base-image');
 });
 
 test('accessories use module-specific fixed anchors', () => {
-  const standingDesktop = getAccessoryAnchor('round-glasses', 'identity', 1440);
-  const standingMobile = getAccessoryAnchor('round-glasses', 'identity', 390);
-  assert.ok(standingDesktop.top > 0);
-  assert.ok(standingMobile.width < standingDesktop.width);
+  assert.equal(getAccessoryAnchor('round-glasses', 'identity', 1440), null);
   assert.equal(getAccessoryAnchor('round-glasses', 'home', 1440), null);
   assert.ok(getAccessoryAnchor('academic-cap', 'coaching', 1440));
 });
@@ -44,13 +49,23 @@ test('all eight contexts have a distinct fixed transparent pose asset', () => {
   assert.ok(assets.every((asset) => asset.endsWith('.png')));
 });
 
-test('every module preserves its fixed image throughout inactivity', () => {
+test('every module preserves its fixed image throughout interaction and inactivity', () => {
   for (const key of ['home', 'identity', 'research', 'coaching', 'knowledge', 'prototype', 'action', 'navigator']) {
     const profile = companionModuleProfiles[key];
     assert.equal(getCompanionDisplayedAsset(profile, '/legacy-sleep.png', 'sleeping_prone', 'inactivity'), profile.asset);
-    assert.equal(getCompanionDisplayedAsset(profile, '/interaction.png', 'happy', 'interaction'), '/interaction.png');
+    assert.equal(getCompanionDisplayedAsset(profile, '/interaction.png', 'happy', 'interaction'), profile.baseImage);
     assert.equal(getCompanionDisplayedAsset(profile, '/base.png', profile.pose, 'context'), profile.asset);
+    assert.ok(profile.allowedInteractionVariants.includes(getCompanionInteractionVariant(profile, 'happy')));
   }
+});
+
+test('accessory visibility follows image suitability and hides only for unsafe low-energy states', () => {
+  const coaching = companionModuleProfiles.coaching;
+  assert.equal(shouldShowCompanionAccessory(coaching, { petState: 'sitting_smile' }), true);
+  assert.equal(shouldShowCompanionAccessory(coaching, { petState: 'wave' }), true);
+  assert.equal(shouldShowCompanionAccessory(coaching, { petState: 'sleep' }), false);
+  assert.equal(shouldShowCompanionAccessory(companionModuleProfiles.research, { petState: 'standing_attentive' }), false);
+  assert.equal(shouldShowCompanionAccessory(coaching, { petState: 'sitting_smile', accessoriesEnabled: false }), false);
 });
 
 test('every bubble has exact localized copy and English fallback', () => {

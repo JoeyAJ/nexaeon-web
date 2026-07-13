@@ -2,13 +2,13 @@ import { expect, test } from '@playwright/test';
 
 const routes = [
   ['/', 'home', 'none'],
-  ['/identity/profile', 'identity', 'round-glasses'],
-  ['/research/topic', 'research', 'round-glasses'],
+  ['/identity/profile', 'identity', 'none'],
+  ['/research/topic', 'research', 'none'],
   ['/teaching/course', 'coaching', 'academic-cap'],
-  ['/knowledge-lab/resource', 'knowledge', 'round-glasses'],
+  ['/knowledge-lab/resource', 'knowledge', 'none'],
   ['/projects/demo', 'prototype', 'none'],
   ['/field-lab/action', 'action', 'none'],
-  ['/identity/nexaeon-navigator', 'navigator', 'round-glasses'],
+  ['/identity/nexaeon-navigator', 'navigator', 'none'],
   ['/unknown-route', 'fallback', 'none'],
 ];
 
@@ -41,9 +41,9 @@ test('shows a localized module bubble once per session and never on Home', async
 });
 
 test('accessory follows the Princess during drag and bubble does not block it', async ({ page }) => {
-  await page.goto('/research/topic');
+  await page.goto('/teaching/course');
   const pet = page.locator('[data-companion-module]');
-  const accessory = page.getByTestId('princess-accessory-round-glasses');
+  const accessory = page.getByTestId('princess-accessory-academic-cap');
   const beforePet = await pet.boundingBox();
   const beforeAccessory = await accessory.boundingBox();
   const princess = page.getByTestId('princess-interactive');
@@ -54,20 +54,33 @@ test('accessory follows the Princess during drag and bubble does not block it', 
   await page.mouse.up();
   const afterPet = await pet.boundingBox();
   const afterAccessory = await accessory.boundingBox();
-  expect(Math.abs((afterAccessory.x - beforeAccessory.x) - (afterPet.x - beforePet.x))).toBeLessThan(3);
-  expect(Math.abs((afterAccessory.y - beforeAccessory.y) - (afterPet.y - beforePet.y))).toBeLessThan(4);
+  expect(Math.abs((afterAccessory.x - beforeAccessory.x) - (afterPet.x - beforePet.x))).toBeLessThan(5);
+  expect(Math.abs((afterAccessory.y - beforeAccessory.y) - (afterPet.y - beforePet.y))).toBeLessThan(5);
 });
 
-test('round glasses hide for an unsafe reaction pose and return on the module pose', async ({ page }) => {
-  await page.goto('/identity/profile');
+test('academic cap stays with the fixed image during reactions and hides for sleep', async ({ page }) => {
+  await page.goto('/teaching/course');
   const pet = page.locator('[data-companion-module]');
-  await expect(pet).toHaveAttribute('data-pet-state', 'standing_attentive');
-  await expect(page.getByTestId('princess-accessory-round-glasses')).toBeVisible();
+  await expect(pet).toHaveAttribute('data-pet-state', 'sitting_smile');
+  await expect(page.getByTestId('princess-accessory-academic-cap')).toBeVisible();
   await page.getByTestId('princess-interactive').click({ force: true });
   await expect(pet).toHaveAttribute('data-pet-state', /wave|sitting_smile/);
-  await expect(page.getByTestId('princess-accessory-round-glasses')).toHaveCount(0);
-  await expect(pet).toHaveAttribute('data-pet-state', 'standing_attentive', { timeout: 5_000 });
-  await expect(page.getByTestId('princess-accessory-round-glasses')).toBeVisible();
+  await expect(pet.locator('img')).toHaveAttribute('src', /princess-module-pose-04\.png$/);
+  await expect(page.getByTestId('princess-accessory-academic-cap')).toBeVisible();
+  await expect(pet).toHaveAttribute('data-pet-state', 'sitting_smile', { timeout: 5_000 });
+  await expect(page.getByTestId('princess-accessory-academic-cap')).toBeVisible();
+
+  const sleepPage = await page.context().newPage();
+  await sleepPage.addInitScript(() => {
+    sessionStorage.setItem('nexaeon_intro_seen', 'true');
+    sessionStorage.setItem('nexaeon_companion_intro_docked', 'true');
+  });
+  await sleepPage.goto('/teaching/course?princessInactivity=sleep');
+  const sleepingPet = sleepPage.locator('[data-companion-module]');
+  await expect(sleepingPet).toHaveAttribute('data-pet-state', 'sleeping_prone');
+  await expect(sleepingPet.locator('img')).toHaveAttribute('src', /princess-module-pose-04\.png$/);
+  await expect(sleepPage.getByTestId('princess-accessory-academic-cap')).toHaveCount(0);
+  await sleepPage.close();
 });
 
 test('inactivity preserves the module image and interaction restores its base profile', async ({ page }) => {

@@ -119,7 +119,7 @@ test('Princess keeps one mounted instance and its saved layout across navigation
   await page.mouse.move(box.x + box.width / 2 - 48, box.y + box.height / 2 - 24, { steps: 3 });
   await page.mouse.up();
 
-  const savedTransform = await root.getAttribute('style');
+  const savedTransform = await root.evaluate((node) => node.style.transform);
   const storedPosition = JSON.parse(await page.evaluate(() => (
     window.localStorage.getItem('nexaeon-princess-companion-preferences')
   )));
@@ -132,12 +132,12 @@ test('Princess keeps one mounted instance and its saved layout across navigation
   await expect(page).toHaveURL(/\/research\/research-literature-database$/);
   await expect(page.locator(PET_ROOT)).toHaveCount(1);
   await expect(root).toHaveAttribute('data-persistence-marker', 'same-princess-instance');
-  await expect(root).toHaveAttribute('style', savedTransform);
+  await expect.poll(() => root.evaluate((node) => node.style.transform)).toBe(savedTransform);
 
   await page.goBack();
   await expect(page.locator(PET_ROOT)).toHaveCount(1);
   await expect(root).toHaveAttribute('data-persistence-marker', 'same-princess-instance');
-  await expect(root).toHaveAttribute('style', savedTransform);
+  await expect.poll(() => root.evaluate((node) => node.style.transform)).toBe(savedTransform);
 
   const persistentRoutes = [
     '/identity/identity-profiles',
@@ -158,18 +158,18 @@ test('Princess keeps one mounted instance and its saved layout across navigation
     await expect(page).toHaveURL(new RegExp(`${path.replaceAll('/', '\\/')}$`));
     await expect(page.locator(PET_ROOT)).toHaveCount(1);
     await expect(root).toHaveAttribute('data-persistence-marker', 'same-princess-instance');
-    await expect(root).toHaveAttribute('style', savedTransform);
+    await expect.poll(() => root.evaluate((node) => node.style.transform)).toBe(savedTransform);
   }
 
   await page.getByRole('button', { name: 'Switch to English' }).click();
   await page.getByRole('button', { name: 'Toggle theme' }).click();
   await expect(page.locator(PET_ROOT)).toHaveCount(1);
   await expect(root).toHaveAttribute('data-persistence-marker', 'same-princess-instance');
-  await expect(root).toHaveAttribute('style', savedTransform);
+  await expect.poll(() => root.evaluate((node) => node.style.transform)).toBe(savedTransform);
 
   await page.reload();
   await expect(page.locator(PET_ROOT)).toHaveCount(1);
-  await expect(page.locator(PET_ROOT)).toHaveAttribute('style', savedTransform);
+  await expect.poll(() => page.locator(PET_ROOT).evaluate((node) => node.style.transform)).toBe(savedTransform);
   assertRuntimeClean();
 });
 
@@ -272,7 +272,7 @@ test('Companion preference changes apply immediately to bubbles, accessories, mo
   await page.goto('/research/ai-in-education');
   const root = page.locator(PET_ROOT);
   const controls = page.getByTestId('princess-controls');
-  await expect(root).toHaveAttribute('data-companion-accessory', 'round-glasses');
+  await expect(root).toHaveAttribute('data-companion-accessory', 'none');
   await expect(page.getByTestId('princess-route-bubble')).toBeVisible({ timeout: 2_000 });
 
   await controls.getByRole('button', { name: '開啟 Companion 設定' }).click();
@@ -458,7 +458,7 @@ test('Princess context follows routes without remounting, respects locale, Navig
   await page.goto('/research/ai-in-education');
   await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
   await expect(page.locator(PET_BUTTON)).toHaveAttribute('aria-label', '公主正趴著安靜睡覺');
-  await expect(root.locator('img')).toHaveAttribute('src', /princess-module-pose-04\.png$/);
+  await expect(root.locator('img')).toHaveAttribute('src', /princess-module-pose-06\.png$/);
   await page.getByRole('button', { name: 'Switch to English' }).click();
   await expect(root).toHaveAttribute('data-princess-context', 'research');
   await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
@@ -497,7 +497,7 @@ test('reduced motion keeps prone sleep visible without breathing animation', asy
   await page.goto('/research/ai-in-education');
   const root = page.locator(PET_ROOT);
   await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
-  await expect(root.locator('img')).toHaveAttribute('src', /princess-module-pose-04\.png$/);
+  await expect(root.locator('img')).toHaveAttribute('src', /princess-module-pose-06\.png$/);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
   await expect.poll(() => root.locator('[class*="aliveLayer"]').evaluate((node) => getComputedStyle(node).animationName))
