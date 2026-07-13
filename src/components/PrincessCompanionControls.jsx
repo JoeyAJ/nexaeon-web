@@ -160,6 +160,7 @@ export default function PrincessCompanionControls({
 
       <button
         ref={triggerRef}
+        data-princess-settings-trigger="true"
         className={styles.trigger}
         type="button"
         aria-label={copy.open}

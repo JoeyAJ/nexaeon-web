@@ -18,6 +18,7 @@ import {
 } from './lib/princessLayoutPersistence.js';
 import { createPrincessEventBridge } from './lib/princessEventBridge.ts';
 import { createPrincessModuleActivityAdapter } from './lib/princessModuleActivity.ts';
+import { hasSeenCompanionIntro } from './lib/companionIntro.js';
 import { createNexonFusionOrchestrator } from './lib/nexonFusionOrchestrator.ts';
 import { resolvePrincessContext } from './lib/princessContextResolver.js';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
@@ -66,6 +67,10 @@ export default function App() {
     ...parseRoute(window.location.pathname),
     hash: window.location.hash,
   }));
+  const [companionIntroActive, setCompanionIntroActive] = useState(() => (
+    parseRoute(window.location.pathname).kind === 'home'
+    && !hasSeenCompanionIntro(window.sessionStorage)
+  ));
   const princessEventBridge = useMemo(() => createPrincessEventBridge({ debug: import.meta.env.DEV }), []);
   const navigatorActivity = useMemo(() => createPrincessModuleActivityAdapter(princessEventBridge, 'navigator'), [princessEventBridge]);
   const nexonFusionOrchestrator = useMemo(() => createNexonFusionOrchestrator({
@@ -286,6 +291,8 @@ export default function App() {
             theme={theme}
             setTheme={setTheme}
             navigate={navigate}
+            playIntro={companionIntroActive}
+            onIntroComplete={() => setCompanionIntroActive(false)}
           />
         )}
       </AppErrorBoundary>
@@ -293,8 +300,9 @@ export default function App() {
         lang={lang}
         navigationKey={companionNavigationKey}
         visible={companionSettings.visible}
-        autoBehaviorEnabled={companionSettings.autoBehaviorEnabled}
-        interactionEnabled={companionSettings.interactionEnabled}
+        autoBehaviorEnabled={companionSettings.autoBehaviorEnabled && !companionIntroActive}
+        interactionEnabled={companionSettings.interactionEnabled && !companionIntroActive}
+        introActive={companionIntroActive}
         resetPositionToken={resetPositionToken}
         resetSizeToken={resetSizeToken}
         eventBridge={princessEventBridge}

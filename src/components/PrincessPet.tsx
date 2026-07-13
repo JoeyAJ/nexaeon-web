@@ -38,6 +38,12 @@ import {
   getPrincessSessionStorage,
 } from '../lib/princessPresenceController.js';
 import { princessAnimations } from '../lib/princessPetAnimations';
+import {
+  COMPANION_INTRO_EVENT,
+  INTRO_GREETING,
+  hasCompanionIntroDocked,
+  markCompanionIntroDocked,
+} from '../lib/companionIntro.js';
 import type { PrincessEventBridge } from '../lib/princessEventBridge';
 import {
   PRINCESS_STATES,
@@ -400,6 +406,7 @@ type PrincessPetProps = {
   resetSizeToken?: number;
   eventBridge?: PrincessEventBridge;
   contextProfile?: (typeof PRINCESS_CONTEXT_PROFILES)[keyof typeof PRINCESS_CONTEXT_PROFILES];
+  introActive?: boolean;
 };
 
 export default function PrincessPet({
@@ -412,6 +419,7 @@ export default function PrincessPet({
   resetSizeToken = 0,
   eventBridge,
   contextProfile = PRINCESS_CONTEXT_PROFILES.generic,
+  introActive = false,
 }: PrincessPetProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const debugPreviewState = useMemo(getDevPreviewState, []);
@@ -441,6 +449,9 @@ export default function PrincessPet({
   const [scale, setScale] = useState<PetScale>(initialLayout.scale);
   const [isDragging, setIsDragging] = useState(false);
   const [routeBubble, setRouteBubble] = useState<ReturnType<typeof resolveCompanionRoute> | null>(null);
+  const [introPhase, setIntroPhase] = useState(introActive ? 'dormant' : 'active');
+  const [introMaterializeProgress, setIntroMaterializeProgress] = useState(0);
+  const [introEmergenceProgress, setIntroEmergenceProgress] = useState(0);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const interactiveRef = useRef<HTMLButtonElement | null>(null);
@@ -505,6 +516,8 @@ export default function PrincessPet({
   const routeBubbleVisibleRef = useRef(false);
   const pointerHoveringRef = useRef(false);
   const bubbleControllerRef = useRef<ReturnType<typeof createCompanionBubbleController> | null>(null);
+  const introSpawnPositionRef = useRef<PetPosition | null>(null);
+  const introDockedRef = useRef(hasCompanionIntroDocked(getPrincessSessionStorage(typeof window === 'undefined' ? null : window)));
 
   if (bubbleControllerRef.current === null) {
     bubbleControllerRef.current = createCompanionBubbleController({ onChange: (next) => {
@@ -595,6 +608,118 @@ export default function PrincessPet({
   useEffect(() => {
     scaleRef.current = scale;
   }, [scale]);
+
+  const getDockPosition = useCallback(() => {
+    const trigger = document.querySelector('[data-princess-settings-trigger="true"]');
+    const triggerRect = trigger?.getBoundingClientRect();
+    const size = getPetSize(rootRef.current);
+    const visualOverflow = Math.max(0, (size.width * PET_VISUAL_WIDTH_MULTIPLIER * scaleRef.current - size.width) / 2);
+    const gap = window.innerWidth <= MOBILE_BREAKPOINT ? 6 : 10;
+    const target = triggerRect
+      ? {
+        x: triggerRect.right + gap + visualOverflow,
+        y: triggerRect.bottom - size.height,
+      }
+      : getDefaultPetPosition(rootRef.current, scaleRef.current, 'bottomLeft');
+    const viewport = getViewportSize();
+    return clampPrincessPosition({
+      position: target,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
+      safeArea: { ...getPetSafeArea(viewport.width), bottom: 12 },
+      size,
+      scale: scaleRef.current,
+      visualWidthMultiplier: PET_VISUAL_WIDTH_MULTIPLIER,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!introActive) {
+      setIntroPhase('active');
+      return undefined;
+    }
+
+    const handleIntro = (event: Event) => {
+      const detail = (event as CustomEvent).detail || {};
+      const nextPhase = detail.phase || 'dormant';
+      const size = getPetSize(rootRef.current);
+      const lightPoint = detail.lightPoint;
+      if (lightPoint && Number.isFinite(lightPoint.x) && Number.isFinite(lightPoint.y)) {
+        introSpawnPositionRef.current = clampPetPosition({
+          x: lightPoint.x - size.width / 2,
+          y: lightPoint.y - size.height * 0.72,
+        }, scaleRef.current, rootRef.current);
+      }
+      const spawn = introSpawnPositionRef.current || clampPetPosition({
+        x: window.innerWidth / 2 - size.width / 2,
+        y: window.innerHeight / 2 - size.height * 0.72,
+      }, scaleRef.current, rootRef.current);
+      const dock = getDockPosition();
+
+      if (nextPhase === 'active') {
+        positionRef.current = dock;
+        setPosition(dock);
+        writeStoredPosition(dock);
+        introDockedRef.current = true;
+        markCompanionIntroDocked(getPrincessSessionStorage(window), true);
+        setIntroPhase('active');
+        setIntroMaterializeProgress(1);
+        setIntroEmergenceProgress(1);
+        return;
+      }
+      if (nextPhase === 'docking') {
+        const progress = Math.min(1, Math.max(0, detail.dockingProgress || 0));
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const nextPosition = {
+          x: spawn.x + (dock.x - spawn.x) * eased,
+          y: spawn.y + (dock.y - spawn.y) * eased,
+        };
+        positionRef.current = nextPosition;
+        setPosition(nextPosition);
+      } else if (nextPhase !== 'greeting' || detail.reducedMotion !== true) {
+        positionRef.current = spawn;
+        setPosition(spawn);
+      } else {
+        positionRef.current = dock;
+        setPosition(dock);
+      }
+      setIntroPhase(nextPhase);
+      setIntroMaterializeProgress(detail.materializeProgress || 0);
+      setIntroEmergenceProgress(detail.emergenceProgress || 0);
+    };
+
+    window.addEventListener(COMPANION_INTRO_EVENT, handleIntro);
+    return () => window.removeEventListener(COMPANION_INTRO_EVENT, handleIntro);
+  }, [getDockPosition, introActive]);
+
+  useEffect(() => {
+    if (introActive || contextProfile.id !== 'home' || readStoredPosition()) return;
+    const frame = window.requestAnimationFrame(() => {
+      const dock = getDockPosition();
+      positionRef.current = dock;
+      setPosition(dock);
+      writeStoredPosition(dock);
+      introDockedRef.current = true;
+      markCompanionIntroDocked(getPrincessSessionStorage(window), true);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [contextProfile.id, getDockPosition, introActive]);
+
+  useEffect(() => {
+    const applyIntroDock = () => {
+      if (!introDockedRef.current || contextProfileRef.current.id !== 'home') return;
+      const dock = getDockPosition();
+      positionRef.current = dock;
+      setPosition(dock);
+      writeStoredPosition(dock);
+    };
+    const frame = window.requestAnimationFrame(applyIntroDock);
+    const unsubscribe = subscribePrincessViewportChanges(window, applyIntroDock);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      unsubscribe();
+    };
+  }, [getDockPosition]);
 
   const clearTimer = useCallback((timerRef: { current: number | null }) => {
     if (timerRef.current !== null) {
@@ -1863,6 +1988,8 @@ export default function PrincessPet({
   const beginDrag = useCallback(() => {
     noteUserInteraction({ immediate: true, type: 'princessDragStart' });
     isDraggingRef.current = true;
+    introDockedRef.current = false;
+    markCompanionIntroDocked(getPrincessSessionStorage(window), false);
     setIsDragging(true);
     clearTimer(longPressTimeoutRef);
     clearTimer(hoverDebounceTimeoutRef);
@@ -2228,6 +2355,8 @@ export default function PrincessPet({
   const rootStyle = {
     transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
     '--princess-pose-transition-duration': `${COMPANION_BEHAVIOR_TIMING.transition}ms`,
+    '--princess-intro-materialize': introMaterializeProgress,
+    '--princess-intro-emergence': introEmergenceProgress,
   } as CSSProperties;
 
   const walkStyle = {
@@ -2305,8 +2434,13 @@ export default function PrincessPet({
       data-pet-interaction={interactionEnabled ? 'true' : 'false'}
       data-princess-context={contextProfile.id}
       data-pet-debug-state={debugPreviewState || undefined}
+      data-princess-intro-phase={introPhase}
     >
-      {routeBubble && getPrincessStatePriority(petState, isDragging) <= 1 ? (
+      {introPhase === 'greeting' ? (
+        <div className={styles.introGreeting} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-intro-greeting">
+          {INTRO_GREETING[lang] || INTRO_GREETING.en}
+        </div>
+      ) : routeBubble && introPhase === 'active' && getPrincessStatePriority(petState, isDragging) <= 1 ? (
         <div className={styles.routeBubble} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-route-bubble">
           {getCompanionRouteMessage(routeBubble, lang)}
         </div>
@@ -2318,6 +2452,7 @@ export default function PrincessPet({
               <button
                 ref={interactiveRef}
                 type="button"
+                disabled={introPhase !== 'active'}
                 data-testid="princess-interactive"
                 className={styles.interactiveLayer}
                 aria-label={stateAriaLabel || (interactionEnabled ? interactionLabel.enabled : interactionLabel.disabled)}

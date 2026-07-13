@@ -4,29 +4,17 @@ import ModuleAgentEntry, { ModuleAgentIndicator } from './ModuleAgentEntry.jsx';
 import NeuralBackground from './NeuralBackground.jsx';
 import { getLocalizedSite } from '../lib/contentSource.js';
 import { dispatchPetCurious } from '../lib/petEvents.js';
+import {
+  dispatchCompanionIntro,
+  getCompanionIntroFrame,
+  mapVideoPointToViewport,
+  markCompanionIntroSeen,
+} from '../lib/companionIntro.js';
 import { toDetailPath } from '../utils/router.js';
-
-const INTRO_SEEN_KEY = 'nexaeon_intro_seen';
 
 function renderMetaLabel(label) {
   if (!label.includes('№') && !label.includes('No.')) return label;
   return label.replace('№', 'No.');
-}
-
-function hasSeenIntro() {
-  try {
-    return window.sessionStorage.getItem(INTRO_SEEN_KEY) === 'true';
-  } catch {
-    return false;
-  }
-}
-
-function markIntroSeen() {
-  try {
-    window.sessionStorage.setItem(INTRO_SEEN_KEY, 'true');
-  } catch {
-    // The intro should still close if storage is unavailable.
-  }
 }
 
 function getModuleIdFromHash(hash, modules) {
@@ -47,19 +35,92 @@ function formatEntryCount(count, lang) {
   return `${count} 個入口`;
 }
 
-function IntroOverlay({ skipLabel, phase, onSkip, onEnded }) {
+function IntroOverlay({ skipLabel, phase, onComplete }) {
   const videoRef = useRef(null);
+  const frameRef = useRef(null);
+  const metadataWatchdogRef = useRef(null);
+  const playbackWatchdogRef = useRef(null);
+  const completedRef = useRef(false);
+
+  const completeIntro = useCallback((reason) => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    if (metadataWatchdogRef.current) clearTimeout(metadataWatchdogRef.current);
+    if (playbackWatchdogRef.current) clearTimeout(playbackWatchdogRef.current);
+    const video = videoRef.current;
+    if (video && reason !== 'completed') video.pause();
+    markCompanionIntroSeen(window.sessionStorage);
+    dispatchCompanionIntro({ phase: 'active', reason });
+    onComplete(reason);
+  }, [onComplete]);
+
+  const getLightPoint = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return null;
+    return mapVideoPointToViewport({
+      videoRect: video.getBoundingClientRect(),
+      videoWidth: video.videoWidth,
+      videoHeight: video.videoHeight,
+      objectFit: getComputedStyle(video).objectFit,
+    });
+  }, []);
+
+  const tick = useCallback(function tickFrame() {
+    const video = videoRef.current;
+    if (!video || completedRef.current) return;
+    const introFrame = getCompanionIntroFrame(video.currentTime);
+    dispatchCompanionIntro({ ...introFrame, lightPoint: getLightPoint() });
+    if (introFrame.phase === 'active') {
+      completeIntro('completed');
+      return;
+    }
+    frameRef.current = requestAnimationFrame(tickFrame);
+  }, [completeIntro, getLightPoint]);
+
+  const handleLoadedMetadata = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(video.duration) || video.duration <= 0) {
+      completeIntro('video-error');
+      return;
+    }
+    dispatchCompanionIntro({ phase: 'dormant', lightPoint: getLightPoint() });
+    const playPromise = video.play();
+    playPromise?.catch(() => completeIntro('autoplay-blocked'));
+    playbackWatchdogRef.current = window.setTimeout(() => {
+      if (video.paused || video.currentTime < 0.05) completeIntro('autoplay-blocked');
+    }, 1_500);
+    if (!frameRef.current) frameRef.current = requestAnimationFrame(tick);
+  }, [completeIntro, getLightPoint, tick]);
+
+  const handleStalled = useCallback(() => {
+    const video = videoRef.current;
+    if (video && video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) completeIntro('video-error');
+  }, [completeIntro]);
 
   useEffect(() => {
     const video = videoRef.current;
+    metadataWatchdogRef.current = window.setTimeout(() => {
+      if (!video || video.readyState < HTMLMediaElement.HAVE_METADATA) completeIntro('video-error');
+    }, 4_000);
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reducedMotion.matches) {
+      dispatchCompanionIntro({ phase: 'greeting', reducedMotion: true });
+      const reducedTimer = window.setTimeout(() => completeIntro('reduced-motion'), 900);
+      return () => window.clearTimeout(reducedTimer);
+    }
 
     return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+      if (metadataWatchdogRef.current) clearTimeout(metadataWatchdogRef.current);
+      if (playbackWatchdogRef.current) clearTimeout(playbackWatchdogRef.current);
       if (!video) return;
       video.pause();
       video.removeAttribute('src');
       video.load();
     };
-  }, []);
+  }, [completeIntro]);
 
   return (
     <div className={`intro-overlay ${phase === 'fading' ? 'is-fading' : ''}`} aria-hidden={phase === 'done'}>
@@ -71,10 +132,13 @@ function IntroOverlay({ skipLabel, phase, onSkip, onEnded }) {
         muted
         playsInline
         preload="auto"
-        onEnded={onEnded}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={() => completeIntro('completed')}
+        onError={() => completeIntro('video-error')}
+        onStalled={handleStalled}
       />
       <div className="intro-overlay-gradient" />
-      <button className="intro-skip-btn" onClick={onSkip} aria-label={skipLabel}>
+      <button className="intro-skip-btn" type="button" onClick={() => completeIntro('skipped')} aria-label={skipLabel}>
         {skipLabel}
       </button>
     </div>
@@ -359,13 +423,13 @@ function Footer({ content, modules, setActiveModuleId, navigate }) {
   );
 }
 
-export default function DirectionB({ lang, setLang, theme, setTheme, navigate }) {
+export default function DirectionB({ lang, setLang, theme, setTheme, navigate, playIntro = false, onIntroComplete }) {
   const rootRef = useRef(null);
   const introTimerRef = useRef(null);
   const content = getLocalizedSite(lang);
   const modules = content.modules;
   const [activeModuleId, setActiveModuleId] = useState(() => getModuleIdFromHash(window.location.hash, modules));
-  const [introPhase, setIntroPhase] = useState(() => (hasSeenIntro() ? 'done' : 'playing'));
+  const [introPhase, setIntroPhase] = useState(() => (playIntro ? 'playing' : 'done'));
 
   useEffect(() => {
     const el = rootRef.current;
@@ -411,14 +475,14 @@ export default function DirectionB({ lang, setLang, theme, setTheme, navigate })
     };
   }, [introPhase]);
 
-  const closeIntro = useCallback(() => {
+  const closeIntro = useCallback((reason = 'completed') => {
     if (introPhase !== 'playing') return;
-    markIntroSeen();
     setIntroPhase('fading');
     introTimerRef.current = window.setTimeout(() => {
       setIntroPhase('done');
+      onIntroComplete?.(reason);
     }, 420);
-  }, [introPhase]);
+  }, [introPhase, onIntroComplete]);
 
   useEffect(() => {
     return () => {
@@ -441,8 +505,7 @@ export default function DirectionB({ lang, setLang, theme, setTheme, navigate })
         <IntroOverlay
           skipLabel={content.common.skipIntro}
           phase={introPhase}
-          onSkip={closeIntro}
-          onEnded={closeIntro}
+          onComplete={closeIntro}
         />
       ) : null}
       <NeuralBackground />

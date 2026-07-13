@@ -15,6 +15,69 @@
   will-change: transform;
 }
 
+.root[data-princess-intro-phase="dormant"] {
+  opacity: 0;
+}
+
+.root[data-princess-intro-phase="materializing"] .frameLayer {
+  opacity: calc(0.08 + var(--princess-intro-materialize) * 0.72);
+  filter:
+    blur(calc((1 - var(--princess-intro-materialize)) * 8px))
+    brightness(calc(1.7 - var(--princess-intro-materialize) * 0.45))
+    drop-shadow(0 0 calc(10px + var(--princess-intro-materialize) * 18px) rgb(128 194 255 / 72%));
+  transform: translateY(calc((1 - var(--princess-intro-materialize)) * 10px)) scale(calc(0.9 + var(--princess-intro-materialize) * 0.08));
+}
+
+.root[data-princess-intro-phase="emerging"] .frameLayer {
+  opacity: 1;
+  filter: brightness(calc(1.25 - var(--princess-intro-emergence) * 0.25)) drop-shadow(0 0 18px rgb(142 175 255 / 55%));
+  animation: princess-intro-emerge 600ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+}
+
+.root[data-princess-intro-phase="greeting"] .interactiveLayer,
+.root[data-princess-intro-phase="docking"] .interactiveLayer,
+.root[data-princess-intro-phase="materializing"] .interactiveLayer,
+.root[data-princess-intro-phase="emerging"] .interactiveLayer,
+.root[data-princess-intro-phase="dormant"] .interactiveLayer {
+  pointer-events: none;
+}
+
+.introGreeting {
+  position: absolute;
+  left: calc(100% - 14px);
+  bottom: calc(68% + 12px);
+  width: max-content;
+  max-width: min(340px, calc(100vw - 32px));
+  padding: 11px 15px;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 5px 18px 18px 18px;
+  background: rgb(13 19 36 / 76%);
+  box-shadow: 0 14px 38px rgb(0 0 0 / 22%), inset 0 1px 0 rgb(255 255 255 / 12%);
+  backdrop-filter: blur(16px) saturate(145%);
+  color: rgb(248 250 255 / 97%);
+  font-size: clamp(12px, 1vw, 14px);
+  line-height: 1.55;
+  pointer-events: none;
+  animation: princess-intro-greeting-in 260ms ease-out both;
+}
+
+:global([data-theme="light"]) .introGreeting {
+  border-color: rgb(47 73 125 / 18%);
+  background: rgb(248 251 255 / 84%);
+  color: rgb(17 30 54 / 96%);
+}
+
+@keyframes princess-intro-emerge {
+  0% { transform: translateY(18px) scale(0.9); }
+  62% { transform: translateY(-7px) scale(1.035); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes princess-intro-greeting-in {
+  from { opacity: 0; transform: translateY(7px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .routeBubble {
   position: absolute;
   right: calc(100% - 12px);
@@ -425,10 +488,27 @@
     --princess-pet-width: clamp(76px, 22vw, 98px);
   }
 
+  .introGreeting {
+    left: auto;
+    right: calc(100% - 16px);
+    bottom: calc(70% + 8px);
+    max-width: min(260px, calc(100vw - 24px));
+    border-radius: 18px 5px 18px 18px;
+  }
+
   .routeBubble {
     right: -8px;
     bottom: calc(100% - 12px);
     max-width: min(260px, calc(100vw - 28px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root[data-princess-intro-phase] .frameLayer,
+  .introGreeting {
+    filter: none;
+    animation: none;
+    transition: none;
   }
 }
 

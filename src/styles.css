@@ -172,6 +172,10 @@ body {
   min-height: 100vh;
 }
 
+.direction-shell {
+  overflow-x: clip;
+}
+
 .liquid-page-shell::before,
 .liquid-page-shell::after {
   content: '';
