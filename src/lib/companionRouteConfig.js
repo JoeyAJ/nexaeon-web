@@ -15,39 +15,35 @@ const messages = {
 const profile = (value) => Object.freeze({ duration: COMPANION_BUBBLE_DURATION, priority: 30, cooldown: 'session', ...value });
 
 export const companionModuleProfiles = Object.freeze({
-  home: profile({ moduleKey: 'home', emotion: 'calm', pose: 'resting_awake', accessory: 'none', bubbleKey: null }),
-  identity: profile({ moduleKey: 'identity', emotion: 'attentive', pose: 'standing_attentive', accessory: 'round-glasses', bubbleKey: 'identity', messages: messages.identity }),
-  research: profile({ moduleKey: 'research', emotion: 'curious', pose: 'standing_attentive', accessory: 'round-glasses', bubbleKey: 'research', messages: messages.research }),
-  coaching: profile({ moduleKey: 'coaching', emotion: 'happy', pose: 'sitting_smile', accessory: 'academic-cap', bubbleKey: 'coaching', messages: messages.coaching }),
-  knowledge: profile({ moduleKey: 'knowledge', emotion: 'attentive', pose: 'standing_attentive', accessory: 'round-glasses', bubbleKey: 'knowledge', messages: messages.knowledge }),
-  prototype: profile({ moduleKey: 'prototype', emotion: 'curious', pose: 'standing_attentive', accessory: 'none', bubbleKey: 'prototype', messages: messages.prototype }),
-  action: profile({ moduleKey: 'action', emotion: 'attentive', pose: 'standing_attentive', accessory: 'none', bubbleKey: 'action', messages: messages.action }),
-  navigator: profile({ moduleKey: 'navigator', emotion: 'attentive', pose: 'standing_attentive', accessory: 'round-glasses', bubbleKey: 'navigator', messages: messages.navigator }),
-  fallback: profile({ moduleKey: 'fallback', emotion: 'calm', pose: 'resting_awake', accessory: 'none', bubbleKey: null }),
+  home: profile({ moduleKey: 'home', emotion: 'calm', pose: 'resting_awake', asset: '/pet/princess/module-poses/princess-module-pose-02.png', accessory: 'none', bubbleKey: null }),
+  identity: profile({ moduleKey: 'identity', emotion: 'attentive', pose: 'standing_attentive', asset: '/pet/princess/module-poses/princess-module-pose-01.png', accessory: 'round-glasses', bubbleKey: 'identity', messages: messages.identity }),
+  research: profile({ moduleKey: 'research', emotion: 'curious', pose: 'standing_attentive', asset: '/pet/princess/module-poses/princess-module-pose-04.png', accessory: 'round-glasses', bubbleKey: 'research', messages: messages.research }),
+  coaching: profile({ moduleKey: 'coaching', emotion: 'happy', pose: 'sitting_smile', asset: '/pet/princess/module-poses/princess-module-pose-03.png', accessory: 'academic-cap', bubbleKey: 'coaching', messages: messages.coaching }),
+  knowledge: profile({ moduleKey: 'knowledge', emotion: 'attentive', pose: 'standing_attentive', asset: '/pet/princess/module-poses/princess-module-pose-05.png', accessory: 'round-glasses', bubbleKey: 'knowledge', messages: messages.knowledge }),
+  prototype: profile({ moduleKey: 'prototype', emotion: 'curious', pose: 'standing_attentive', asset: '/pet/princess/module-poses/princess-module-pose-07.png', accessory: 'none', bubbleKey: 'prototype', messages: messages.prototype }),
+  action: profile({ moduleKey: 'action', emotion: 'attentive', pose: 'standing_attentive', asset: '/pet/princess/module-poses/princess-module-pose-08.png', accessory: 'none', bubbleKey: 'action', messages: messages.action }),
+  navigator: profile({ moduleKey: 'navigator', emotion: 'attentive', pose: 'standing_attentive', asset: '/pet/princess/module-poses/princess-module-pose-06.png', accessory: 'round-glasses', bubbleKey: 'navigator', messages: messages.navigator }),
+  fallback: profile({ moduleKey: 'fallback', emotion: 'calm', pose: 'resting_awake', asset: '/pet/princess/module-poses/princess-module-pose-02.png', accessory: 'none', bubbleKey: null }),
 });
 
 // Percentages are relative to the existing Princess frame, so overlays follow drag and scale.
 export const accessoryAnchorsByPose = Object.freeze({
   'round-glasses': Object.freeze({
-    standing_attentive: Object.freeze({
-      desktop: Object.freeze({ left: 54, top: 55, width: 34, rotate: -1 }),
-      mobile: Object.freeze({ left: 54, top: 56, width: 31, rotate: -1 }),
-    }),
-    idle: Object.freeze({
-      desktop: Object.freeze({ left: 50, top: 60, width: 31, rotate: 0 }),
-      mobile: Object.freeze({ left: 50, top: 61, width: 29, rotate: 0 }),
-    }),
+    identity: Object.freeze({ desktop: Object.freeze({ left: 50, top: 43, width: 36, rotate: 0 }), mobile: Object.freeze({ left: 50, top: 44, width: 34, rotate: 0 }) }),
+    research: Object.freeze({ desktop: Object.freeze({ left: 50, top: 46, width: 37, rotate: 0 }), mobile: Object.freeze({ left: 50, top: 47, width: 35, rotate: 0 }) }),
+    knowledge: Object.freeze({ desktop: Object.freeze({ left: 50, top: 43, width: 36, rotate: 0 }), mobile: Object.freeze({ left: 50, top: 44, width: 34, rotate: 0 }) }),
+    navigator: Object.freeze({ desktop: Object.freeze({ left: 50, top: 47, width: 36, rotate: -1 }), mobile: Object.freeze({ left: 50, top: 48, width: 34, rotate: -1 }) }),
   }),
   'academic-cap': Object.freeze({
-    sitting_smile: Object.freeze({
+    coaching: Object.freeze({
       desktop: Object.freeze({ left: 50, top: 7, width: 45, rotate: 0 }),
       mobile: Object.freeze({ left: 50, top: 8, width: 41, rotate: 0 }),
     }),
   }),
 });
 
-export function getAccessoryAnchor(accessory, pose, viewportWidth, mobileBreakpoint = 520) {
-  const anchors = accessoryAnchorsByPose[accessory]?.[pose];
+export function getAccessoryAnchor(accessory, moduleKey, viewportWidth, mobileBreakpoint = 520) {
+  const anchors = accessoryAnchorsByPose[accessory]?.[moduleKey];
   if (!anchors) return null;
   return viewportWidth <= mobileBreakpoint ? anchors.mobile : anchors.desktop;
 }

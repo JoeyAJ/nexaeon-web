@@ -28,16 +28,19 @@ test('Sprint 2-E emotion and accessory mapping stays within the requested scope'
   assert.deepEqual(Object.keys(accessoryAnchorsByPose).sort(), ['academic-cap', 'round-glasses']);
 });
 
-test('round glasses use pose-specific anchors and hide on unsafe angles', () => {
-  const standingDesktop = getAccessoryAnchor('round-glasses', 'standing_attentive', 1440);
-  const standingMobile = getAccessoryAnchor('round-glasses', 'standing_attentive', 390);
-  const idleDesktop = getAccessoryAnchor('round-glasses', 'idle', 1440);
-  assert.notDeepEqual(standingDesktop, idleDesktop);
-  assert.ok(standingDesktop.top > 50);
+test('accessories use module-specific fixed anchors', () => {
+  const standingDesktop = getAccessoryAnchor('round-glasses', 'identity', 1440);
+  const standingMobile = getAccessoryAnchor('round-glasses', 'identity', 390);
+  assert.ok(standingDesktop.top > 0);
   assert.ok(standingMobile.width < standingDesktop.width);
-  for (const pose of ['curious', 'wave', 'happy', 'quiet', 'sleep', 'sleeping_prone', 'attentive_portrait']) {
-    assert.equal(getAccessoryAnchor('round-glasses', pose, 1440), null);
-  }
+  assert.equal(getAccessoryAnchor('round-glasses', 'home', 1440), null);
+  assert.ok(getAccessoryAnchor('academic-cap', 'coaching', 1440));
+});
+
+test('all eight contexts have a distinct fixed transparent pose asset', () => {
+  const assets = ['home', 'identity', 'research', 'coaching', 'knowledge', 'prototype', 'action', 'navigator'].map((key) => companionModuleProfiles[key].asset);
+  assert.equal(new Set(assets).size, 8);
+  assert.ok(assets.every((asset) => asset.endsWith('.png')));
 });
 
 test('every bubble has exact localized copy and English fallback', () => {

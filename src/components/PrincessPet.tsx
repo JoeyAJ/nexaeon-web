@@ -2478,8 +2478,10 @@ export default function PrincessPet({
     typeof window === 'undefined' ? '' : window.location.hash,
   );
   const accessory = moduleProfile.accessory;
-  const accessoryAnchor = accessory !== 'none'
-    ? getAccessoryAnchor(accessory, petState, getViewportSize().width, MOBILE_BREAKPOINT)
+  const isModuleBasePose = petState === moduleProfile.pose;
+  const displayedFrame = isModuleBasePose ? moduleProfile.asset : currentFrame;
+  const accessoryAnchor = accessory !== 'none' && isModuleBasePose
+    ? getAccessoryAnchor(accessory, moduleProfile.moduleKey, getViewportSize().width, MOBILE_BREAKPOINT)
     : null;
   const accessoryVisible = Boolean(
     accessoryAnchor
@@ -2560,9 +2562,9 @@ export default function PrincessPet({
                 onClick={handleNativeClick}
               >
                 <img
-                  key={normalFrames.length === 1 ? currentFrame : 'animated-frame'}
+                  key={normalFrames.length === 1 ? displayedFrame : 'animated-frame'}
                   className={imageClassName}
-                  src={currentFrame}
+                  src={displayedFrame}
                   alt=""
                   draggable="false"
                   decoding="async"
