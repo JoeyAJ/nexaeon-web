@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const expectedStates = {
-  resting_awake: /princess-resting-awake-closeup\.png$/,
+  resting_awake: /princess-module-pose-02\.png$/,
   standing_attentive: /princess-standing-attentive\.png$/,
   sitting_smile: /princess-sitting-smile\.webp$/,
 };

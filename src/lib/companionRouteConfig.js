@@ -48,6 +48,12 @@ export function getAccessoryAnchor(accessory, moduleKey, viewportWidth, mobileBr
   return viewportWidth <= mobileBreakpoint ? anchors.mobile : anchors.desktop;
 }
 
+export function getCompanionDisplayedAsset(profile, currentFrame, petState, behaviorSource) {
+  const debugInactivity = behaviorSource === 'debug' && ['rest', 'sleep', 'sleeping_prone'].includes(petState);
+  const preservesModuleImage = petState === profile?.pose || behaviorSource === 'inactivity' || debugInactivity;
+  return preservesModuleImage && profile?.asset ? profile.asset : currentFrame;
+}
+
 export function resolveCompanionRoute(pathname = '/', hash = '') {
   const path = pathname.replace(/\/+$/, '') || '/';
   if (path === '/identity/nexaeon-navigator') return companionModuleProfiles.navigator;

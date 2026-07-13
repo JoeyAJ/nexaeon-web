@@ -222,8 +222,10 @@ export function createPrincessPresenceController({
     currentContextId = nextContextId;
     currentContextProfile = nextProfile;
     contextEnteredAt = nowFn();
+    lastActivityAt = contextEnteredAt;
+    applyPersistentState(PRINCESS_PERSISTENT_STATES.ACTIVE_IDLE, `activity:${reason}`, { force: true });
     persist();
-    evaluate('context_change');
+    if (running) schedule();
     debug({ action: 'context_changed', previousContext: previous, nextContext: nextContextId, reason });
     return true;
   };

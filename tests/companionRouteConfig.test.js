@@ -7,6 +7,7 @@ import {
   createCompanionBubbleController,
   getCompanionBubblePosition,
   getAccessoryAnchor,
+  getCompanionDisplayedAsset,
   getCompanionRouteMessage,
   resolveCompanionRoute,
 } from '../src/lib/companionRouteConfig.js';
@@ -41,6 +42,15 @@ test('all eight contexts have a distinct fixed transparent pose asset', () => {
   const assets = ['home', 'identity', 'research', 'coaching', 'knowledge', 'prototype', 'action', 'navigator'].map((key) => companionModuleProfiles[key].asset);
   assert.equal(new Set(assets).size, 8);
   assert.ok(assets.every((asset) => asset.endsWith('.png')));
+});
+
+test('every module preserves its fixed image throughout inactivity', () => {
+  for (const key of ['home', 'identity', 'research', 'coaching', 'knowledge', 'prototype', 'action', 'navigator']) {
+    const profile = companionModuleProfiles[key];
+    assert.equal(getCompanionDisplayedAsset(profile, '/legacy-sleep.png', 'sleeping_prone', 'inactivity'), profile.asset);
+    assert.equal(getCompanionDisplayedAsset(profile, '/interaction.png', 'happy', 'interaction'), '/interaction.png');
+    assert.equal(getCompanionDisplayedAsset(profile, '/base.png', profile.pose, 'context'), profile.asset);
+  }
 });
 
 test('every bubble has exact localized copy and English fallback', () => {

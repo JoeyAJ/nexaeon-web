@@ -77,6 +77,16 @@ export type CompanionBehavior = Readonly<{
   pose: string;
 }>;
 
+export type CompanionMotionVariant = 'base' | 'resting' | 'sleepy';
+
+export function getCompanionMotionVariant(
+  source: CompanionBehaviorSource,
+  emotion: CompanionEmotion,
+): CompanionMotionVariant {
+  if (![COMPANION_BEHAVIOR_SOURCES.INACTIVITY, COMPANION_BEHAVIOR_SOURCES.DEBUG].includes(source)) return 'base';
+  return emotion === COMPANION_EMOTIONS.SLEEPY ? 'sleepy' : 'resting';
+}
+
 export const COMPANION_MODULE_BEHAVIORS: Readonly<Record<string, CompanionBehavior>> = Object.freeze({
   home: Object.freeze({ emotion: COMPANION_EMOTIONS.CALM, pose: 'resting_awake' }),
   identity: Object.freeze({ emotion: COMPANION_EMOTIONS.ATTENTIVE, pose: 'standing_attentive' }),

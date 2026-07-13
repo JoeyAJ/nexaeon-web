@@ -28,7 +28,7 @@ async function expectLoadedIdlePrincess(page) {
   await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
   await expect(root).toHaveAttribute('data-pet-dragging', 'false');
   await expect.poll(() => image.evaluate((node) => ({ complete: node.complete, width: node.naturalWidth })))
-    .toEqual({ complete: true, width: 1448 });
+    .toEqual({ complete: true, width: 1085 });
 }
 
 test('Princess loads safely, refreshes, and keeps single and double clicks isolated', async ({ page }) => {
@@ -223,7 +223,7 @@ test('Companion controls persist visibility, automatic behavior, and interaction
   await expect(autoSwitch).toHaveAttribute('aria-checked', 'false');
   await expect(root).toHaveAttribute('data-pet-auto-behavior', 'false');
   await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
-  await page.getByTestId('princess-interactive').click({ force: true });
+  await page.evaluate(() => document.querySelector('[data-testid="princess-interactive"]').click());
   await expect(root).toHaveAttribute('data-pet-state', /wave|sitting_smile/);
   await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
 
@@ -416,7 +416,7 @@ test('Princess context follows routes without remounting, respects locale, Navig
   await page.goto('/research/ai-in-education');
   await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
   await expect(page.locator(PET_BUTTON)).toHaveAttribute('aria-label', '公主正趴著安靜睡覺');
-  await expect(root.locator('img')).toHaveAttribute('src', /princess-sleeping-prone\.webp$/);
+  await expect(root.locator('img')).toHaveAttribute('src', /princess-module-pose-04\.png$/);
   await page.getByRole('button', { name: 'Switch to English' }).click();
   await expect(root).toHaveAttribute('data-princess-context', 'research');
   await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
@@ -455,7 +455,7 @@ test('reduced motion keeps prone sleep visible without breathing animation', asy
   await page.goto('/research/ai-in-education');
   const root = page.locator(PET_ROOT);
   await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
-  await expect(root.locator('img')).toHaveAttribute('src', /princess-sleeping-prone\.webp$/);
+  await expect(root.locator('img')).toHaveAttribute('src', /princess-module-pose-04\.png$/);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(root).toHaveAttribute('data-pet-state', 'sleeping_prone');
   await expect.poll(() => root.locator('[class*="aliveLayer"]').evaluate((node) => getComputedStyle(node).animationName))

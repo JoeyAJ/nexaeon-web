@@ -7,6 +7,7 @@ import {
   COMPANION_EMOTIONS,
   getCompanionEventBehavior,
   getCompanionInactivityBehavior,
+  getCompanionMotionVariant,
   getCompanionModuleBehavior,
 } from '../src/lib/companionBehaviorConfig.ts';
 import { normalizeCompanionEventDetail } from '../src/lib/companionEvents.ts';
@@ -41,6 +42,13 @@ test('inactivity and interaction timing follows the Sprint 2-C thresholds', () =
   assert.ok(COMPANION_BEHAVIOR_TIMING.click.duration <= 4_000);
   assert.ok(COMPANION_BEHAVIOR_TIMING.transition >= 250);
   assert.ok(COMPANION_BEHAVIOR_TIMING.transition <= 400);
+});
+
+test('inactivity changes only the module motion variant', () => {
+  assert.equal(getCompanionMotionVariant(COMPANION_BEHAVIOR_SOURCES.CONTEXT, COMPANION_EMOTIONS.ATTENTIVE), 'base');
+  assert.equal(getCompanionMotionVariant(COMPANION_BEHAVIOR_SOURCES.INACTIVITY, COMPANION_EMOTIONS.CALM), 'resting');
+  assert.equal(getCompanionMotionVariant(COMPANION_BEHAVIOR_SOURCES.INACTIVITY, COMPANION_EMOTIONS.SLEEPY), 'sleepy');
+  assert.equal(getCompanionMotionVariant(COMPANION_BEHAVIOR_SOURCES.DEBUG, COMPANION_EMOTIONS.SLEEPY), 'sleepy');
 });
 
 test('behavior snapshots separate emotion from pose and enforce priority plus minimum hold', () => {

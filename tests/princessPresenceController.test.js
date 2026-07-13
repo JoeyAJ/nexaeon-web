@@ -224,16 +224,15 @@ test('persistent sleeping maps onto the dedicated prone sleeping animation', () 
   assert.equal(getAnimationStateForPersistent('sleeping'), 'sleeping_prone');
 });
 
-test('context change preserves activity and does not reset the persistent state', () => {
+test('context change resets inactivity and returns to active idle', () => {
   const clock = createFakeClock();
   const controller = createPrincessPresenceController({ ...clock, timing: TEST_TIMING, contextProfile: { id: 'generic' } });
   controller.start();
   clock.tick(100);
   const lastActivityAt = controller.getLastActivityAt();
-  const persistentState = controller.getPersistentState();
   assert.equal(controller.setContext({ id: 'research', presenceBias: { calm: 1, rest: 1, sleep: 1 }, allowAutoSleep: true }), true);
-  assert.equal(controller.getLastActivityAt(), lastActivityAt);
-  assert.equal(controller.getPersistentState(), persistentState);
+  assert.ok(controller.getLastActivityAt() >= lastActivityAt);
+  assert.equal(controller.getPersistentState(), PRINCESS_PERSISTENT_STATES.ACTIVE_IDLE);
 });
 
 test('same context subpage update is ignored without scheduling another transition', () => {

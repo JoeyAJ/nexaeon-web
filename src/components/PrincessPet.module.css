@@ -253,6 +253,18 @@
   transform-origin: 54% 82%;
 }
 
+.moduleRestingAlive {
+  animation: princess-module-resting 9s ease-in-out infinite alternate;
+  transform-origin: 50% 100%;
+  filter: saturate(0.94) brightness(0.96);
+}
+
+.moduleSleepyAlive {
+  animation: princess-module-sleepy 11s ease-in-out infinite alternate;
+  transform-origin: 50% 100%;
+  filter: saturate(0.86) brightness(0.9);
+}
+
 .waveAlive {
   animation:
     princess-wave-bob 1.4s ease-in-out;
@@ -448,6 +460,16 @@
   100% {
     transform: translateY(-1px) scale(1.005);
   }
+}
+
+@keyframes princess-module-resting {
+  0% { transform: translateY(0) scale(0.998) rotate(0deg); }
+  100% { transform: translateY(1px) scale(1.003) rotate(-0.25deg); }
+}
+
+@keyframes princess-module-sleepy {
+  0% { transform: translateY(0) scale(0.997) rotate(0deg); }
+  100% { transform: translateY(2px) scale(1.002) rotate(-0.45deg); }
 }
 
 @keyframes princess-walk-bob {

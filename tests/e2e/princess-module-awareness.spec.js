@@ -70,6 +70,17 @@ test('round glasses hide for an unsafe reaction pose and return on the module po
   await expect(page.getByTestId('princess-accessory-round-glasses')).toBeVisible();
 });
 
+test('inactivity preserves the module image and interaction restores its base profile', async ({ page }) => {
+  await page.goto('/?princessInactivity=sleepy');
+  const pet = page.locator('[data-companion-module]');
+  await expect(pet.locator('img')).toHaveAttribute('src', /princess-module-pose-02\.png$/);
+  await expect(pet).toHaveAttribute('data-pet-motion-variant', 'sleepy');
+  await expect(pet).toHaveAttribute('data-companion-module', 'home');
+  await page.getByTestId('princess-interactive').click({ force: true });
+  await expect(pet).toHaveAttribute('data-pet-motion-variant', 'base');
+  await expect(pet.locator('img')).toHaveAttribute('src', /princess-module-pose-02\.png$/, { timeout: 5_000 });
+});
+
 for (const width of [320, 375, 390, 430, 768, 1024, 1440]) {
   test(`keeps accessory and bubble inside a ${width}px viewport`, async ({ page }) => {
     await page.setViewportSize({ width, height: width <= 430 ? 667 : 800 });

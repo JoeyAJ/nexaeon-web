@@ -17,7 +17,7 @@ test('summon phases apply a short violet-blue bloom and recover the normal Princ
   }));
   expect(materializing.filter).toContain('drop-shadow');
   expect(materializing.haloBackground).toContain('radial-gradient');
-  expect(materializing.haloOpacity).toBeGreaterThan(0.25);
+  await expect.poll(async () => Number.parseFloat(await frame.evaluate((node) => getComputedStyle(node, '::before').opacity))).toBeGreaterThan(0.25);
 
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexaeon:companion-intro', {
     detail: { phase: 'emerging', materializeProgress: 1, emergenceProgress: 0.45 },

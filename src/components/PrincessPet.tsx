@@ -55,6 +55,7 @@ import {
 import styles from './PrincessPet.module.css';
 import {
   getAccessoryAnchor,
+  getCompanionDisplayedAsset,
   createCompanionBubbleController,
   getCompanionBubblePosition,
   getCompanionRouteMessage,
@@ -66,6 +67,7 @@ import {
   COMPANION_BEHAVIOR_TIMING,
   COMPANION_EMOTIONS,
   getCompanionEmotionForPose,
+  getCompanionMotionVariant,
   getCompanionEventBehavior,
   getCompanionInactivityBehavior,
   getCompanionModuleBehavior,
@@ -2156,9 +2158,7 @@ export default function PrincessPet({
     if (previousNavigationKeyRef.current === navigationKey) return;
     previousNavigationKeyRef.current = navigationKey;
 
-    if (PRINCESS_STATE_GROUPS.SLEEP.includes(stateRef.current)) {
-      noteUserInteraction({ immediate: true, type: 'primaryNavigation' });
-    }
+    noteUserInteraction({ immediate: true, type: 'primaryNavigation' });
 
     const dragSession = dragSessionRef.current;
     if (!dragSession) return;
@@ -2423,10 +2423,17 @@ export default function PrincessPet({
     transform: `scale(${scale})`,
   } as CSSProperties;
 
+  const motionVariant = getCompanionMotionVariant(behaviorSource, emotion);
+  const isModuleInactivity = motionVariant !== 'base';
+
   const aliveClassName = [
     styles.aliveLayer,
     isDragging
       ? styles.draggingAlive
+      : motionVariant === 'sleepy'
+        ? styles.moduleSleepyAlive
+        : motionVariant === 'resting'
+          ? styles.moduleRestingAlive
       : petState === 'idle'
         ? styles.idleAlive
         : petState === 'sit'
@@ -2479,14 +2486,15 @@ export default function PrincessPet({
   );
   const accessory = moduleProfile.accessory;
   const isModuleBasePose = petState === moduleProfile.pose;
-  const displayedFrame = isModuleBasePose ? moduleProfile.asset : currentFrame;
-  const accessoryAnchor = accessory !== 'none' && isModuleBasePose
+  const preservesModuleVisual = isModuleBasePose || isModuleInactivity;
+  const displayedFrame = getCompanionDisplayedAsset(moduleProfile, currentFrame, petState, behaviorSource);
+  const accessoryAnchor = accessory !== 'none' && preservesModuleVisual
     ? getAccessoryAnchor(accessory, moduleProfile.moduleKey, getViewportSize().width, MOBILE_BREAKPOINT)
     : null;
   const accessoryVisible = Boolean(
     accessoryAnchor
     && introPhase === 'active'
-    && !['quiet', 'sleep', 'sleeping_prone'].includes(petState),
+    && (isModuleInactivity || !['quiet', 'sleep', 'sleeping_prone'].includes(petState)),
   );
   const accessoryStyle = accessoryAnchor ? {
     '--accessory-left': `${accessoryAnchor.left}%`,
@@ -2502,6 +2510,7 @@ export default function PrincessPet({
       style={rootStyle}
       data-pet-state={petState}
       data-pet-emotion={emotion}
+      data-pet-motion-variant={motionVariant}
       data-pet-behavior-source={behaviorSource}
       data-pet-behavior-priority={behaviorPriority}
       data-pet-dragging={isDragging ? 'true' : 'false'}
@@ -2525,7 +2534,7 @@ export default function PrincessPet({
       ) : null}
       <div className={styles.walkOffsetLayer} style={walkStyle}>
         <div className={styles.scaleLayer} style={scaleStyle}>
-          <div className={aliveClassName} data-state={petState}>
+          <div className={aliveClassName} data-state={preservesModuleVisual ? moduleProfile.pose : petState}>
             <div className={styles.frameLayer}>
               {accessoryVisible ? (
                 <span className={styles.accessory} style={accessoryStyle} aria-hidden="true" data-testid={`princess-accessory-${accessory}`}>
