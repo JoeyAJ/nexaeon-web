@@ -5,6 +5,7 @@ import {
   type SyntheticEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -50,10 +51,15 @@ import {
   PRINCESS_STATE_GROUPS,
   classifyPrincessPointerGesture,
   createPrincessStateController,
-  getPrincessStatePriority,
 } from '../lib/princessStateController.js';
 import styles from './PrincessPet.module.css';
-import { createCompanionBubbleController, getCompanionRouteMessage, resolveCompanionRoute } from '../lib/companionRouteConfig.js';
+import {
+  accessoryAnchors,
+  createCompanionBubbleController,
+  getCompanionBubblePosition,
+  getCompanionRouteMessage,
+  resolveCompanionRoute,
+} from '../lib/companionRouteConfig.js';
 import {
   COMPANION_BEHAVIOR_PRIORITY,
   COMPANION_BEHAVIOR_SOURCES,
@@ -449,12 +455,14 @@ export default function PrincessPet({
   const [scale, setScale] = useState<PetScale>(initialLayout.scale);
   const [isDragging, setIsDragging] = useState(false);
   const [routeBubble, setRouteBubble] = useState<ReturnType<typeof resolveCompanionRoute> | null>(null);
+  const [bubbleStyle, setBubbleStyle] = useState<CSSProperties>({ visibility: 'hidden' });
   const [introPhase, setIntroPhase] = useState(introActive ? 'dormant' : 'active');
   const [introMaterializeProgress, setIntroMaterializeProgress] = useState(0);
   const [introEmergenceProgress, setIntroEmergenceProgress] = useState(0);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const interactiveRef = useRef<HTMLButtonElement | null>(null);
+  const bubbleRef = useRef<HTMLDivElement | null>(null);
   const offsetXRef = useRef(0);
   const positionRef = useRef(position);
   const scaleRef = useRef(scale);
@@ -580,9 +588,14 @@ export default function PrincessPet({
     });
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     contextProfileRef.current = contextProfile;
     presenceControllerRef.current?.setContext(contextProfile);
+    if (contextProfile.id === 'navigator' && !isDraggingRef.current) {
+      const navigatorPosition = getDefaultPetPosition(rootRef.current, scaleRef.current, contextProfile.preferredAnchor);
+      positionRef.current = navigatorPosition;
+      setPosition(navigatorPosition);
+    }
     if (!debugBehaviorOverride && !isDraggingRef.current) {
       stateControllerRef.current?.requestBehavior({
         ...getCompanionModuleBehavior(contextProfile.id),
@@ -704,6 +717,30 @@ export default function PrincessPet({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [contextProfile.id, getDockPosition, introActive]);
+
+  useEffect(() => {
+    if (contextProfile.id !== 'navigator') return undefined;
+    let frame: number | null = null;
+    const avoidNavigatorInput = () => {
+      frame = null;
+      const rootRect = rootRef.current?.getBoundingClientRect();
+      const inputRect = document.querySelector('#navigator-agent-query')?.getBoundingClientRect();
+      if (!rootRect || !inputRect) return;
+      const overlaps = rootRect.left < inputRect.right && rootRect.right > inputRect.left
+        && rootRect.top < inputRect.bottom && rootRect.bottom > inputRect.top;
+      if (!overlaps) return;
+      const nextPosition = clampPetPosition({
+        x: positionRef.current.x - (rootRect.right - inputRect.left) - 12,
+        y: positionRef.current.y,
+      }, scaleRef.current, rootRef.current);
+      positionRef.current = nextPosition;
+      setPosition(nextPosition);
+    };
+    const schedule = () => { if (frame === null) frame = window.requestAnimationFrame(avoidNavigatorInput); };
+    avoidNavigatorInput();
+    const unsubscribe = subscribePrincessViewportChanges(window, schedule);
+    return () => { unsubscribe(); if (frame !== null) window.cancelAnimationFrame(frame); };
+  }, [contextProfile.id]);
 
   useEffect(() => {
     const applyIntroDock = () => {
@@ -1227,11 +1264,29 @@ export default function PrincessPet({
   }, []);
 
   useEffect(() => {
-    if (!visible) return undefined;
+    if (!visible || introPhase !== 'active') return undefined;
     const routeConfig = resolveCompanionRoute(window.location.pathname, window.location.hash);
+    if (!routeConfig.bubbleKey) bubbleControllerRef.current?.hide();
     bubbleControllerRef.current?.show(routeConfig);
     return undefined;
-  }, [navigationKey, visible]);
+  }, [introPhase, navigationKey, visible]);
+
+  useEffect(() => {
+    if (!routeBubble || isDragging) return undefined;
+    let frame: number | null = null;
+    const positionBubble = () => {
+      frame = null;
+      const petRect = rootRef.current?.getBoundingClientRect();
+      const bubbleRect = bubbleRef.current?.getBoundingClientRect();
+      if (!petRect || !bubbleRect) return;
+      const next = getCompanionBubblePosition({ petRect, bubbleRect, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight });
+      setBubbleStyle({ left: next.left - petRect.left, top: next.top - petRect.top, width: next.width, visibility: 'visible' });
+    };
+    const schedule = () => { if (frame === null) frame = window.requestAnimationFrame(positionBubble); };
+    schedule();
+    const unsubscribe = subscribePrincessViewportChanges(window, schedule);
+    return () => { unsubscribe(); if (frame !== null) window.cancelAnimationFrame(frame); };
+  }, [isDragging, routeBubble, position, scale]);
 
   useEffect(() => () => bubbleControllerRef.current?.dispose(), []);
 
@@ -2418,6 +2473,25 @@ export default function PrincessPet({
       `frame: ${currentFrame.split('/').pop()?.replace('.png', '') || currentFrame}`,
     ].join(' | ')
     : null;
+  const moduleProfile = resolveCompanionRoute(
+    typeof window === 'undefined' ? '/' : window.location.pathname,
+    typeof window === 'undefined' ? '' : window.location.hash,
+  );
+  const accessory = moduleProfile.accessory;
+  const accessoryAnchorSet = accessory !== 'none' ? accessoryAnchors[accessory] : null;
+  const accessoryAnchor = accessoryAnchorSet
+    ? (getViewportSize().width <= MOBILE_BREAKPOINT ? accessoryAnchorSet.mobile : accessoryAnchorSet.desktop)
+    : null;
+  const accessoryVisible = Boolean(
+    accessoryAnchor
+    && introPhase === 'active'
+    && !['quiet', 'sleep', 'sleeping_prone'].includes(petState),
+  );
+  const accessoryStyle = accessoryAnchor ? {
+    '--accessory-left': `${accessoryAnchor.left}%`,
+    '--accessory-top': `${accessoryAnchor.top}%`,
+    '--accessory-width': `${accessoryAnchor.width}%`,
+  } as CSSProperties : undefined;
 
   return (
     <div
@@ -2435,13 +2509,15 @@ export default function PrincessPet({
       data-princess-context={contextProfile.id}
       data-pet-debug-state={debugPreviewState || undefined}
       data-princess-intro-phase={introPhase}
+      data-companion-module={moduleProfile.moduleKey}
+      data-companion-accessory={accessoryVisible ? accessory : 'none'}
     >
       {introPhase === 'greeting' ? (
         <div className={styles.introGreeting} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-intro-greeting">
           {INTRO_GREETING[lang] || INTRO_GREETING.en}
         </div>
-      ) : routeBubble && introPhase === 'active' && getPrincessStatePriority(petState, isDragging) <= 1 ? (
-        <div className={styles.routeBubble} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-route-bubble">
+      ) : routeBubble && introPhase === 'active' && !isDragging ? (
+        <div ref={bubbleRef} className={styles.routeBubble} style={bubbleStyle} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-route-bubble">
           {getCompanionRouteMessage(routeBubble, lang)}
         </div>
       ) : null}
@@ -2449,6 +2525,25 @@ export default function PrincessPet({
         <div className={styles.scaleLayer} style={scaleStyle}>
           <div className={aliveClassName} data-state={petState}>
             <div className={styles.frameLayer}>
+              {accessoryVisible ? (
+                <span className={styles.accessory} style={accessoryStyle} aria-hidden="true" data-testid={`princess-accessory-${accessory}`}>
+                  {accessory === 'round-glasses' ? (
+                    <svg viewBox="0 0 120 42" focusable="false">
+                      <g fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round">
+                        <circle cx="34" cy="21" r="17" /><circle cx="86" cy="21" r="17" />
+                        <path d="M51 18c6-4 12-4 18 0M17 17 4 13M103 17l13-4" />
+                      </g>
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 120 68" focusable="false">
+                      <path d="M4 25 60 3l56 22-56 22z" fill="currentColor" />
+                      <path d="M28 37v15c19 15 45 15 64 0V37L60 50z" fill="currentColor" opacity=".88" />
+                      <path d="M106 29v24" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                      <circle cx="106" cy="58" r="5" fill="currentColor" />
+                    </svg>
+                  )}
+                </span>
+              ) : null}
               <button
                 ref={interactiveRef}
                 type="button"

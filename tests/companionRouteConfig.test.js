@@ -1,38 +1,60 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { companionRouteConfig, createCompanionBubbleController, getCompanionRouteMessage, resolveCompanionRoute } from '../src/lib/companionRouteConfig.js';
+import {
+  COMPANION_MODULE_BUBBLE_SEEN_KEY,
+  accessoryAnchors,
+  companionModuleProfiles,
+  createCompanionBubbleController,
+  getCompanionBubblePosition,
+  getCompanionRouteMessage,
+  resolveCompanionRoute,
+} from '../src/lib/companionRouteConfig.js';
 
-test('all real primary routes resolve to their centralized module configuration', () => {
-  const cases = [['/', '', 'home'], ['/identity/profile', '', 'identity'], ['/research/topic', '', 'research'], ['/teaching/course', '', 'teaching'], ['/knowledge-lab/resource', '', 'knowledge'], ['/projects/demo', '', 'projects'], ['/field-lab/action', '', 'action'], ['/identity/nexaeon-navigator', '', 'navigator'], ['/', '#research', 'research'], ['/unknown', '', 'fallback']];
-  for (const [path, hash, key] of cases) assert.equal(resolveCompanionRoute(path, hash).key, key);
+function createStorage() {
+  const values = new Map();
+  return { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+}
+
+test('real primary and child routes resolve to one centralized module profile', () => {
+  const cases = [['/', '', 'home'], ['/identity/profile', '', 'identity'], ['/research/topic', '', 'research'], ['/teaching/course', '', 'coaching'], ['/knowledge-lab/resource', '', 'knowledge'], ['/projects/demo', '', 'prototype'], ['/field-lab/action', '', 'action'], ['/identity/nexaeon-navigator', '', 'navigator'], ['/', '#research', 'research'], ['/unknown', '', 'fallback']];
+  for (const [path, hash, key] of cases) assert.equal(resolveCompanionRoute(path, hash).moduleKey, key);
 });
 
-test('research and knowledge safely fall back from unavailable thinking to sitting smile', () => {
-  for (const key of ['research', 'knowledge']) {
-    assert.equal(companionRouteConfig[key].requestedState, 'thinking');
-    assert.equal(companionRouteConfig[key].state, 'sitting_smile');
+test('Sprint 2-E emotion and accessory mapping stays within the requested scope', () => {
+  assert.deepEqual(Object.fromEntries(Object.entries(companionModuleProfiles).map(([key, value]) => [key, [value.emotion, value.accessory]])), {
+    home: ['calm', 'none'], identity: ['attentive', 'round-glasses'], research: ['curious', 'round-glasses'], coaching: ['happy', 'academic-cap'], knowledge: ['attentive', 'round-glasses'], prototype: ['curious', 'none'], action: ['attentive', 'none'], navigator: ['attentive', 'round-glasses'], fallback: ['calm', 'none'],
+  });
+  assert.deepEqual(Object.keys(accessoryAnchors).sort(), ['academic-cap', 'round-glasses']);
+});
+
+test('every bubble has exact localized copy and English fallback', () => {
+  for (const profile of Object.values(companionModuleProfiles).filter((item) => item.bubbleKey)) {
+    for (const lang of ['zh', 'ko', 'en']) assert.ok(getCompanionRouteMessage(profile, lang));
+    assert.equal(getCompanionRouteMessage(profile, 'xx'), profile.messages.en);
   }
 });
 
-test('every route has localized copy with an English fallback', () => {
-  for (const config of Object.values(companionRouteConfig)) {
-    for (const lang of ['zh', 'ko', 'en']) assert.ok(getCompanionRouteMessage(config, lang));
-    assert.equal(getCompanionRouteMessage(config, 'xx'), config.messages.en);
-  }
-});
-
-test('bubble controller deduplicates rerenders, clears old timeouts, and disposes cleanly', () => {
-  let nextId = 1; const timers = new Map(); const changes = [];
-  const controller = createCompanionBubbleController({ onChange: (value) => changes.push(value?.key || null), setTimeoutFn: (fn) => { const id = nextId++; timers.set(id, fn); return id; }, clearTimeoutFn: (id) => timers.delete(id) });
-  assert.equal(controller.show(resolveCompanionRoute('/research/a')), true);
+test('bubble controller delays, persists once per session, auto-hides, and disposes', () => {
+  let nextId = 1; const timers = new Map(); const changes = []; const storage = createStorage();
+  const controller = createCompanionBubbleController({ storage, delay: 900, onChange: (value) => changes.push(value?.moduleKey || null), setTimeoutFn: (fn) => { const id = nextId++; timers.set(id, fn); return id; }, clearTimeoutFn: (id) => timers.delete(id) });
+  const research = resolveCompanionRoute('/research/a');
+  assert.equal(controller.show(research), true);
   assert.equal(controller.show(resolveCompanionRoute('/research/b')), false);
-  assert.equal(timers.size, 1);
-  assert.equal(controller.show(resolveCompanionRoute('/projects/a')), true);
-  assert.equal(timers.size, 1);
-  const [activeId, activeTimer] = [...timers.entries()][0];
-  timers.delete(activeId);
-  activeTimer();
-  assert.deepEqual(changes, ['research', 'projects', null]);
+  assert.deepEqual(JSON.parse(storage.getItem(COMPANION_MODULE_BUBBLE_SEEN_KEY)), ['research']);
+  const show = [...timers.entries()][0]; timers.delete(show[0]); show[1]();
+  assert.deepEqual(changes, ['research']);
+  const hide = [...timers.entries()][0]; timers.delete(hide[0]); hide[1]();
+  assert.deepEqual(changes, ['research', null]);
+  assert.equal(controller.show(research), false);
   controller.dispose();
   assert.equal(timers.size, 0);
+});
+
+test('bubble positioning stays within viewport and changes side when space is constrained', () => {
+  const bubbleRect = { width: 250, height: 80 };
+  const result = getCompanionBubblePosition({ petRect: { left: 270, right: 350, top: 20, width: 80, height: 130 }, bubbleRect, viewportWidth: 375, viewportHeight: 667 });
+  assert.ok(result.left >= 16);
+  assert.ok(result.left + result.width <= 359);
+  assert.ok(result.top >= 16);
+  assert.match(result.placement, /left/);
 });

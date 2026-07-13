@@ -80,9 +80,9 @@ export type CompanionBehavior = Readonly<{
 export const COMPANION_MODULE_BEHAVIORS: Readonly<Record<string, CompanionBehavior>> = Object.freeze({
   home: Object.freeze({ emotion: COMPANION_EMOTIONS.CALM, pose: 'resting_awake' }),
   identity: Object.freeze({ emotion: COMPANION_EMOTIONS.ATTENTIVE, pose: 'standing_attentive' }),
-  research: Object.freeze({ emotion: COMPANION_EMOTIONS.ATTENTIVE, pose: 'standing_attentive' }),
+  research: Object.freeze({ emotion: COMPANION_EMOTIONS.CURIOUS, pose: 'standing_attentive' }),
   coaching: Object.freeze({ emotion: COMPANION_EMOTIONS.HAPPY, pose: 'sitting_smile' }),
-  knowledge: Object.freeze({ emotion: COMPANION_EMOTIONS.CURIOUS, pose: 'resting_awake' }),
+  knowledge: Object.freeze({ emotion: COMPANION_EMOTIONS.ATTENTIVE, pose: 'standing_attentive' }),
   prototype: Object.freeze({ emotion: COMPANION_EMOTIONS.CURIOUS, pose: 'standing_attentive' }),
   action: Object.freeze({ emotion: COMPANION_EMOTIONS.ATTENTIVE, pose: 'standing_attentive' }),
   navigator: Object.freeze({ emotion: COMPANION_EMOTIONS.ATTENTIVE, pose: 'standing_attentive' }),

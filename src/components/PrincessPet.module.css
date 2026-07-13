@@ -80,8 +80,6 @@
 
 .routeBubble {
   position: absolute;
-  right: calc(100% - 12px);
-  bottom: calc(100% - 30px);
   width: max-content;
   max-width: min(300px, calc(100vw - 32px));
   padding: 10px 14px;
@@ -96,6 +94,34 @@
   letter-spacing: 0.01em;
   pointer-events: none;
   animation: princess-bubble-lifecycle 5s ease both;
+  z-index: 4;
+}
+
+.accessory {
+  position: absolute;
+  left: var(--accessory-left);
+  top: var(--accessory-top);
+  z-index: 3;
+  display: block;
+  width: var(--accessory-width);
+  color: rgb(27 31 43 / 94%);
+  filter: drop-shadow(0 2px 2px rgb(255 255 255 / 25%)) drop-shadow(0 3px 5px rgb(0 0 0 / 28%));
+  pointer-events: none;
+  transform: translateX(-50%);
+  transform-origin: 50% 50%;
+  animation: princess-accessory-in 240ms ease-out both;
+}
+
+.accessory svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+@keyframes princess-accessory-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(3px) scale(0.96); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 
 :global([data-theme="light"]) .routeBubble {
@@ -461,6 +487,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .accessory {
+    animation: none;
+    transition: opacity 120ms linear;
+  }
+
   .idleAlive,
   .curiousAlive,
   .affectionAlive {
@@ -497,8 +528,6 @@
   }
 
   .routeBubble {
-    right: -8px;
-    bottom: calc(100% - 12px);
     max-width: min(260px, calc(100vw - 28px));
   }
 }

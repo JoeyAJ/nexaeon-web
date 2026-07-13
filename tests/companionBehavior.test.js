@@ -15,9 +15,9 @@ import { PRINCESS_STATES, createPrincessStateController } from '../src/lib/princ
 test('emotion, module, inactivity, and system-event mappings are centralized', () => {
   assert.deepEqual(getCompanionModuleBehavior('home'), { emotion: 'calm', pose: 'resting_awake' });
   assert.deepEqual(getCompanionModuleBehavior('identity'), { emotion: 'attentive', pose: 'standing_attentive' });
-  assert.deepEqual(getCompanionModuleBehavior('research'), { emotion: 'attentive', pose: 'standing_attentive' });
+  assert.deepEqual(getCompanionModuleBehavior('research'), { emotion: 'curious', pose: 'standing_attentive' });
   assert.deepEqual(getCompanionModuleBehavior('coaching'), { emotion: 'happy', pose: 'sitting_smile' });
-  assert.deepEqual(getCompanionModuleBehavior('knowledge'), { emotion: 'curious', pose: 'resting_awake' });
+  assert.deepEqual(getCompanionModuleBehavior('knowledge'), { emotion: 'attentive', pose: 'standing_attentive' });
   assert.deepEqual(getCompanionModuleBehavior('prototype'), { emotion: 'curious', pose: 'standing_attentive' });
   assert.deepEqual(getCompanionModuleBehavior('action'), { emotion: 'attentive', pose: 'standing_attentive' });
   assert.deepEqual(getCompanionInactivityBehavior('calmIdle', 'research'), { emotion: 'calm', pose: 'resting_awake' });

@@ -28,9 +28,9 @@ test('module debug mapping covers all NexAeon contexts without a visible debug U
   const cases = [
     ['home', 'calm', 'resting_awake'],
     ['identity', 'attentive', 'standing_attentive'],
-    ['research', 'attentive', 'standing_attentive'],
+    ['research', 'curious', 'standing_attentive'],
     ['coaching', 'happy', 'sitting_smile'],
-    ['knowledge', 'curious', 'resting_awake'],
+    ['knowledge', 'attentive', 'standing_attentive'],
     ['prototype', 'curious', 'standing_attentive'],
     ['action', 'attentive', 'standing_attentive'],
   ];
