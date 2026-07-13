@@ -1,0 +1,91 @@
+.rig {
+  --roto-look-x: 0px;
+  --roto-look-y: 0px;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(var(--princess-shadow-close)) drop-shadow(var(--princess-shadow-soft)) drop-shadow(var(--princess-rim-light));
+  transform: scale(var(--princess-depth-scale, 1));
+  transform-origin: 50% 100%;
+}
+
+.body,
+.headLook,
+.headMotion,
+.ear,
+.eyes,
+.muzzle,
+.tail {
+  transform-box: fill-box;
+  will-change: transform;
+}
+
+.body {
+  transform-origin: var(--body-origin-x) var(--body-origin-y);
+  animation: roto-body-breathe var(--roto-breath-duration, 4.4s) ease-in-out infinite alternate;
+}
+
+.headLook { transform: translate3d(var(--roto-look-x), var(--roto-look-y), 0); }
+.headMotion { transform-origin: var(--head-origin-x) var(--head-origin-y); animation: roto-head-breathe var(--roto-breath-duration, 4.4s) ease-in-out infinite alternate-reverse; }
+.ear { transform-origin: 50% 82%; }
+.eyes { transform-origin: 50% 50%; }
+.muzzle { transform-origin: 50% 32%; animation: roto-muzzle-breathe var(--roto-breath-duration, 4.4s) ease-in-out infinite alternate; }
+.tail { transform-origin: 16% 54%; animation: roto-tail-settle 6.2s ease-in-out infinite alternate; }
+
+.accessorySlot {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  transform: translate3d(var(--roto-look-x), var(--roto-look-y), 0);
+  transform-origin: var(--head-origin-x) var(--head-origin-y);
+  animation: roto-accessory-breathe var(--roto-breath-duration, 4.4s) ease-in-out infinite alternate-reverse;
+}
+
+@keyframes roto-body-breathe { from { transform: scale3d(1, 1, 1); } to { transform: scale3d(1.003, 1.008, 1); } }
+@keyframes roto-head-breathe { from { transform: translate3d(0, 0, 0) rotate(0deg); } to { transform: translate3d(0, -0.45px, 0) rotate(0.12deg); } }
+@keyframes roto-muzzle-breathe { from { transform: scale3d(1, 1, 1); } to { transform: scale3d(1.006, 1.012, 1); } }
+@keyframes roto-tail-settle { from { transform: rotate(-0.35deg); } to { transform: rotate(0.5deg); } }
+@keyframes roto-accessory-breathe { from { transform: translate3d(var(--roto-look-x), var(--roto-look-y), 0); } to { transform: translate3d(var(--roto-look-x), calc(var(--roto-look-y) - 0.45px), 0) rotate(0.12deg); } }
+
+:global([data-pet-emotion="happy"]) .tail { animation-duration: 1.1s; }
+:global([data-pet-emotion="happy"]) .headMotion { animation: roto-happy-reaction 1.25s cubic-bezier(.2,.82,.28,1) both; }
+:global([data-pet-emotion="attentive"]) .headMotion { animation: roto-attentive-reaction 1.8s ease-in-out both; }
+:global([data-pet-emotion="curious"]) .headMotion { animation: roto-curious-reaction 2.1s ease-in-out both; }
+:global([data-pet-emotion="sleepy"]) .body { --roto-breath-duration: 7.5s; }
+:global([data-pet-emotion="sleepy"]) .headMotion { animation: roto-sleepy-reaction 7.5s ease-in-out infinite alternate; }
+:global([data-pet-emotion="sad"]) .headMotion { animation: roto-sad-reaction 5.8s ease-in-out infinite alternate; }
+
+.rig[data-roto-paused="true"] * { animation-play-state: paused !important; }
+
+@keyframes roto-happy-reaction { 0%, 100% { transform: translateY(0) rotate(0); } 34% { transform: translateY(-1.1px) rotate(-.65deg); } 68% { transform: translateY(-.35px) rotate(.35deg); } }
+@keyframes roto-attentive-reaction { 0% { transform: translateY(0); } 28%, 82% { transform: translateY(-.65px) rotate(.18deg); } 100% { transform: translateY(-.25px); } }
+@keyframes roto-curious-reaction { 0%, 100% { transform: rotate(0); } 34%, 72% { transform: translateY(-.25px) rotate(-1.05deg); } }
+@keyframes roto-sleepy-reaction { from { transform: translateY(.2px) rotate(0); } to { transform: translateY(.8px) rotate(-.2deg); } }
+@keyframes roto-sad-reaction { from { transform: translateY(.45px) rotate(-.12deg); } to { transform: translateY(.8px) rotate(-.3deg); } }
+
+:global([data-pet-dragging="true"]) .rig *,
+:global([data-companion-depth-stable="true"]) .rig * { animation-play-state: paused !important; }
+
+:global([data-pet-motion-level="reduced"]) .headMotion,
+:global([data-pet-motion-level="reduced"]) .body,
+:global([data-pet-motion-level="reduced"]) .muzzle,
+:global([data-pet-motion-level="reduced"]) .accessorySlot { animation-duration: 6.8s; }
+:global([data-pet-motion-level="reduced"]) .ear,
+:global([data-pet-motion-level="reduced"]) .tail { animation: none !important; }
+
+:global([data-pet-motion-level="none"]) .rig *,
+:global([data-pet-auto-behavior="false"]) .ear,
+:global([data-pet-auto-behavior="false"]) .tail { animation: none !important; }
+
+@media (max-width: 520px) {
+  .muzzle,
+  .tail { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ear,
+  .tail { animation: none !important; }
+}

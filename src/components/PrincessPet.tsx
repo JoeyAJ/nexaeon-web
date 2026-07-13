@@ -55,6 +55,7 @@ import {
 } from '../lib/princessStateController.js';
 import styles from './PrincessPet.module.css';
 import CompanionActionPanel from './CompanionActionPanel.jsx';
+import PrincessRotoRig from './PrincessRotoRig';
 import { getCompanionActions } from '../lib/companionActionConfig.js';
 import {
   getAccessoryAnchor,
@@ -2659,6 +2660,26 @@ export default function PrincessPet({
     '--accessory-width': `${accessoryAnchor.width}%`,
     '--accessory-rotate': `${accessoryAnchor.rotate || 0}deg`,
   } as CSSProperties : undefined;
+  const rigActive = preservesModuleVisual && ['active', 'greeting', 'docking'].includes(introPhase);
+  const accessoryNode = accessoryVisible ? (
+    <span className={styles.accessory} style={accessoryStyle} aria-hidden="true" data-testid={`princess-accessory-${accessory}`}>
+      {accessory === 'round-glasses' ? (
+        <svg viewBox="0 0 120 42" focusable="false">
+          <g fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round">
+            <circle cx="34" cy="21" r="17" /><circle cx="86" cy="21" r="17" />
+            <path d="M51 18c6-4 12-4 18 0M17 17 4 13M103 17l13-4" />
+          </g>
+        </svg>
+      ) : (
+        <svg viewBox="0 0 120 68" focusable="false">
+          <path d="M4 25 60 3l56 22-56 22z" fill="currentColor" />
+          <path d="M28 37v15c19 15 45 15 64 0V37L60 50z" fill="currentColor" opacity=".88" />
+          <path d="M106 29v24" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+          <circle cx="106" cy="58" r="5" fill="currentColor" />
+        </svg>
+      )}
+    </span>
+  ) : null;
 
   return (
     <div
@@ -2716,29 +2737,10 @@ export default function PrincessPet({
       ) : null}
       <div className={styles.walkOffsetLayer} style={walkStyle}>
         <div className={styles.scaleLayer} style={scaleStyle}>
-          <div className={aliveClassName} data-state={preservesModuleVisual ? moduleProfile.pose : petState}>
+          <div className={aliveClassName} data-state={preservesModuleVisual ? moduleProfile.pose : petState} data-roto-active={rigActive ? 'true' : 'false'}>
             <div className={styles.frameLayer}>
               {moduleProfile.visualProfile.shadowType === 'ground' ? (
                 <span className={styles.groundShadow} aria-hidden="true" data-testid="princess-ground-shadow" />
-              ) : null}
-              {accessoryVisible ? (
-                <span className={styles.accessory} style={accessoryStyle} aria-hidden="true" data-testid={`princess-accessory-${accessory}`}>
-                  {accessory === 'round-glasses' ? (
-                    <svg viewBox="0 0 120 42" focusable="false">
-                      <g fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round">
-                        <circle cx="34" cy="21" r="17" /><circle cx="86" cy="21" r="17" />
-                        <path d="M51 18c6-4 12-4 18 0M17 17 4 13M103 17l13-4" />
-                      </g>
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 120 68" focusable="false">
-                      <path d="M4 25 60 3l56 22-56 22z" fill="currentColor" />
-                      <path d="M28 37v15c19 15 45 15 64 0V37L60 50z" fill="currentColor" opacity=".88" />
-                      <path d="M106 29v24" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
-                      <circle cx="106" cy="58" r="5" fill="currentColor" />
-                    </svg>
-                  )}
-                </span>
               ) : null}
               <button
                 ref={interactiveRef}
@@ -2755,15 +2757,28 @@ export default function PrincessPet({
                 onPointerLeave={handlePointerLeave}
                 onClick={handleNativeClick}
               >
-                <img
-                  key={normalFrames.length === 1 ? displayedFrame : 'animated-frame'}
-                  className={imageClassName}
-                  src={displayedFrame}
-                  alt=""
-                  draggable="false"
-                  decoding="async"
-                  onError={handleFrameError}
-                />
+                {rigActive ? (
+                  <>
+                    <img className={styles.rigSourceImage} src={displayedFrame} alt="" draggable="false" decoding="async" onError={handleFrameError} />
+                    <PrincessRotoRig
+                      imageSrc={displayedFrame}
+                      motionLevel={effectiveMotionLevel}
+                      autoBehaviorEnabled={autoBehaviorEnabled}
+                      active={!isDragging && !actionPanelOpen && !actionPanelBlocked}
+                      accessory={accessoryNode}
+                    />
+                  </>
+                ) : (
+                  <img
+                    key={normalFrames.length === 1 ? displayedFrame : 'animated-frame'}
+                    className={imageClassName}
+                    src={displayedFrame}
+                    alt=""
+                    draggable="false"
+                    decoding="async"
+                    onError={handleFrameError}
+                  />
+                )}
               </button>
             </div>
           </div>

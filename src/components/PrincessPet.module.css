@@ -380,6 +380,11 @@
   transform: none;
 }
 
+.aliveLayer[data-roto-active="true"] {
+  animation: none;
+  transform: none;
+}
+
 .frameLayer {
   min-width: 0;
   position: relative;
@@ -500,6 +505,17 @@
 
 .stablePoseImage {
   animation: princess-pose-fade-in var(--princess-pose-transition-duration) ease both;
+}
+
+.rigSourceImage {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .flipped {
