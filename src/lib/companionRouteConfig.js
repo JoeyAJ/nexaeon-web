@@ -1,6 +1,15 @@
 export const COMPANION_MODULE_BUBBLE_SEEN_KEY = 'nexaeon_companion_module_bubble_seen';
 export const COMPANION_BUBBLE_DURATION = 5_000;
 export const COMPANION_BUBBLE_DELAY = 900;
+export const COMPANION_LOCALE_GREETING_DURATION = 3_200;
+
+export const companionTranslations = Object.freeze({
+  localeChangedGreeting: Object.freeze({
+    zh: '語言已切換，我會繼續陪你探索 NexAeon。',
+    ko: '언어가 변경되었어요. 계속 함께 NexAeon을 탐험해 볼게요.',
+    en: 'The language has changed. I’ll continue exploring NexAeon with you.',
+  }),
+});
 
 const messages = {
   identity: { zh: '每一個身份，都從一次凝視自己開始。', ko: '모든 정체성은 자신을 바라보는 순간부터 시작돼요.', en: 'Every identity begins with the moment we look inward.' },
@@ -59,16 +68,25 @@ const accessoryRules = (hiddenStates = []) => Object.freeze({
   restoreOnBaseProfile: true,
 });
 
+const depth = (shadowType, shadowAnchor, shadowScale, depthScale, rimLightStrength, idleMotion = 'weighted') => Object.freeze({
+  shadowType,
+  shadowAnchor: Object.freeze(shadowAnchor),
+  shadowScale: Object.freeze(shadowScale),
+  depthScale,
+  rimLightStrength,
+  idleMotion,
+});
+
 export const companionModuleProfiles = Object.freeze({
-  home: profile({ moduleKey: 'home', baseEmotion: 'calm', pose: 'resting_awake', baseImage: image('princess-module-pose-02.png'), baseAccessory: 'none', allowedInteractionVariants: variants('base', 'attentive', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: null }),
-  identity: profile({ moduleKey: 'identity', baseEmotion: 'attentive', pose: 'standing_attentive', baseImage: image('princess-module-pose-01.png'), baseAccessory: 'none', allowedInteractionVariants: variants('base', 'attentive', 'curious', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'identity', messages: messages.identity }),
-  research: profile({ moduleKey: 'research', baseEmotion: 'curious', pose: 'standing_attentive', baseImage: image('princess-module-pose-06.png'), baseAccessory: 'none', allowedInteractionVariants: variants('base', 'attentive', 'curious', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'research', messages: messages.research }),
-  coaching: profile({ moduleKey: 'coaching', baseEmotion: 'happy', pose: 'sitting_smile', baseImage: image('princess-module-pose-04.png'), baseAccessory: 'academic-cap', allowedInteractionVariants: variants('base', 'attentive', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(['quiet', 'sleep', 'sleeping_prone']), bubbleKey: 'coaching', messages: messages.coaching }),
-  knowledge: profile({ moduleKey: 'knowledge', baseEmotion: 'attentive', pose: 'standing_attentive', baseImage: image('princess-module-pose-08.png'), baseAccessory: 'none', allowedInteractionVariants: variants('base', 'attentive', 'curious', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'knowledge', messages: messages.knowledge }),
-  prototype: profile({ moduleKey: 'prototype', baseEmotion: 'curious', pose: 'standing_attentive', baseImage: image('princess-module-pose-07.png'), baseAccessory: 'none', visualScale: 1.6, allowedInteractionVariants: variants('base', 'attentive', 'curious', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'prototype', messages: messages.prototype }),
-  action: profile({ moduleKey: 'action', baseEmotion: 'attentive', pose: 'standing_attentive', baseImage: image('princess-module-pose-03.png'), baseAccessory: 'none', allowedInteractionVariants: variants('base', 'attentive', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'action', messages: messages.action }),
-  navigator: profile({ moduleKey: 'navigator', baseEmotion: 'attentive', pose: 'standing_attentive', baseImage: image('princess-module-pose-05.png'), baseAccessory: 'none', allowedInteractionVariants: variants('base', 'attentive', 'curious', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'navigator', messages: messages.navigator }),
-  fallback: profile({ moduleKey: 'fallback', baseEmotion: 'calm', pose: 'resting_awake', baseImage: image('princess-module-pose-02.png'), baseAccessory: 'none', allowedInteractionVariants: variants('base', 'attentive', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: null }),
+  home: profile({ moduleKey: 'home', baseEmotion: 'calm', pose: 'resting_awake', baseImage: image('princess-module-pose-02.png'), baseAccessory: 'none', visualProfile: depth('ground', { x: 50, y: 86 }, { x: 1.18, y: 0.82 }, 0.99, 0.55, 'settled'), allowedInteractionVariants: variants('base', 'attentive', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: null }),
+  identity: profile({ moduleKey: 'identity', baseEmotion: 'attentive', pose: 'standing_attentive', baseImage: image('princess-module-pose-01.png'), baseAccessory: 'none', visualProfile: depth('soft-float', { x: 50, y: 78 }, { x: 0.9, y: 0.72 }, 1.01, 0.38, 'portrait'), allowedInteractionVariants: variants('base', 'attentive', 'curious', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'identity', messages: messages.identity }),
+  research: profile({ moduleKey: 'research', baseEmotion: 'curious', pose: 'standing_attentive', baseImage: image('princess-module-pose-06.png'), baseAccessory: 'none', visualProfile: depth('soft-float', { x: 52, y: 80 }, { x: 0.94, y: 0.72 }, 1.005, 0.42, 'portrait'), allowedInteractionVariants: variants('base', 'attentive', 'curious', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'research', messages: messages.research }),
+  coaching: profile({ moduleKey: 'coaching', baseEmotion: 'happy', pose: 'sitting_smile', baseImage: image('princess-module-pose-04.png'), baseAccessory: 'academic-cap', visualProfile: depth('ground', { x: 50, y: 90 }, { x: 1.14, y: 0.78 }, 1, 0.48, 'settled'), allowedInteractionVariants: variants('base', 'attentive', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(['quiet', 'sleep', 'sleeping_prone']), bubbleKey: 'coaching', messages: messages.coaching }),
+  knowledge: profile({ moduleKey: 'knowledge', baseEmotion: 'attentive', pose: 'standing_attentive', baseImage: image('princess-module-pose-08.png'), baseAccessory: 'none', visualProfile: depth('ground', { x: 51, y: 87 }, { x: 1.34, y: 0.7 }, 0.995, 0.4, 'settled'), allowedInteractionVariants: variants('base', 'attentive', 'curious', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'knowledge', messages: messages.knowledge }),
+  prototype: profile({ moduleKey: 'prototype', baseEmotion: 'curious', pose: 'standing_attentive', baseImage: image('princess-module-pose-07.png'), baseAccessory: 'none', visualScale: 1.6, visualProfile: depth('ground', { x: 51, y: 89 }, { x: 1.28, y: 0.72 }, 0.99, 0.5, 'weighted'), allowedInteractionVariants: variants('base', 'attentive', 'curious', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'prototype', messages: messages.prototype }),
+  action: profile({ moduleKey: 'action', baseEmotion: 'attentive', pose: 'standing_attentive', baseImage: image('princess-module-pose-03.png'), baseAccessory: 'none', visualProfile: depth('ground', { x: 50, y: 92 }, { x: 0.88, y: 0.68 }, 1.008, 0.58, 'weighted'), allowedInteractionVariants: variants('base', 'attentive', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'action', messages: messages.action }),
+  navigator: profile({ moduleKey: 'navigator', baseEmotion: 'attentive', pose: 'standing_attentive', baseImage: image('princess-module-pose-05.png'), baseAccessory: 'none', visualProfile: depth('ground', { x: 50, y: 92 }, { x: 0.92, y: 0.68 }, 1.006, 0.56, 'weighted'), allowedInteractionVariants: variants('base', 'attentive', 'curious', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: 'navigator', messages: messages.navigator }),
+  fallback: profile({ moduleKey: 'fallback', baseEmotion: 'calm', pose: 'resting_awake', baseImage: image('princess-module-pose-02.png'), baseAccessory: 'none', visualProfile: depth('ground', { x: 50, y: 86 }, { x: 1.18, y: 0.82 }, 0.99, 0.55, 'settled'), allowedInteractionVariants: variants('base', 'attentive', 'happy', 'resting', 'sleepy'), accessoryVisibilityRules: accessoryRules(), bubbleKey: null }),
 });
 
 // Percentages are relative to the existing Princess frame, so overlays follow drag and scale.
@@ -120,6 +138,11 @@ export function resolveCompanionRoute(pathname = '/', hash = '') {
 
 export function getCompanionRouteMessage(profile, lang = 'en') {
   return profile?.messages?.[lang] || profile?.messages?.en || '';
+}
+
+export function getCompanionLocaleChangedGreeting(lang = 'en') {
+  const messagesByLocale = companionTranslations.localeChangedGreeting;
+  return messagesByLocale[lang] || messagesByLocale.en;
 }
 
 export function readCompanionBubbleSeen(storage) {

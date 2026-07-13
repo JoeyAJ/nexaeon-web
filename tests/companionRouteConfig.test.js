@@ -12,6 +12,7 @@ import {
   getAccessoryAnchor,
   getCompanionDisplayedAsset,
   getCompanionInteractionVariant,
+  getCompanionLocaleChangedGreeting,
   getCompanionRouteMessage,
   resolveCompanionRoute,
   shouldShowCompanionAccessory,
@@ -73,6 +74,24 @@ test('every bubble has exact localized copy and English fallback', () => {
     for (const lang of ['zh', 'ko', 'en']) assert.ok(getCompanionRouteMessage(profile, lang));
     assert.equal(getCompanionRouteMessage(profile, 'xx'), profile.messages.en);
   }
+});
+
+test('locale change greeting has exact copy in all supported translations', () => {
+  assert.equal(getCompanionLocaleChangedGreeting('zh'), '語言已切換，我會繼續陪你探索 NexAeon。');
+  assert.equal(getCompanionLocaleChangedGreeting('ko'), '언어가 변경되었어요. 계속 함께 NexAeon을 탐험해 볼게요.');
+  assert.equal(getCompanionLocaleChangedGreeting('en'), 'The language has changed. I’ll continue exploring NexAeon with you.');
+  assert.equal(getCompanionLocaleChangedGreeting('unsupported'), getCompanionLocaleChangedGreeting('en'));
+});
+
+test('every fixed image has a pose-specific depth profile', () => {
+  const profiles = Object.values(companionModuleProfiles);
+  assert.ok(profiles.every((item) => ['ground', 'soft-float', 'none'].includes(item.visualProfile.shadowType)));
+  assert.equal(companionModuleProfiles.identity.visualProfile.shadowType, 'soft-float');
+  assert.equal(companionModuleProfiles.research.visualProfile.shadowType, 'soft-float');
+  for (const key of ['home', 'coaching', 'knowledge', 'prototype', 'action', 'navigator']) {
+    assert.equal(companionModuleProfiles[key].visualProfile.shadowType, 'ground');
+  }
+  assert.notDeepEqual(companionModuleProfiles.action.visualProfile.shadowScale, companionModuleProfiles.knowledge.visualProfile.shadowScale);
 });
 
 test('bubble controller delays, persists once per session, auto-hides, and disposes', () => {

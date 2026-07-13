@@ -5,6 +5,10 @@
   --princess-summon-violet: 164 112 255;
   --princess-summon-blue: 94 181 255;
   --princess-summon-white: 238 247 255;
+  --princess-shadow-close: 0 3px 3px rgb(4 8 18 / 34%);
+  --princess-shadow-soft: 0 9px 11px rgb(3 6 15 / 24%);
+  --princess-rim-light: 0 0 var(--princess-profile-rim-blur, 4px) rgb(137 151 255 / 12%);
+  --princess-ground-color: rgb(4 7 16 / 28%);
 
   position: fixed;
   top: 0;
@@ -16,6 +20,13 @@
   overflow: visible;
   transform-origin: 0 0;
   will-change: transform;
+}
+
+:global([data-theme="light"]) .root {
+  --princess-shadow-close: 0 3px 3px rgb(45 52 66 / 24%);
+  --princess-shadow-soft: 0 8px 10px rgb(45 52 66 / 14%);
+  --princess-rim-light: 0 0 var(--princess-profile-rim-blur, 3px) rgb(255 255 255 / 24%);
+  --princess-ground-color: rgb(48 55 69 / 20%);
 }
 
 .root[data-princess-intro-phase="dormant"] {
@@ -137,6 +148,10 @@
   z-index: 4;
 }
 
+.localeGreetingBubble {
+  animation: princess-locale-greeting-lifecycle 3.2s ease both;
+}
+
 .accessory {
   position: absolute;
   left: var(--accessory-left);
@@ -177,6 +192,12 @@
   100% { opacity: 0; transform: translateY(0); }
 }
 
+@keyframes princess-locale-greeting-lifecycle {
+  0% { opacity: 0; transform: translateY(5px); }
+  9%, 88% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(0); }
+}
+
 .walkOffsetLayer,
 .scaleLayer,
 .aliveLayer,
@@ -188,6 +209,72 @@
   height: 100%;
   transform-origin: 50% 100%;
   overflow: visible;
+}
+
+.groundShadow {
+  position: absolute;
+  z-index: 0;
+  left: var(--princess-shadow-anchor-x, 50%);
+  top: var(--princess-shadow-anchor-y, 90%);
+  width: calc(62% * var(--princess-shadow-scale-x, 1));
+  height: calc(8% * var(--princess-shadow-scale-y, 1));
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, var(--princess-ground-color) 0 22%, transparent 72%);
+  filter: blur(3.5px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.94, 0.9);
+  transform-origin: 50% 50%;
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+
+.root[data-princess-intro-phase="active"] .groundShadow,
+.root[data-princess-intro-phase="greeting"] .groundShadow,
+.root[data-princess-intro-phase="docking"] .groundShadow {
+  opacity: 0.88;
+  transform: translate(-50%, -50%) scale(1, 1);
+  animation: princess-ground-weight 5.8s ease-in-out infinite alternate;
+}
+
+.root[data-companion-idle-depth="settled"] .groundShadow {
+  animation-duration: 7.4s;
+}
+
+.root[data-princess-intro-phase="active"] .image,
+.root[data-princess-intro-phase="greeting"] .image,
+.root[data-princess-intro-phase="docking"] .image {
+  filter:
+    drop-shadow(var(--princess-shadow-close))
+    drop-shadow(var(--princess-shadow-soft))
+    drop-shadow(var(--princess-rim-light));
+}
+
+.root[data-companion-shadow-type="soft-float"][data-princess-intro-phase="active"] .image,
+.root[data-companion-shadow-type="soft-float"][data-princess-intro-phase="greeting"] .image,
+.root[data-companion-shadow-type="soft-float"][data-princess-intro-phase="docking"] .image {
+  filter:
+    drop-shadow(0 4px 4px rgb(4 8 18 / 27%))
+    drop-shadow(0 11px 13px rgb(3 6 15 / 17%))
+    drop-shadow(var(--princess-rim-light));
+}
+
+:global([data-theme="light"]) .root[data-companion-shadow-type="soft-float"][data-princess-intro-phase="active"] .image,
+:global([data-theme="light"]) .root[data-companion-shadow-type="soft-float"][data-princess-intro-phase="greeting"] .image,
+:global([data-theme="light"]) .root[data-companion-shadow-type="soft-float"][data-princess-intro-phase="docking"] .image {
+  filter:
+    drop-shadow(0 4px 4px rgb(45 52 66 / 20%))
+    drop-shadow(0 10px 12px rgb(45 52 66 / 11%))
+    drop-shadow(var(--princess-rim-light));
+}
+
+.root[data-companion-shadow-type="none"] .image {
+  filter: none;
+}
+
+.root[data-companion-depth-stable="true"] .aliveLayer,
+.root[data-companion-depth-stable="true"] .groundShadow,
+.dragging .groundShadow {
+  animation: none !important;
 }
 
 .walkOffsetLayer {
@@ -340,7 +427,8 @@
 
 .root[data-pet-motion-level="reduced"] .aliveLayer,
 .root[data-pet-motion-level="reduced"] .frameLayer,
-.root[data-pet-motion-level="reduced"] .interactiveLayer {
+.root[data-pet-motion-level="reduced"] .interactiveLayer,
+.root[data-pet-motion-level="reduced"] .groundShadow {
   animation: none !important;
 }
 
@@ -406,7 +494,8 @@
   pointer-events: none;
   overflow: visible;
   opacity: 1;
-  transition: opacity var(--princess-pose-transition-duration) ease;
+  transform: scale(var(--princess-depth-scale, 1));
+  transition: opacity var(--princess-pose-transition-duration) ease, filter 280ms ease;
 }
 
 .stablePoseImage {
@@ -414,7 +503,19 @@
 }
 
 .flipped {
-  transform: scaleX(-1);
+  transform: scaleX(-1) scale(var(--princess-depth-scale, 1));
+}
+
+@keyframes princess-ground-weight {
+  0% {
+    opacity: 0.9;
+    transform: translate(-50%, -48%) scale(1.02, 1);
+  }
+
+  100% {
+    opacity: 0.72;
+    transform: translate(-50%, -42%) scale(0.96, 0.94);
+  }
 }
 
 @keyframes princess-sit-breathe {
@@ -616,7 +717,10 @@
 @media (max-width: 520px) {
   .root {
     --princess-pet-width: clamp(76px, 22vw, 98px);
+    --princess-shadow-soft: 0 7px 8px rgb(3 6 15 / 20%);
   }
+
+  .groundShadow { filter: blur(2.5px); }
 
   .introGreeting {
     left: auto;
@@ -653,7 +757,8 @@
   .aliveLayer,
   .frameLayer,
   .interactiveLayer,
-  .image {
+  .image,
+  .groundShadow {
     animation: none !important;
     transition: none !important;
   }
@@ -661,4 +766,13 @@
   .routeBubble {
     animation: none;
   }
+
+  .localeGreetingBubble {
+    animation: princess-locale-greeting-fade 3.2s linear both;
+  }
+}
+
+@keyframes princess-locale-greeting-fade {
+  0%, 100% { opacity: 0; }
+  10%, 90% { opacity: 1; }
 }

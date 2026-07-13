@@ -62,9 +62,11 @@ import {
   getCompanionInteractionVariant,
   createCompanionBubbleController,
   getCompanionBubblePosition,
+  getCompanionLocaleChangedGreeting,
   getCompanionRouteMessage,
   resolveCompanionRoute,
   shouldShowCompanionAccessory,
+  COMPANION_LOCALE_GREETING_DURATION,
 } from '../lib/companionRouteConfig.js';
 import {
   COMPANION_BEHAVIOR_PRIORITY,
@@ -489,6 +491,8 @@ export default function PrincessPet({
   const [scale, setScale] = useState<PetScale>(initialLayout.scale);
   const [isDragging, setIsDragging] = useState(false);
   const [routeBubble, setRouteBubble] = useState<ReturnType<typeof resolveCompanionRoute> | null>(null);
+  const [pendingLocaleGreeting, setPendingLocaleGreeting] = useState<PrincessPetProps['lang'] | null>(null);
+  const [localeChangedGreeting, setLocaleChangedGreeting] = useState<string | null>(null);
   const [bubbleStyle, setBubbleStyle] = useState<CSSProperties>({ visibility: 'hidden' });
   const [introPhase, setIntroPhase] = useState(introActive ? 'dormant' : 'active');
   const [introMaterializeProgress, setIntroMaterializeProgress] = useState(0);
@@ -544,6 +548,8 @@ export default function PrincessPet({
   const previousResetPositionTokenRef = useRef(resetPositionToken);
   const previousResetSizeTokenRef = useRef(resetSizeToken);
   const previousActionPanelOpenRef = useRef(actionPanelOpen);
+  const previousLocaleRef = useRef(lang);
+  const localeGreetingTimeoutRef = useRef<number | null>(null);
   const scheduleBehaviorRef = useRef<((delayRange: readonly [number, number]) => void) | null>(null);
   const dragSessionRef = useRef<{
     pointerId: number;
@@ -1318,7 +1324,48 @@ export default function PrincessPet({
   }, [introPhase, navigationKey, proactiveBubblesEnabled, visible]);
 
   useEffect(() => {
-    if (!routeBubble || isDragging) return undefined;
+    const previousLocale = previousLocaleRef.current;
+    previousLocaleRef.current = lang;
+    if (previousLocale === lang) return;
+
+    bubbleControllerRef.current?.hide();
+    if (localeGreetingTimeoutRef.current !== null) {
+      window.clearTimeout(localeGreetingTimeoutRef.current);
+      localeGreetingTimeoutRef.current = null;
+    }
+    setLocaleChangedGreeting(null);
+    setPendingLocaleGreeting(visible ? lang : null);
+  }, [lang, visible]);
+
+  useEffect(() => {
+    if (!visible) {
+      setPendingLocaleGreeting(null);
+      setLocaleChangedGreeting(null);
+      if (localeGreetingTimeoutRef.current !== null) {
+        window.clearTimeout(localeGreetingTimeoutRef.current);
+        localeGreetingTimeoutRef.current = null;
+      }
+      return;
+    }
+    if (
+      !pendingLocaleGreeting
+      || introPhase !== 'active'
+      || actionPanelOpen
+      || actionPanelBlocked
+      || isDragging
+    ) return;
+
+    const message = getCompanionLocaleChangedGreeting(pendingLocaleGreeting);
+    setPendingLocaleGreeting(null);
+    setLocaleChangedGreeting(message);
+    localeGreetingTimeoutRef.current = window.setTimeout(() => {
+      localeGreetingTimeoutRef.current = null;
+      setLocaleChangedGreeting(null);
+    }, COMPANION_LOCALE_GREETING_DURATION);
+  }, [actionPanelBlocked, actionPanelOpen, introPhase, isDragging, pendingLocaleGreeting, visible]);
+
+  useEffect(() => {
+    if ((!routeBubble && !localeChangedGreeting) || isDragging) return undefined;
     let frame: number | null = null;
     const positionBubble = () => {
       frame = null;
@@ -1332,9 +1379,12 @@ export default function PrincessPet({
     schedule();
     const unsubscribe = subscribePrincessViewportChanges(window, schedule);
     return () => { unsubscribe(); if (frame !== null) window.cancelAnimationFrame(frame); };
-  }, [isDragging, routeBubble, position, scale]);
+  }, [isDragging, localeChangedGreeting, routeBubble, position, scale]);
 
-  useEffect(() => () => bubbleControllerRef.current?.dispose(), []);
+  useEffect(() => () => {
+    bubbleControllerRef.current?.dispose();
+    if (localeGreetingTimeoutRef.current !== null) window.clearTimeout(localeGreetingTimeoutRef.current);
+  }, []);
 
   useEffect(() => {
     const frames = Object.values(princessAnimations).filter((item) => !('preload' in item) || item.preload !== false).flatMap((item) => [
@@ -2518,6 +2568,12 @@ export default function PrincessPet({
     '--princess-intro-materialize': introMaterializeProgress,
     '--princess-intro-emergence': introEmergenceProgress,
     '--princess-profile-visual-scale': moduleProfile?.visualScale || 1,
+    '--princess-depth-scale': moduleProfile.visualProfile.depthScale,
+    '--princess-shadow-anchor-x': `${moduleProfile.visualProfile.shadowAnchor.x}%`,
+    '--princess-shadow-anchor-y': `${moduleProfile.visualProfile.shadowAnchor.y}%`,
+    '--princess-shadow-scale-x': moduleProfile.visualProfile.shadowScale.x,
+    '--princess-shadow-scale-y': moduleProfile.visualProfile.shadowScale.y,
+    '--princess-profile-rim-blur': `${2 + moduleProfile.visualProfile.rimLightStrength * 4}px`,
   } as CSSProperties;
 
   const walkStyle = {
@@ -2627,6 +2683,10 @@ export default function PrincessPet({
       data-companion-module={moduleProfile.moduleKey}
       data-companion-accessory={accessoryVisible ? accessory : 'none'}
       data-companion-visual-variant={interactionVariant}
+      data-companion-shadow-type={moduleProfile.visualProfile.shadowType}
+      data-companion-idle-depth={moduleProfile.visualProfile.idleMotion}
+      data-companion-rim-strength={moduleProfile.visualProfile.rimLightStrength}
+      data-companion-depth-stable={(isDragging || actionPanelOpen || actionPanelBlocked) ? 'true' : 'false'}
     >
       {actionPanelOpen && introPhase === 'active' && !isDragging ? (
         <CompanionActionPanel
@@ -2641,15 +2701,26 @@ export default function PrincessPet({
         <div className={styles.introGreeting} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-intro-greeting">
           {INTRO_GREETING[lang] || INTRO_GREETING.en}
         </div>
-      ) : routeBubble && !actionPanelOpen && introPhase === 'active' && !isDragging ? (
-        <div ref={bubbleRef} className={styles.routeBubble} style={bubbleStyle} role="status" aria-live="polite" aria-atomic="true" data-testid="princess-route-bubble">
-          {getCompanionRouteMessage(routeBubble, lang)}
+      ) : (localeChangedGreeting || routeBubble) && !actionPanelOpen && !actionPanelBlocked && introPhase === 'active' && !isDragging ? (
+        <div
+          ref={bubbleRef}
+          className={[styles.routeBubble, localeChangedGreeting ? styles.localeGreetingBubble : ''].filter(Boolean).join(' ')}
+          style={bubbleStyle}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          data-testid={localeChangedGreeting ? 'princess-locale-greeting' : 'princess-route-bubble'}
+        >
+          {localeChangedGreeting || getCompanionRouteMessage(routeBubble, lang)}
         </div>
       ) : null}
       <div className={styles.walkOffsetLayer} style={walkStyle}>
         <div className={styles.scaleLayer} style={scaleStyle}>
           <div className={aliveClassName} data-state={preservesModuleVisual ? moduleProfile.pose : petState}>
             <div className={styles.frameLayer}>
+              {moduleProfile.visualProfile.shadowType === 'ground' ? (
+                <span className={styles.groundShadow} aria-hidden="true" data-testid="princess-ground-shadow" />
+              ) : null}
               {accessoryVisible ? (
                 <span className={styles.accessory} style={accessoryStyle} aria-hidden="true" data-testid={`princess-accessory-${accessory}`}>
                   {accessory === 'round-glasses' ? (
