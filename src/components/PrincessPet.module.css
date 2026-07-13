@@ -2,6 +2,9 @@
   --princess-pet-width: clamp(88px, 11vw, 148px);
   --princess-pet-motion-duration: 0ms;
   --princess-pose-transition-duration: 0ms;
+  --princess-summon-violet: 164 112 255;
+  --princess-summon-blue: 94 181 255;
+  --princess-summon-white: 238 247 255;
 
   position: fixed;
   top: 0;
@@ -20,18 +23,49 @@
 }
 
 .root[data-princess-intro-phase="materializing"] .frameLayer {
-  opacity: calc(0.08 + var(--princess-intro-materialize) * 0.72);
+  opacity: calc(0.03 + var(--princess-intro-materialize) * 0.91);
   filter:
-    blur(calc((1 - var(--princess-intro-materialize)) * 8px))
-    brightness(calc(1.7 - var(--princess-intro-materialize) * 0.45))
-    drop-shadow(0 0 calc(10px + var(--princess-intro-materialize) * 18px) rgb(128 194 255 / 72%));
-  transform: translateY(calc((1 - var(--princess-intro-materialize)) * 10px)) scale(calc(0.9 + var(--princess-intro-materialize) * 0.08));
+    blur(calc((1 - var(--princess-intro-materialize)) * 9px + 0.35px))
+    brightness(calc(1.48 - var(--princess-intro-materialize) * 0.35))
+    saturate(calc(0.78 + var(--princess-intro-materialize) * 0.22))
+    drop-shadow(0 0 calc(8px + var(--princess-intro-materialize) * 14px) rgb(var(--princess-summon-blue) / 68%))
+    drop-shadow(0 0 calc(14px + var(--princess-intro-materialize) * 18px) rgb(var(--princess-summon-violet) / 38%));
+  transform: translateY(calc((1 - var(--princess-intro-materialize)) * 12px)) scale(calc(0.88 + var(--princess-intro-materialize) * 0.11));
 }
 
 .root[data-princess-intro-phase="emerging"] .frameLayer {
   opacity: 1;
-  filter: brightness(calc(1.25 - var(--princess-intro-emergence) * 0.25)) drop-shadow(0 0 18px rgb(142 175 255 / 55%));
+  filter:
+    brightness(calc(1.18 - var(--princess-intro-emergence) * 0.18))
+    saturate(calc(0.9 + var(--princess-intro-emergence) * 0.1))
+    drop-shadow(0 0 calc(20px - var(--princess-intro-emergence) * 11px) rgb(var(--princess-summon-blue) / 54%))
+    drop-shadow(0 0 calc(32px - var(--princess-intro-emergence) * 21px) rgb(var(--princess-summon-violet) / 34%));
   animation: princess-intro-emerge 600ms cubic-bezier(0.2, 0.82, 0.25, 1) both;
+}
+
+.root[data-princess-intro-phase="materializing"] .frameLayer::before,
+.root[data-princess-intro-phase="emerging"] .frameLayer::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 18% -34% -5%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 48%, rgb(var(--princess-summon-white) / 64%) 0 5%, transparent 22%),
+    radial-gradient(ellipse at center, rgb(var(--princess-summon-blue) / 34%) 0 28%, rgb(var(--princess-summon-violet) / 22%) 46%, transparent 72%);
+  filter: blur(8px);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.root[data-princess-intro-phase="materializing"] .frameLayer::before {
+  opacity: calc(0.12 + var(--princess-intro-materialize) * 0.68);
+  transform: scale(calc(0.68 + var(--princess-intro-materialize) * 0.34));
+}
+
+.root[data-princess-intro-phase="emerging"] .frameLayer::before {
+  opacity: calc(0.78 - var(--princess-intro-emergence) * 0.7);
+  animation: princess-summon-flare 600ms ease-out both;
 }
 
 .root[data-princess-intro-phase="greeting"] .interactiveLayer,
@@ -68,9 +102,15 @@
 }
 
 @keyframes princess-intro-emerge {
-  0% { transform: translateY(18px) scale(0.9); }
-  62% { transform: translateY(-7px) scale(1.035); }
+  0% { transform: translateY(12px) scale(0.96); }
+  48% { transform: translateY(-5px) scale(1.025); }
   100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes princess-summon-flare {
+  0% { transform: scale(0.82); }
+  36% { opacity: 0.82; transform: scale(1.08); }
+  100% { opacity: 0.08; transform: scale(1.18); }
 }
 
 @keyframes princess-intro-greeting-in {
@@ -107,7 +147,7 @@
   color: rgb(27 31 43 / 94%);
   filter: drop-shadow(0 2px 2px rgb(255 255 255 / 25%)) drop-shadow(0 3px 5px rgb(0 0 0 / 28%));
   pointer-events: none;
-  transform: translateX(-50%);
+  transform: translateX(-50%) rotate(var(--accessory-rotate, 0deg));
   transform-origin: 50% 50%;
   animation: princess-accessory-in 240ms ease-out both;
 }
@@ -120,8 +160,8 @@
 }
 
 @keyframes princess-accessory-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(3px) scale(0.96); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  from { opacity: 0; transform: translateX(-50%) translateY(3px) rotate(var(--accessory-rotate, 0deg)) scale(0.96); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) rotate(var(--accessory-rotate, 0deg)) scale(1); }
 }
 
 :global([data-theme="light"]) .routeBubble {
@@ -243,6 +283,13 @@
 
 .frameLayer {
   min-width: 0;
+  position: relative;
+  isolation: isolate;
+}
+
+.interactiveLayer {
+  position: relative;
+  z-index: 1;
 }
 
 .interactiveLayer {
@@ -530,10 +577,17 @@
   .routeBubble {
     max-width: min(260px, calc(100vw - 28px));
   }
+
+  .root[data-princess-intro-phase="materializing"] .frameLayer::before,
+  .root[data-princess-intro-phase="emerging"] .frameLayer::before {
+    inset: 22% -22% 0;
+    filter: blur(5px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .root[data-princess-intro-phase] .frameLayer,
+  .root[data-princess-intro-phase] .frameLayer::before,
   .introGreeting {
     filter: none;
     animation: none;

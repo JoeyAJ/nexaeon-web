@@ -58,10 +58,22 @@ test('accessory follows the Princess during drag and bubble does not block it', 
   expect(Math.abs((afterAccessory.y - beforeAccessory.y) - (afterPet.y - beforePet.y))).toBeLessThan(3);
 });
 
+test('round glasses hide for an unsafe reaction pose and return on the module pose', async ({ page }) => {
+  await page.goto('/identity/profile');
+  const pet = page.locator('[data-companion-module]');
+  await expect(pet).toHaveAttribute('data-pet-state', 'standing_attentive');
+  await expect(page.getByTestId('princess-accessory-round-glasses')).toBeVisible();
+  await page.getByTestId('princess-interactive').click({ force: true });
+  await expect(pet).toHaveAttribute('data-pet-state', /wave|sitting_smile/);
+  await expect(page.getByTestId('princess-accessory-round-glasses')).toHaveCount(0);
+  await expect(pet).toHaveAttribute('data-pet-state', 'standing_attentive', { timeout: 5_000 });
+  await expect(page.getByTestId('princess-accessory-round-glasses')).toBeVisible();
+});
+
 for (const width of [320, 375, 390, 430, 768, 1024, 1440]) {
   test(`keeps accessory and bubble inside a ${width}px viewport`, async ({ page }) => {
     await page.setViewportSize({ width, height: width <= 430 ? 667 : 800 });
-    await page.goto('/teaching/course');
+    await page.goto('/teaching/course?princessModule=coaching');
     await expect(page.getByTestId('princess-route-bubble')).toBeVisible({ timeout: 2_500 });
     const metrics = await page.evaluate(() => {
       const accessory = document.querySelector('[data-testid^="princess-accessory-"]').getBoundingClientRect();

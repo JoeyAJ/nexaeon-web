@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   COMPANION_MODULE_BUBBLE_SEEN_KEY,
-  accessoryAnchors,
+  accessoryAnchorsByPose,
   companionModuleProfiles,
   createCompanionBubbleController,
   getCompanionBubblePosition,
+  getAccessoryAnchor,
   getCompanionRouteMessage,
   resolveCompanionRoute,
 } from '../src/lib/companionRouteConfig.js';
@@ -24,7 +25,19 @@ test('Sprint 2-E emotion and accessory mapping stays within the requested scope'
   assert.deepEqual(Object.fromEntries(Object.entries(companionModuleProfiles).map(([key, value]) => [key, [value.emotion, value.accessory]])), {
     home: ['calm', 'none'], identity: ['attentive', 'round-glasses'], research: ['curious', 'round-glasses'], coaching: ['happy', 'academic-cap'], knowledge: ['attentive', 'round-glasses'], prototype: ['curious', 'none'], action: ['attentive', 'none'], navigator: ['attentive', 'round-glasses'], fallback: ['calm', 'none'],
   });
-  assert.deepEqual(Object.keys(accessoryAnchors).sort(), ['academic-cap', 'round-glasses']);
+  assert.deepEqual(Object.keys(accessoryAnchorsByPose).sort(), ['academic-cap', 'round-glasses']);
+});
+
+test('round glasses use pose-specific anchors and hide on unsafe angles', () => {
+  const standingDesktop = getAccessoryAnchor('round-glasses', 'standing_attentive', 1440);
+  const standingMobile = getAccessoryAnchor('round-glasses', 'standing_attentive', 390);
+  const idleDesktop = getAccessoryAnchor('round-glasses', 'idle', 1440);
+  assert.notDeepEqual(standingDesktop, idleDesktop);
+  assert.ok(standingDesktop.top > 50);
+  assert.ok(standingMobile.width < standingDesktop.width);
+  for (const pose of ['curious', 'wave', 'happy', 'quiet', 'sleep', 'sleeping_prone', 'attentive_portrait']) {
+    assert.equal(getAccessoryAnchor('round-glasses', pose, 1440), null);
+  }
 });
 
 test('every bubble has exact localized copy and English fallback', () => {

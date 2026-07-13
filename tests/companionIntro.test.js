@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   COMPANION_INTRO_TIMELINE,
@@ -53,4 +54,15 @@ test('session marker is resilient and prevents replay within the same session', 
   assert.equal(markCompanionIntroSeen(storage), true);
   assert.equal(hasSeenCompanionIntro(storage), true);
   assert.equal(hasSeenCompanionIntro({ getItem() { throw new Error('blocked'); } }), false);
+});
+
+test('summon styling blends violet, blue, and white light without changing the timeline', () => {
+  const css = readFileSync(new URL('../src/components/PrincessPet.module.css', import.meta.url), 'utf8');
+  assert.match(css, /--princess-summon-violet/);
+  assert.match(css, /--princess-summon-blue/);
+  assert.match(css, /--princess-summon-white/);
+  assert.match(css, /princess-summon-flare/);
+  assert.match(css, /mix-blend-mode: screen/);
+  assert.match(css, /data-princess-intro-phase="materializing"/);
+  assert.match(css, /data-princess-intro-phase="emerging"/);
 });

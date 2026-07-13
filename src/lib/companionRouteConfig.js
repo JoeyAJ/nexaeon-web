@@ -27,10 +27,30 @@ export const companionModuleProfiles = Object.freeze({
 });
 
 // Percentages are relative to the existing Princess frame, so overlays follow drag and scale.
-export const accessoryAnchors = Object.freeze({
-  'round-glasses': Object.freeze({ desktop: { left: 50, top: 24, width: 34 }, mobile: { left: 50, top: 24, width: 32 } }),
-  'academic-cap': Object.freeze({ desktop: { left: 50, top: 7, width: 45 }, mobile: { left: 50, top: 8, width: 41 } }),
+export const accessoryAnchorsByPose = Object.freeze({
+  'round-glasses': Object.freeze({
+    standing_attentive: Object.freeze({
+      desktop: Object.freeze({ left: 54, top: 55, width: 34, rotate: -1 }),
+      mobile: Object.freeze({ left: 54, top: 56, width: 31, rotate: -1 }),
+    }),
+    idle: Object.freeze({
+      desktop: Object.freeze({ left: 50, top: 60, width: 31, rotate: 0 }),
+      mobile: Object.freeze({ left: 50, top: 61, width: 29, rotate: 0 }),
+    }),
+  }),
+  'academic-cap': Object.freeze({
+    sitting_smile: Object.freeze({
+      desktop: Object.freeze({ left: 50, top: 7, width: 45, rotate: 0 }),
+      mobile: Object.freeze({ left: 50, top: 8, width: 41, rotate: 0 }),
+    }),
+  }),
 });
+
+export function getAccessoryAnchor(accessory, pose, viewportWidth, mobileBreakpoint = 520) {
+  const anchors = accessoryAnchorsByPose[accessory]?.[pose];
+  if (!anchors) return null;
+  return viewportWidth <= mobileBreakpoint ? anchors.mobile : anchors.desktop;
+}
 
 export function resolveCompanionRoute(pathname = '/', hash = '') {
   const path = pathname.replace(/\/+$/, '') || '/';

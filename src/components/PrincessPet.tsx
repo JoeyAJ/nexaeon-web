@@ -54,7 +54,7 @@ import {
 } from '../lib/princessStateController.js';
 import styles from './PrincessPet.module.css';
 import {
-  accessoryAnchors,
+  getAccessoryAnchor,
   createCompanionBubbleController,
   getCompanionBubblePosition,
   getCompanionRouteMessage,
@@ -591,7 +591,7 @@ export default function PrincessPet({
   useLayoutEffect(() => {
     contextProfileRef.current = contextProfile;
     presenceControllerRef.current?.setContext(contextProfile);
-    if (contextProfile.id === 'navigator' && !isDraggingRef.current) {
+    if (contextProfile.id === 'navigator' && !isDraggingRef.current && !readStoredPosition()) {
       const navigatorPosition = getDefaultPetPosition(rootRef.current, scaleRef.current, contextProfile.preferredAnchor);
       positionRef.current = navigatorPosition;
       setPosition(navigatorPosition);
@@ -719,7 +719,7 @@ export default function PrincessPet({
   }, [contextProfile.id, getDockPosition, introActive]);
 
   useEffect(() => {
-    if (contextProfile.id !== 'navigator') return undefined;
+    if (contextProfile.id !== 'navigator' || readStoredPosition()) return undefined;
     let frame: number | null = null;
     const avoidNavigatorInput = () => {
       frame = null;
@@ -2478,9 +2478,8 @@ export default function PrincessPet({
     typeof window === 'undefined' ? '' : window.location.hash,
   );
   const accessory = moduleProfile.accessory;
-  const accessoryAnchorSet = accessory !== 'none' ? accessoryAnchors[accessory] : null;
-  const accessoryAnchor = accessoryAnchorSet
-    ? (getViewportSize().width <= MOBILE_BREAKPOINT ? accessoryAnchorSet.mobile : accessoryAnchorSet.desktop)
+  const accessoryAnchor = accessory !== 'none'
+    ? getAccessoryAnchor(accessory, petState, getViewportSize().width, MOBILE_BREAKPOINT)
     : null;
   const accessoryVisible = Boolean(
     accessoryAnchor
@@ -2491,6 +2490,7 @@ export default function PrincessPet({
     '--accessory-left': `${accessoryAnchor.left}%`,
     '--accessory-top': `${accessoryAnchor.top}%`,
     '--accessory-width': `${accessoryAnchor.width}%`,
+    '--accessory-rotate': `${accessoryAnchor.rotate || 0}deg`,
   } as CSSProperties : undefined;
 
   return (
