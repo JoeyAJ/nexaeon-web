@@ -43,7 +43,9 @@
   position: absolute;
   left: 0;
   bottom: 58px;
-  width: min(304px, calc(100vw - 36px));
+  width: min(324px, calc(100vw - 36px));
+  max-height: min(680px, calc(100vh - 100px));
+  overflow-y: auto;
   padding: 14px;
   border: 1px solid color-mix(in srgb, var(--accent-indigo) 32%, var(--line-3));
   border-radius: var(--r-lg);
@@ -160,16 +162,72 @@
   background: var(--accent-fg);
 }
 
-.note {
-  margin: 8px 8px 10px;
+.motionGroup {
+  margin: 10px 0;
+  padding: 0;
+  border: 0;
+}
+
+.motionGroup legend,
+.scaleControl > span {
+  margin: 0 8px 6px;
+  color: var(--fg-2);
+  font-size: 12px;
+}
+
+.motionGroup > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.motionGroup label {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  padding: 5px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
   color: var(--fg-3);
   font-size: 11px;
-  line-height: 1.45;
+  cursor: pointer;
+}
+
+.motionGroup label[data-selected="true"] {
+  border-color: color-mix(in srgb, var(--accent-indigo) 72%, var(--line-3));
+  background: color-mix(in srgb, var(--accent-indigo) 16%, transparent);
+  color: var(--accent-fg);
+}
+
+.motionGroup input {
+  position: absolute;
+  opacity: 0;
+}
+
+.motionGroup label:focus-within {
+  outline: 2px solid var(--accent-fg);
+  outline-offset: 2px;
+}
+
+.scaleControl {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0 12px;
+}
+
+.scaleControl > span {
+  display: flex;
+  justify-content: space-between;
+}
+
+.scaleControl input {
+  width: 100%;
+  accent-color: var(--accent-indigo);
 }
 
 .actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 7px;
 }
 
@@ -227,7 +285,7 @@
 
   .panel {
     bottom: 60px;
-    width: min(304px, calc(100vw - 28px));
+    width: min(324px, calc(100vw - 28px));
   }
 }
 

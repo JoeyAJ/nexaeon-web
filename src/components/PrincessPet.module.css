@@ -329,6 +329,32 @@
   cursor: grabbing;
 }
 
+.interactiveLayer:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.root[data-pet-motion-level="reduced"] .aliveLayer,
+.root[data-pet-motion-level="reduced"] .frameLayer,
+.root[data-pet-motion-level="reduced"] .interactiveLayer {
+  animation: none !important;
+}
+
+.root[data-pet-motion-level="reduced"] .image,
+.root[data-pet-motion-level="reduced"] .routeBubble,
+.root[data-pet-motion-level="reduced"] .accessory {
+  animation-duration: 120ms;
+  transition-duration: 120ms;
+}
+
+.root[data-pet-motion-level="none"] *,
+.root[data-pet-motion-level="none"] *::before,
+.root[data-pet-motion-level="none"] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
 .aliveLayer[data-state="walkLeft"] .frameLayer,
 .aliveLayer[data-state="walkRight"] .frameLayer {
   width: 142%;

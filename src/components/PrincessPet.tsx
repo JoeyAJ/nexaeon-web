@@ -27,6 +27,7 @@ import {
   writePrincessPosition,
   writePrincessScale,
 } from '../lib/princessLayoutPersistence.js';
+import { resolveEffectiveMotionLevel } from '../lib/companionPreferences.js';
 import {
   PRINCESS_CONTEXT_PROFILES,
   getContextPreferredPosition,
@@ -301,12 +302,17 @@ function getDefaultPetMargins(viewportWidth: number, viewportHeight: number) {
 
 function getPetSafeArea(viewportWidth: number) {
   const isMobile = viewportWidth <= MOBILE_BREAKPOINT;
+  const computed = typeof document === 'undefined' ? null : window.getComputedStyle(document.documentElement);
+  const inset = (side: string) => {
+    const value = Number.parseFloat(computed?.getPropertyValue(`--safe-area-inset-${side}`) || '0');
+    return Number.isFinite(value) ? value : 0;
+  };
 
   return {
-    left: 12,
-    right: 12,
-    top: isMobile ? 72 : 76,
-    bottom: isMobile ? 96 : 12,
+    left: Math.max(12, inset('left')),
+    right: Math.max(12, inset('right')),
+    top: Math.max(isMobile ? 72 : 76, inset('top')),
+    bottom: Math.max(isMobile ? 96 : 12, inset('bottom')),
   };
 }
 
@@ -409,7 +415,12 @@ type PrincessPetProps = {
   navigationKey?: string;
   visible?: boolean;
   autoBehaviorEnabled?: boolean;
+  proactiveBubblesEnabled?: boolean;
+  accessoriesEnabled?: boolean;
   interactionEnabled?: boolean;
+  motionLevel?: 'full' | 'reduced' | 'none';
+  preferredScale?: number;
+  onScaleChange?: (scale: number) => void;
   resetPositionToken?: number;
   resetSizeToken?: number;
   eventBridge?: PrincessEventBridge;
@@ -422,14 +433,21 @@ export default function PrincessPet({
   navigationKey = '',
   visible = true,
   autoBehaviorEnabled = true,
+  proactiveBubblesEnabled = true,
+  accessoriesEnabled = true,
   interactionEnabled = true,
+  motionLevel = 'full',
+  preferredScale,
+  onScaleChange,
   resetPositionToken = 0,
   resetSizeToken = 0,
   eventBridge,
   contextProfile = PRINCESS_CONTEXT_PROFILES.generic,
   introActive = false,
 }: PrincessPetProps) {
-  const prefersReducedMotion = usePrefersReducedMotion();
+  const systemPrefersReducedMotion = usePrefersReducedMotion();
+  const effectiveMotionLevel = resolveEffectiveMotionLevel(motionLevel, systemPrefersReducedMotion);
+  const prefersReducedMotion = effectiveMotionLevel !== 'full';
   const debugPreviewState = useMemo(getDevPreviewState, []);
   const debugBehaviorOverride = useMemo(hasCompanionDebugQuery, []);
   const initialBehavior = useMemo<CompanionBehavior>(() => (
@@ -858,6 +876,11 @@ export default function PrincessPet({
     return clampedScale;
   }, [persistScaleSoon]);
 
+  useEffect(() => {
+    if (!Number.isFinite(preferredScale) || Math.abs(Number(preferredScale) - scaleRef.current) < 0.005) return;
+    applyScale(Number(preferredScale));
+  }, [applyScale, preferredScale]);
+
   const playAffection = useCallback(() => {
     if (prefersReducedMotion || isDraggingRef.current || !canStartDirectInteraction(stateRef.current)) return false;
 
@@ -1266,12 +1289,15 @@ export default function PrincessPet({
   }, []);
 
   useEffect(() => {
-    if (!visible || introPhase !== 'active') return undefined;
+    if (!visible || !proactiveBubblesEnabled || introPhase !== 'active') {
+      bubbleControllerRef.current?.hide();
+      return undefined;
+    }
     const routeConfig = resolveCompanionRoute(window.location.pathname, window.location.hash);
     if (!routeConfig.bubbleKey) bubbleControllerRef.current?.hide();
     bubbleControllerRef.current?.show(routeConfig);
     return undefined;
-  }, [introPhase, navigationKey, visible]);
+  }, [introPhase, navigationKey, proactiveBubblesEnabled, visible]);
 
   useEffect(() => {
     if (!routeBubble || isDragging) return undefined;
@@ -2016,6 +2042,7 @@ export default function PrincessPet({
     const nextScale = applyScale(nextPreset);
     clearTimer(scaleSaveTimeoutRef);
     writeStoredScale(nextScale);
+    onScaleChange?.(nextScale);
   }, [
     applyScale,
     clearTimer,
@@ -2025,6 +2052,7 @@ export default function PrincessPet({
     requestWave,
     resetLayout,
     settleWalkOffset,
+    onScaleChange,
   ]);
 
   const queueDragPosition = useCallback((nextPosition: PetPosition) => {
@@ -2148,6 +2176,21 @@ export default function PrincessPet({
     longPressTriggeredRef.current = false;
     pendingInteractionRef.current = null;
 
+    const dragSession = dragSessionRef.current;
+    if (dragSession) {
+      dragSessionRef.current = null;
+      const interactiveNode = interactiveRef.current;
+      if (interactiveNode?.hasPointerCapture(dragSession.pointerId)) interactiveNode.releasePointerCapture(dragSession.pointerId);
+      if (dragAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(dragAnimationFrameRef.current);
+        dragAnimationFrameRef.current = null;
+      }
+      pendingDragPositionRef.current = null;
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      stateControllerRef.current?.endDrag();
+    }
+
     if (PRINCESS_STATE_GROUPS.INTERACTION.includes(stateRef.current)) {
       stateControllerRef.current?.cancelCompletion();
       setIdleState();
@@ -2200,6 +2243,7 @@ export default function PrincessPet({
   }, [clearTimer, endDrag, navigationKey, noteUserInteraction]);
 
   const handlePointerDown = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!interactionEnabled) return;
     if (event.button !== 0 && event.pointerType === 'mouse') return;
 
     noteUserInteraction({ immediate: true });
@@ -2371,8 +2415,9 @@ export default function PrincessPet({
     settleWalkOffset();
 
     const direction = event.deltaY < 0 ? 1 : -1;
-    applyScale(scaleRef.current + direction * PET_SCALE.wheelStep, { persist: true });
-  }, [applyScale, clearTimer, interactionEnabled, noteUserInteraction, settleWalkOffset]);
+    const nextScale = applyScale(scaleRef.current + direction * PET_SCALE.wheelStep, { persist: true });
+    onScaleChange?.(nextScale);
+  }, [applyScale, clearTimer, interactionEnabled, noteUserInteraction, onScaleChange, settleWalkOffset]);
 
   useEffect(() => {
     const interactiveNode = interactiveRef.current;
@@ -2492,7 +2537,8 @@ export default function PrincessPet({
     ? getAccessoryAnchor(accessory, moduleProfile.moduleKey, getViewportSize().width, MOBILE_BREAKPOINT)
     : null;
   const accessoryVisible = Boolean(
-    accessoryAnchor
+    accessoriesEnabled
+    && accessoryAnchor
     && introPhase === 'active'
     && (isModuleInactivity || !['quiet', 'sleep', 'sleeping_prone'].includes(petState)),
   );
@@ -2517,6 +2563,9 @@ export default function PrincessPet({
       data-pet-scale={scale.toFixed(2)}
       data-pet-auto-behavior={autoBehaviorEnabled ? 'true' : 'false'}
       data-pet-interaction={interactionEnabled ? 'true' : 'false'}
+      data-pet-motion-level={effectiveMotionLevel}
+      data-pet-proactive-bubbles={proactiveBubblesEnabled ? 'true' : 'false'}
+      data-pet-accessories-enabled={accessoriesEnabled ? 'true' : 'false'}
       data-princess-context={contextProfile.id}
       data-pet-debug-state={debugPreviewState || undefined}
       data-princess-intro-phase={introPhase}
@@ -2558,7 +2607,7 @@ export default function PrincessPet({
               <button
                 ref={interactiveRef}
                 type="button"
-                disabled={introPhase !== 'active'}
+                disabled={introPhase !== 'active' || !interactionEnabled}
                 data-testid="princess-interactive"
                 className={styles.interactiveLayer}
                 aria-label={stateAriaLabel || (interactionEnabled ? interactionLabel.enabled : interactionLabel.disabled)}

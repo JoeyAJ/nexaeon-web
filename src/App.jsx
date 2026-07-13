@@ -10,12 +10,13 @@ import { Companion } from './components/Companion/index.js';
 import PrincessCompanionControls from './components/PrincessCompanionControls.jsx';
 import { getAgentByKey } from './data/agentRegistry.js';
 import {
-  DEFAULT_PRINCESS_SETTINGS,
-  clearPrincessSettings,
-  getPrincessStorage,
-  readPrincessSettings,
-  writePrincessSettings,
-} from './lib/princessLayoutPersistence.js';
+  DEFAULT_COMPANION_PREFERENCES,
+  getCompanionStorage,
+  readCompanionPreferences,
+  resetCompanionLayout,
+  resetCompanionPreferences,
+  updateCompanionPreferences,
+} from './lib/companionPreferences.js';
 import { createPrincessEventBridge } from './lib/princessEventBridge.ts';
 import { createPrincessModuleActivityAdapter } from './lib/princessModuleActivity.ts';
 import { hasSeenCompanionIntro } from './lib/companionIntro.js';
@@ -59,7 +60,9 @@ export default function App() {
   const [lang, setLang] = useState('zh');
   const [theme, setTheme] = useState('dark');
   const [companionSettings, setCompanionSettings] = useState(() => (
-    readPrincessSettings(getPrincessStorage(window))
+    readCompanionPreferences(getCompanionStorage(window), {
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    })
   ));
   const [resetPositionToken, setResetPositionToken] = useState(0);
   const [resetSizeToken, setResetSizeToken] = useState(0);
@@ -80,21 +83,24 @@ export default function App() {
   const previousLangRef = useRef(lang);
   const previousThemeRef = useRef(theme);
   const previousRouteKeyRef = useRef('');
+  const previousCompanionModuleRef = useRef(companionSettings.lastModule);
+  const preferencesWriteTimeoutRef = useRef(null);
+  const pendingPreferencesPatchRef = useRef({});
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    if (previousThemeRef.current !== theme) {
+    if (previousThemeRef.current !== theme && companionSettings.visible && companionSettings.autoBehavior) {
       princessEventBridge.emit({ type: 'theme_change', key: theme });
-      previousThemeRef.current = theme;
     }
-  }, [princessEventBridge, theme]);
+    previousThemeRef.current = theme;
+  }, [companionSettings.autoBehavior, companionSettings.visible, princessEventBridge, theme]);
 
   useEffect(() => {
-    if (previousLangRef.current !== lang) {
+    if (previousLangRef.current !== lang && companionSettings.visible && companionSettings.autoBehavior) {
       princessEventBridge.emit({ type: 'language_change', key: lang });
-      previousLangRef.current = lang;
     }
-  }, [lang, princessEventBridge]);
+    previousLangRef.current = lang;
+  }, [companionSettings.autoBehavior, companionSettings.visible, lang, princessEventBridge]);
 
   useEffect(() => {
     markInitialHistoryEntry();
@@ -161,7 +167,7 @@ export default function App() {
   }, [princessContext.id, princessContext.profile, princessEventBridge]);
 
   useEffect(() => {
-    if (!companionSettings.visible) return undefined;
+    if (!companionSettings.visible || !companionSettings.autoBehavior) return undefined;
     const currentRouteKey = companionNavigationKey || 'home';
     if (previousRouteKeyRef.current && previousRouteKeyRef.current !== currentRouteKey) {
       princessEventBridge.emit({ type: 'route_leave', key: previousRouteKeyRef.current });
@@ -206,22 +212,65 @@ export default function App() {
       window.removeEventListener('scroll', onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [companionNavigationKey, companionSettings.visible, princessEventBridge, route.hash, route.kind, route.type]);
+  }, [companionNavigationKey, companionSettings.autoBehavior, companionSettings.visible, princessEventBridge, route.hash, route.kind, route.type]);
+
+  useEffect(() => {
+    const moduleId = princessContext.profile?.id || companionNavigationKey || 'home';
+    if (previousCompanionModuleRef.current === moduleId) return;
+    previousCompanionModuleRef.current = moduleId;
+    updateCompanionPreferences(getCompanionStorage(window), { lastModule: moduleId });
+  }, [companionNavigationKey, princessContext.profile?.id]);
+
+  useEffect(() => {
+    const flushPreferences = () => {
+      if (!Object.keys(pendingPreferencesPatchRef.current).length) return;
+      updateCompanionPreferences(getCompanionStorage(window), pendingPreferencesPatchRef.current);
+      pendingPreferencesPatchRef.current = {};
+    };
+    window.addEventListener('pagehide', flushPreferences);
+    return () => {
+      window.removeEventListener('pagehide', flushPreferences);
+      if (preferencesWriteTimeoutRef.current) window.clearTimeout(preferencesWriteTimeoutRef.current);
+      flushPreferences();
+    };
+  }, []);
 
   const updateCompanionSetting = (key, value) => {
-    if (!(key in DEFAULT_PRINCESS_SETTINGS)) return;
+    if (!(key in DEFAULT_COMPANION_PREFERENCES) || ['version', 'position', 'updatedAt'].includes(key)) return;
 
     setCompanionSettings((current) => {
       if (current[key] === value) return current;
-      const nextSettings = { ...current, [key]: value };
-      writePrincessSettings(getPrincessStorage(window), nextSettings);
-      return nextSettings;
+      return { ...current, [key]: value };
     });
+
+    if (preferencesWriteTimeoutRef.current) window.clearTimeout(preferencesWriteTimeoutRef.current);
+    pendingPreferencesPatchRef.current = { ...pendingPreferencesPatchRef.current, [key]: value };
+    preferencesWriteTimeoutRef.current = window.setTimeout(() => {
+      preferencesWriteTimeoutRef.current = null;
+      updateCompanionPreferences(getCompanionStorage(window), pendingPreferencesPatchRef.current);
+      pendingPreferencesPatchRef.current = {};
+    }, 180);
+  };
+
+  const resetCompanionPositionAndSize = () => {
+    if (preferencesWriteTimeoutRef.current) window.clearTimeout(preferencesWriteTimeoutRef.current);
+    preferencesWriteTimeoutRef.current = null;
+    if (Object.keys(pendingPreferencesPatchRef.current).length) {
+      updateCompanionPreferences(getCompanionStorage(window), pendingPreferencesPatchRef.current);
+    }
+    pendingPreferencesPatchRef.current = {};
+    const next = resetCompanionLayout(getCompanionStorage(window));
+    setCompanionSettings((current) => ({ ...current, position: next.position, scale: next.scale }));
+    setResetPositionToken((current) => current + 1);
+    setResetSizeToken((current) => current + 1);
   };
 
   const resetAllCompanionSettings = () => {
-    clearPrincessSettings(getPrincessStorage(window));
-    setCompanionSettings({ ...DEFAULT_PRINCESS_SETTINGS });
+    if (preferencesWriteTimeoutRef.current) window.clearTimeout(preferencesWriteTimeoutRef.current);
+    preferencesWriteTimeoutRef.current = null;
+    pendingPreferencesPatchRef.current = {};
+    const next = resetCompanionPreferences(getCompanionStorage(window));
+    setCompanionSettings(next);
     setResetPositionToken((current) => current + 1);
     setResetSizeToken((current) => current + 1);
   };
@@ -300,8 +349,13 @@ export default function App() {
         lang={lang}
         navigationKey={companionNavigationKey}
         visible={companionSettings.visible}
-        autoBehaviorEnabled={companionSettings.autoBehaviorEnabled && !companionIntroActive}
+        autoBehaviorEnabled={companionSettings.autoBehavior && !companionIntroActive}
+        proactiveBubblesEnabled={companionSettings.proactiveBubbles}
+        accessoriesEnabled={companionSettings.accessoriesEnabled}
         interactionEnabled={companionSettings.interactionEnabled && !companionIntroActive}
+        motionLevel={companionSettings.motionLevel}
+        preferredScale={companionSettings.scale}
+        onScaleChange={(scale) => setCompanionSettings((current) => ({ ...current, scale }))}
         introActive={companionIntroActive}
         resetPositionToken={resetPositionToken}
         resetSizeToken={resetSizeToken}
@@ -312,8 +366,7 @@ export default function App() {
         lang={lang}
         settings={companionSettings}
         onSettingChange={updateCompanionSetting}
-        onResetPosition={() => setResetPositionToken((current) => current + 1)}
-        onResetSize={() => setResetSizeToken((current) => current + 1)}
+        onResetLayout={resetCompanionPositionAndSize}
         onResetAll={resetAllCompanionSettings}
       />
       <BackToTopButton lang={lang} />

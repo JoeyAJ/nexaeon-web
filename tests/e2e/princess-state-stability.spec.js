@@ -76,7 +76,7 @@ test('drag pauses state changes and does not trigger a click interaction', async
   await expect(root).toHaveAttribute('data-pet-dragging', 'false');
   await expect(root).toHaveAttribute('data-pet-state', 'standing_attentive');
   await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 3_000 });
-  expect(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-pet-position'))).not.toBeNull();
+  expect(JSON.parse(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-companion-preferences'))).position).not.toBeNull();
   assertRuntimeClean();
 });
 
@@ -121,10 +121,11 @@ test('Princess keeps one mounted instance and its saved layout across navigation
 
   const savedTransform = await root.getAttribute('style');
   const storedPosition = JSON.parse(await page.evaluate(() => (
-    window.localStorage.getItem('nexaeon-princess-pet-position')
+    window.localStorage.getItem('nexaeon-princess-companion-preferences')
   )));
   expect(storedPosition.version).toBe(1);
-  expect(Number.isFinite(storedPosition.updatedAt)).toBe(true);
+  expect(storedPosition.position).not.toBeNull();
+  expect(Number.isNaN(Date.parse(storedPosition.updatedAt))).toBe(false);
 
   await page.getByTestId('module-card-research').getByRole('button').click();
   await page.getByTestId('module-entry-research-literature-database').click();
@@ -202,7 +203,7 @@ test('route change safely ends an active Princess drag without remounting', asyn
   await page.mouse.up();
 
   const storedPosition = JSON.parse(await page.evaluate(() => (
-    window.localStorage.getItem('nexaeon-princess-pet-position')
+    window.localStorage.getItem('nexaeon-princess-companion-preferences')
   )));
   expect(storedPosition.version).toBe(1);
   assertRuntimeClean();
@@ -215,8 +216,8 @@ test('Companion controls persist visibility, automatic behavior, and interaction
 
   const controls = page.getByTestId('princess-controls');
   const root = page.locator(PET_ROOT);
-  await controls.getByRole('button', { name: '開啟 Companion 控制' }).click();
-  await expect(controls.getByRole('dialog', { name: 'Princess Companion' })).toBeVisible();
+  await controls.getByRole('button', { name: '開啟 Companion 設定' }).click();
+  await expect(controls.getByRole('dialog', { name: 'Companion 設定' })).toBeVisible();
 
   const autoSwitch = controls.getByRole('switch', { name: '自動行為' });
   await autoSwitch.click();
@@ -227,7 +228,7 @@ test('Companion controls persist visibility, automatic behavior, and interaction
   await expect(root).toHaveAttribute('data-pet-state', /wave|sitting_smile/);
   await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
 
-  const interactionSwitch = controls.getByRole('switch', { name: '互動' });
+  const interactionSwitch = controls.getByRole('switch', { name: '允許互動' });
   await interactionSwitch.click();
   await expect(interactionSwitch).toHaveAttribute('aria-checked', 'false');
   await expect(root).toHaveAttribute('data-pet-interaction', 'false');
@@ -237,21 +238,23 @@ test('Companion controls persist visibility, automatic behavior, and interaction
   const visibleSwitch = controls.getByRole('switch', { name: '顯示 Princess' });
   await visibleSwitch.click();
   await expect(page.locator(PET_ROOT)).toHaveCount(0);
-  await expect(controls.getByRole('button', { name: '開啟 Companion 控制' })).toBeVisible();
+  await expect(controls.getByRole('button', { name: '開啟 Companion 設定' })).toBeVisible();
 
   const settingsRecord = JSON.parse(await page.evaluate(() => (
-    window.localStorage.getItem('nexaeon-princess-companion-settings')
+    new Promise((resolve) => window.setTimeout(() => resolve(
+    window.localStorage.getItem('nexaeon-princess-companion-preferences')
+    ), 220))
   )));
   expect(settingsRecord).toMatchObject({
     version: 1,
     visible: false,
-    autoBehaviorEnabled: false,
+    autoBehavior: false,
     interactionEnabled: false,
   });
 
   await page.reload();
   await expect(page.locator(PET_ROOT)).toHaveCount(0);
-  await controls.getByRole('button', { name: '開啟 Companion 控制' }).click();
+  await controls.getByRole('button', { name: '開啟 Companion 設定' }).click();
   const restoredVisibleSwitch = controls.getByRole('switch', { name: '顯示 Princess' });
   await expect(restoredVisibleSwitch).toHaveAttribute('aria-checked', 'false');
   await restoredVisibleSwitch.click();
@@ -260,7 +263,47 @@ test('Companion controls persist visibility, automatic behavior, and interaction
   await expect(root).toHaveAttribute('data-pet-interaction', 'false');
 
   await page.keyboard.press('Escape');
-  await expect(controls.getByRole('dialog', { name: 'Princess Companion' })).toHaveCount(0);
+  await expect(controls.getByRole('dialog', { name: 'Companion 設定' })).toHaveCount(0);
+  assertRuntimeClean();
+});
+
+test('Companion preference changes apply immediately to bubbles, accessories, motion, size, and drag', async ({ page }) => {
+  const assertRuntimeClean = watchRuntimeErrors(page);
+  await page.goto('/research/ai-in-education');
+  const root = page.locator(PET_ROOT);
+  const controls = page.getByTestId('princess-controls');
+  await expect(root).toHaveAttribute('data-companion-accessory', 'round-glasses');
+  await expect(page.getByTestId('princess-route-bubble')).toBeVisible({ timeout: 2_000 });
+
+  await controls.getByRole('button', { name: '開啟 Companion 設定' }).click();
+  await controls.getByRole('switch', { name: '顯示配件' }).click();
+  await expect(root).toHaveAttribute('data-companion-accessory', 'none');
+  await controls.getByRole('switch', { name: '主動語境提示' }).click();
+  await expect(page.getByTestId('princess-route-bubble')).toHaveCount(0);
+
+  await controls.getByRole('radio', { name: '關閉動畫' }).check();
+  await expect(root).toHaveAttribute('data-pet-motion-level', 'none');
+  await controls.getByRole('slider', { name: '大小' }).fill('0.82');
+  await expect(root).toHaveAttribute('data-pet-scale', '0.82');
+
+  const button = page.getByTestId('princess-interactive');
+  const before = await root.getAttribute('style');
+  await controls.getByRole('switch', { name: '允許互動' }).click();
+  await expect(button).toBeDisabled();
+  const box = await root.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x - 40, box.y - 20);
+  await page.mouse.up();
+  await expect(root).toHaveAttribute('style', before);
+
+  await page.waitForTimeout(250);
+  await page.reload();
+  await expect(root).toHaveAttribute('data-companion-accessory', 'none');
+  await expect(root).toHaveAttribute('data-pet-motion-level', 'none');
+  await expect(root).toHaveAttribute('data-pet-scale', '0.82');
+  await expect(root).toHaveAttribute('data-pet-interaction', 'false');
+  await expect(page.getByTestId('princess-route-bubble')).toHaveCount(0);
   assertRuntimeClean();
 });
 
@@ -271,23 +314,20 @@ test('website events remain low-frequency when direct interaction and auto behav
 
   const controls = page.getByTestId('princess-controls');
   const root = page.locator(PET_ROOT);
-  await controls.getByRole('button', { name: '開啟 Companion 控制' }).click();
+  await controls.getByRole('button', { name: '開啟 Companion 設定' }).click();
   await controls.getByRole('switch', { name: '自動行為' }).click();
-  await controls.getByRole('switch', { name: '互動' }).click();
+  await controls.getByRole('switch', { name: '允許互動' }).click();
   await page.keyboard.press('Escape');
 
   await page.getByTestId('module-card-research').getByRole('button').click();
-  await expect(root).toHaveAttribute('data-pet-state', 'curious');
-  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
   await expect(root).toHaveCount(1);
 
   await page.getByRole('button', { name: 'Switch to English' }).click();
-  await expect(root).toHaveAttribute('data-pet-state', 'wave');
-  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
 
   await page.getByRole('button', { name: 'Toggle theme' }).click();
-  await expect(root).toHaveAttribute('data-pet-state', 'curious');
-  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake', { timeout: 4_000 });
+  await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
   await expect(root).toHaveCount(1);
   assertRuntimeClean();
 });
@@ -311,19 +351,20 @@ test('Companion controls reset position, size, and only Princess settings', asyn
   await button.dblclick();
   await expect(root).toHaveAttribute('data-pet-scale', '1.18');
 
-  await controls.getByRole('button', { name: '開啟 Companion 控制' }).click();
-  await controls.getByRole('button', { name: '恢復大小' }).click();
+  await controls.getByRole('button', { name: '開啟 Companion 設定' }).click();
+  await controls.getByRole('button', { name: '恢復位置與大小' }).click();
   await expect(root).toHaveAttribute('data-pet-scale', '1.00');
-  await controls.getByRole('button', { name: '恢復位置' }).click();
   await expect(root).not.toHaveAttribute('style', draggedTransform);
-  expect(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-pet-position'))).toBeNull();
-  expect(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-pet-scale'))).toBeNull();
-  await expect(controls.getByRole('status')).toHaveText('已恢復預設');
+  const resetRecord = JSON.parse(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-companion-preferences')));
+  expect(resetRecord.position).toBeNull();
+  expect(resetRecord.scale).toBe(1);
+  await expect(controls.getByText('已恢復預設')).toBeVisible();
 
-  await controls.getByRole('switch', { name: '互動' }).click();
+  await controls.getByRole('switch', { name: '允許互動' }).click();
+  page.once('dialog', (dialog) => dialog.accept());
   await controls.getByRole('button', { name: '全部恢復預設' }).click();
   await expect(root).toHaveAttribute('data-pet-interaction', 'true');
-  expect(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-companion-settings'))).toBeNull();
+  expect(JSON.parse(await page.evaluate(() => window.localStorage.getItem('nexaeon-princess-companion-preferences'))).interactionEnabled).toBe(true);
   assertRuntimeClean();
 });
 
@@ -333,17 +374,17 @@ test('Companion controls localize and remain readable across theme changes', asy
 
   await page.getByRole('button', { name: 'Switch to English' }).click();
   const controls = page.getByTestId('princess-controls');
-  await controls.getByRole('button', { name: 'Open Companion controls' }).click();
+  await controls.getByRole('button', { name: 'Open Companion settings' }).click();
   await expect(controls.getByText('Automatic behavior')).toBeVisible();
-  await expect(controls.getByText('Reset all defaults')).toBeVisible();
+  await expect(controls.getByText('Restore all defaults')).toBeVisible();
   await page.getByRole('button', { name: 'Toggle theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.keyboard.press('Escape');
 
   await page.getByRole('button', { name: '한국어로 전환' }).click();
-  await controls.getByRole('button', { name: 'Companion 컨트롤 열기' }).click();
+  await controls.getByRole('button', { name: 'Companion 설정 열기' }).click();
   await expect(controls.getByText('자동 행동')).toBeVisible();
-  await expect(controls.getByText('모두 기본값으로')).toBeVisible();
+  await expect(controls.getByText('전체 기본값 복원')).toBeVisible();
   assertRuntimeClean();
 });
 
@@ -374,7 +415,8 @@ test('Princess context follows routes without remounting, respects locale, Navig
   await expect(root).toHaveAttribute('data-princess-context', 'research');
 
   await page.evaluate(() => {
-    window.localStorage.removeItem('nexaeon-princess-pet-position');
+    const preferences = JSON.parse(window.localStorage.getItem('nexaeon-princess-companion-preferences'));
+    window.localStorage.setItem('nexaeon-princess-companion-preferences', JSON.stringify({ ...preferences, position: null }));
     window.history.pushState({}, '', '/identity/nexaeon-navigator');
     window.dispatchEvent(new PopStateEvent('popstate'));
   });

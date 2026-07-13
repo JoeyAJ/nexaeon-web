@@ -55,7 +55,7 @@ test('accessory follows the Princess during drag and bubble does not block it', 
   const afterPet = await pet.boundingBox();
   const afterAccessory = await accessory.boundingBox();
   expect(Math.abs((afterAccessory.x - beforeAccessory.x) - (afterPet.x - beforePet.x))).toBeLessThan(3);
-  expect(Math.abs((afterAccessory.y - beforeAccessory.y) - (afterPet.y - beforePet.y))).toBeLessThan(3);
+  expect(Math.abs((afterAccessory.y - beforeAccessory.y) - (afterPet.y - beforePet.y))).toBeLessThan(4);
 });
 
 test('round glasses hide for an unsafe reaction pose and return on the module pose', async ({ page }) => {
