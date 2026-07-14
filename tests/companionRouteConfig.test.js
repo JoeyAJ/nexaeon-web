@@ -50,7 +50,7 @@ test('all eight contexts have a distinct fixed transparent pose asset', () => {
   assert.ok(assets.every((asset) => asset.endsWith('.png')));
 });
 
-test('every module uses the active legacy complete frame throughout interaction and inactivity', () => {
+test('every module uses the mapped complete frame throughout interaction and inactivity', () => {
   for (const key of ['home', 'identity', 'research', 'coaching', 'knowledge', 'prototype', 'action', 'navigator']) {
     const profile = companionModuleProfiles[key];
     assert.equal(getCompanionDisplayedAsset(profile, '/legacy-sleep.png', 'sleeping_prone', 'inactivity'), '/legacy-sleep.png');

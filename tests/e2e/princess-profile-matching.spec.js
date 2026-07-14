@@ -19,39 +19,37 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('all module profiles use the consistent legacy Princess through hover, click, inactivity, and return', async ({ page }) => {
+test('all module profiles use the uploaded Princess assets through hover, click, inactivity, and return', async ({ page }) => {
   for (const profile of profiles) {
     await page.goto(profile.route);
     const pet = page.locator('[data-companion-module]');
     const button = pet.getByTestId('princess-interactive');
     const image = pet.locator('img');
-    const legacyFramePattern = /\/pet\/princess\/frames\/frame-\d+\.png$/;
-
     await expect(pet).toHaveAttribute('data-companion-module', profile.key);
     await expect(pet).toHaveAttribute('data-companion-accessory', profile.accessory);
-    await expect(image).toHaveAttribute('src', /frame-001\.png$/);
+    await expect(image).toHaveAttribute('src', /princess-active\.png$/);
     await pet.screenshot({ path: `test-results/profile-${profile.key}.png` });
 
     await button.dispatchEvent('pointerover');
-    await expect(image).toHaveAttribute('src', legacyFramePattern);
+    await expect(image).toHaveAttribute('src', /princess-active\.png$/);
     await expect(pet).toHaveAttribute('data-companion-accessory', profile.accessory);
     await button.dispatchEvent('pointerout');
 
     await button.click({ force: true });
     await expect(pet).toHaveAttribute('data-pet-state', /wave|sitting_smile/);
-    await expect(image).toHaveAttribute('src', legacyFramePattern);
+    await expect(image).toHaveAttribute('src', /princess-seasonal-reindeer\.png$/);
     await expect(pet).toHaveAttribute('data-companion-accessory', profile.accessory);
 
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexaeon:companion-behavior', {
       detail: { type: 'error', duration: 4_000 },
     })));
     await expect(pet).toHaveAttribute('data-pet-state', 'quiet');
-    await expect(image).toHaveAttribute('src', /frame-039\.png$/);
+    await expect(image).toHaveAttribute('src', /princess-resting-prone\.png$/);
     await expect(pet).toHaveAttribute('data-companion-accessory', 'none');
 
     await page.goto('/unknown-route');
     await page.goto(profile.route);
-    await expect(image).toHaveAttribute('src', /frame-001\.png$/);
+    await expect(image).toHaveAttribute('src', /princess-active\.png$/);
     await expect(pet).toHaveAttribute('data-companion-accessory', profile.accessory);
   }
 });

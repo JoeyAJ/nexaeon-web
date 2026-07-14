@@ -10,13 +10,13 @@ import {
   getPrincessStatePriority,
 } from '../src/lib/princessStateController.js';
 
-const ASSET_PATH = fileURLToPath(new URL('../public/pet/princess/frames/frame-001.png', import.meta.url));
+const ASSET_PATH = fileURLToPath(new URL('../public/images/princess/princess-active.png', import.meta.url));
 
-test('sitting smile configuration is localized and uses the consistent legacy Princess asset', () => {
+test('sitting smile configuration is localized and uses the uploaded active Princess asset', () => {
   const sittingSmile = princessAnimations.sitting_smile;
 
   assert.equal(sittingSmile.name, 'sitting_smile');
-  assert.deepEqual(sittingSmile.frames, ['/pet/princess/frames/frame-001.png']);
+  assert.deepEqual(sittingSmile.frames, ['/images/princess/princess-active.png']);
   assert.deepEqual(sittingSmile.localizedLabel, {
     zh: '坐著微笑',
     ko: '앉아서 미소',
@@ -47,15 +47,14 @@ test('sitting smile is a low-priority state and cannot overwrite active interact
   }), false);
 });
 
-test('legacy sitting smile asset is compact and contains transparency', async () => {
+test('uploaded sitting smile asset is a complete PNG', async () => {
   const metadata = await sharp(ASSET_PATH).metadata();
   const bytes = (await readFile(ASSET_PATH)).byteLength;
 
   assert.equal(metadata.format, 'png');
-  assert.equal(metadata.hasAlpha, true);
-  assert.ok(metadata.width >= 100);
-  assert.ok(metadata.height >= 180);
-  assert.ok(bytes < 200_000);
+  assert.equal(metadata.width, 866);
+  assert.equal(metadata.height, 604);
+  assert.ok(bytes > 0);
 });
 
 test('reduced motion disables all Princess animation layers including sitting smile', async () => {

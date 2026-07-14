@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { princessAnimations } from '../src/lib/princessPetAnimations.ts';
 
-test('sleeping prone animation has its dedicated transparent asset and three-language accessibility copy', () => {
+test('sleeping prone animation has its dedicated uploaded asset and three-language accessibility copy', () => {
   const sleeping = princessAnimations.sleeping_prone;
 
   assert.equal(sleeping.name, 'sleeping_prone');
-  assert.deepEqual(sleeping.frames, ['/pet/princess/frames/frame-033.png']);
+  assert.deepEqual(sleeping.frames, ['/images/princess/princess-sleeping-prone.png']);
   assert.deepEqual(sleeping.localizedLabel, {
     zh: '趴著睡覺',
     ko: '엎드려 자기',

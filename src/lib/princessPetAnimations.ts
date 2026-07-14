@@ -1,3 +1,13 @@
+export const PRINCESS_VISUAL_ASSETS = {
+  active: '/images/princess/princess-active.png',
+  restingProne: '/images/princess/princess-resting-prone.png',
+  sleepingProne: '/images/princess/princess-sleeping-prone.png',
+  seasonalReindeer: '/images/princess/princess-seasonal-reindeer.png',
+  introBlueDress: '/pet/princess/frames/frame-001.png',
+} as const;
+
+export const PRINCESS_INTRO_ASSET = PRINCESS_VISUAL_ASSETS.introBlueDress;
+
 export const princessAnimations = {
   idle: {
     name: 'idle',
@@ -5,10 +15,10 @@ export const princessAnimations = {
     fps: 0.6,
     loop: true,
     frames: [
-      '/pet/princess/frames/frame-001.png',
+      PRINCESS_VISUAL_ASSETS.active,
     ],
     blinkFrames: [
-      '/pet/princess/frames/frame-003.png',
+      PRINCESS_VISUAL_ASSETS.active,
     ],
   },
   walkRight: {
@@ -17,10 +27,7 @@ export const princessAnimations = {
     fps: 6,
     loop: true,
     frames: [
-      '/pet/princess/frames/frame-010.png',
-      '/pet/princess/frames/frame-011.png',
-      '/pet/princess/frames/frame-012.png',
-      '/pet/princess/frames/frame-013.png',
+      PRINCESS_VISUAL_ASSETS.seasonalReindeer,
     ],
   },
   walkLeft: {
@@ -29,10 +36,7 @@ export const princessAnimations = {
     fps: 6,
     loop: true,
     frames: [
-      '/pet/princess/frames/frame-010.png',
-      '/pet/princess/frames/frame-011.png',
-      '/pet/princess/frames/frame-012.png',
-      '/pet/princess/frames/frame-013.png',
+      PRINCESS_VISUAL_ASSETS.seasonalReindeer,
     ],
   },
   sit: {
@@ -41,9 +45,7 @@ export const princessAnimations = {
     fps: 1.5,
     loop: true,
     frames: [
-      '/pet/princess/frames/frame-046.png',
-      '/pet/princess/frames/frame-048.png',
-      '/pet/princess/frames/frame-051.png',
+      PRINCESS_VISUAL_ASSETS.active,
     ],
   },
   sitting_smile: {
@@ -67,7 +69,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/frame-001.png',
+      PRINCESS_VISUAL_ASSETS.active,
     ],
   },
   resting_awake: {
@@ -87,7 +89,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/frame-001.png',
+      PRINCESS_VISUAL_ASSETS.active,
     ],
   },
   standing_attentive: {
@@ -107,7 +109,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/frame-001.png',
+      PRINCESS_VISUAL_ASSETS.active,
     ],
   },
   attentive_portrait: {
@@ -127,7 +129,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/frame-001.png',
+      PRINCESS_VISUAL_ASSETS.active,
     ],
   },
   wave: {
@@ -136,11 +138,7 @@ export const princessAnimations = {
     fps: 3,
     loop: false,
     frames: [
-      '/pet/princess/frames/frame-023.png',
-      '/pet/princess/frames/frame-024.png',
-      '/pet/princess/frames/frame-025.png',
-      '/pet/princess/frames/frame-024.png',
-      '/pet/princess/frames/frame-023.png',
+      PRINCESS_VISUAL_ASSETS.seasonalReindeer,
     ],
   },
   rest: {
@@ -149,7 +147,7 @@ export const princessAnimations = {
     fps: 1,
     loop: true,
     frames: [
-      '/pet/princess/frames/frame-035.png',
+      PRINCESS_VISUAL_ASSETS.restingProne,
     ],
   },
   happy: {
@@ -158,10 +156,7 @@ export const princessAnimations = {
     fps: 4,
     loop: false,
     frames: [
-      '/pet/princess/frames/frame-052.png',
-      '/pet/princess/frames/frame-053.png',
-      '/pet/princess/frames/frame-056.png',
-      '/pet/princess/frames/frame-057.png',
+      PRINCESS_VISUAL_ASSETS.seasonalReindeer,
     ],
   },
   quiet: {
@@ -170,7 +165,7 @@ export const princessAnimations = {
     fps: 1,
     loop: true,
     frames: [
-      '/pet/princess/frames/frame-039.png',
+      PRINCESS_VISUAL_ASSETS.restingProne,
     ],
   },
   sleep: {
@@ -179,7 +174,7 @@ export const princessAnimations = {
     fps: 0.8,
     loop: true,
     frames: [
-      '/pet/princess/frames/frame-033.png',
+      PRINCESS_VISUAL_ASSETS.restingProne,
     ],
   },
   sleeping_prone: {
@@ -199,7 +194,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/frame-033.png',
+      PRINCESS_VISUAL_ASSETS.sleepingProne,
     ],
   },
   curious: {
@@ -208,10 +203,7 @@ export const princessAnimations = {
     fps: 2,
     loop: false,
     frames: [
-      '/pet/princess/frames/frame-001.png',
-      '/pet/princess/frames/frame-040.png',
-      '/pet/princess/frames/frame-004.png',
-      '/pet/princess/frames/frame-001.png',
+      PRINCESS_VISUAL_ASSETS.active,
     ],
   },
   affection: {
@@ -220,11 +212,7 @@ export const princessAnimations = {
     fps: 3,
     loop: false,
     frames: [
-      '/pet/princess/frames/frame-001.png',
-      '/pet/princess/frames/frame-054.png',
-      '/pet/princess/frames/frame-055.png',
-      '/pet/princess/frames/frame-054.png',
-      '/pet/princess/frames/frame-001.png',
+      PRINCESS_VISUAL_ASSETS.active,
     ],
   },
 } as const;

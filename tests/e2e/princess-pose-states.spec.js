@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 const expectedStates = {
-  resting_awake: /frame-001\.png$/,
-  standing_attentive: /frame-001\.png$/,
-  sitting_smile: /frame-001\.png$/,
+  resting_awake: /princess-active\.png$/,
+  standing_attentive: /princess-active\.png$/,
+  sitting_smile: /princess-active\.png$/,
 };
 
 test.beforeEach(async ({ page }) => {
@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
 
 for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
   for (const [state, imagePattern] of Object.entries(expectedStates)) {
-    test(`${state} renders as a contained transparent asset at ${viewport.width}px`, async ({ page }) => {
+    test(`${state} renders as a contained complete asset at ${viewport.width}px`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.goto(`/?princessState=${state}`);
       const root = page.locator('[data-pet-state]');

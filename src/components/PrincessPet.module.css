@@ -450,36 +450,41 @@
 }
 
 .aliveLayer[data-state="walkLeft"] .frameLayer,
-.aliveLayer[data-state="walkRight"] .frameLayer {
-  width: 142%;
+.aliveLayer[data-state="walkRight"] .frameLayer,
+.aliveLayer[data-state="wave"] .frameLayer,
+.aliveLayer[data-state="happy"] .frameLayer {
+  width: 146%;
 }
 
-.aliveLayer[data-state="rest"] .frameLayer {
-  width: 128%;
+.aliveLayer[data-state="rest"] .frameLayer,
+.aliveLayer[data-state="quiet"] .frameLayer,
+.aliveLayer[data-state="sleep"] .frameLayer {
+  width: 150%;
 }
 
 .aliveLayer[data-state="sleeping_prone"] .frameLayer {
   width: 155%;
 }
 
-.aliveLayer[data-state="sitting_smile"] .frameLayer {
-  width: 112%;
-}
-
+.aliveLayer[data-state="idle"] .frameLayer,
+.aliveLayer[data-state="sit"] .frameLayer,
+.aliveLayer[data-state="sitting_smile"] .frameLayer,
 .aliveLayer[data-state="resting_awake"] .frameLayer {
+  width: 140%;
+}
+
+.aliveLayer[data-state="standing_attentive"] .frameLayer,
+.aliveLayer[data-state="attentive_portrait"] .frameLayer,
+.aliveLayer[data-state="curious"] .frameLayer,
+.aliveLayer[data-state="affection"] .frameLayer {
+  width: 140%;
+}
+
+.root[data-princess-intro-phase="materializing"] .frameLayer,
+.root[data-princess-intro-phase="emerging"] .frameLayer,
+.root[data-princess-intro-phase="greeting"] .frameLayer,
+.root[data-princess-intro-phase="docking"] .frameLayer {
   width: 118%;
-}
-
-.aliveLayer[data-state="standing_attentive"] .frameLayer {
-  width: 100%;
-}
-
-.aliveLayer[data-state="attentive_portrait"] .frameLayer {
-  width: 108%;
-}
-
-.aliveLayer[data-state="happy"] .frameLayer {
-  width: 100%;
 }
 
 .image {

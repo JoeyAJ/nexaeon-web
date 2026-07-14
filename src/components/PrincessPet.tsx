@@ -39,7 +39,7 @@ import {
   createPrincessPresenceController,
   getPrincessSessionStorage,
 } from '../lib/princessPresenceController.js';
-import { princessAnimations } from '../lib/princessPetAnimations';
+import { PRINCESS_INTRO_ASSET, princessAnimations } from '../lib/princessPetAnimations';
 import {
   COMPANION_INTRO_EVENT,
   INTRO_GREETING,
@@ -2643,7 +2643,9 @@ export default function PrincessPet({
     ].join(' | ')
     : null;
   const accessory = moduleProfile.baseAccessory;
-  const displayedFrame = getCompanionDisplayedAsset(moduleProfile, currentFrame, petState, behaviorSource);
+  const displayedFrame = introPhase === 'active'
+    ? getCompanionDisplayedAsset(moduleProfile, currentFrame, petState, behaviorSource)
+    : PRINCESS_INTRO_ASSET;
   const interactionVariant = getCompanionInteractionVariant(moduleProfile, petState);
   const accessoryAnchor = accessory !== 'none'
     ? getAccessoryAnchor(accessory, moduleProfile.moduleKey, getViewportSize().width, MOBILE_BREAKPOINT)
