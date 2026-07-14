@@ -55,7 +55,6 @@ import {
 } from '../lib/princessStateController.js';
 import styles from './PrincessPet.module.css';
 import CompanionActionPanel from './CompanionActionPanel.jsx';
-import PrincessRotoRig from './PrincessRotoRig';
 import { getCompanionActions } from '../lib/companionActionConfig.js';
 import {
   getAccessoryAnchor,
@@ -2660,7 +2659,6 @@ export default function PrincessPet({
     '--accessory-width': `${accessoryAnchor.width}%`,
     '--accessory-rotate': `${accessoryAnchor.rotate || 0}deg`,
   } as CSSProperties : undefined;
-  const rigActive = preservesModuleVisual && ['active', 'greeting', 'docking'].includes(introPhase);
   const accessoryNode = accessoryVisible ? (
     <span className={styles.accessory} style={accessoryStyle} aria-hidden="true" data-testid={`princess-accessory-${accessory}`}>
       {accessory === 'round-glasses' ? (
@@ -2737,7 +2735,7 @@ export default function PrincessPet({
       ) : null}
       <div className={styles.walkOffsetLayer} style={walkStyle}>
         <div className={styles.scaleLayer} style={scaleStyle}>
-          <div className={aliveClassName} data-state={preservesModuleVisual ? moduleProfile.pose : petState} data-roto-active={rigActive ? 'true' : 'false'}>
+          <div className={`${styles.wholeImageMotionLayer} ${aliveClassName}`} data-state={preservesModuleVisual ? moduleProfile.pose : petState}>
             <div className={styles.frameLayer}>
               {moduleProfile.visualProfile.shadowType === 'ground' ? (
                 <span className={styles.groundShadow} aria-hidden="true" data-testid="princess-ground-shadow" />
@@ -2757,28 +2755,16 @@ export default function PrincessPet({
                 onPointerLeave={handlePointerLeave}
                 onClick={handleNativeClick}
               >
-                {rigActive ? (
-                  <>
-                    <img className={styles.rigSourceImage} src={displayedFrame} alt="" draggable="false" decoding="async" onError={handleFrameError} />
-                    <PrincessRotoRig
-                      imageSrc={displayedFrame}
-                      motionLevel={effectiveMotionLevel}
-                      autoBehaviorEnabled={autoBehaviorEnabled}
-                      active={!isDragging && !actionPanelOpen && !actionPanelBlocked}
-                      accessory={accessoryNode}
-                    />
-                  </>
-                ) : (
-                  <img
-                    key={normalFrames.length === 1 ? displayedFrame : 'animated-frame'}
-                    className={imageClassName}
-                    src={displayedFrame}
-                    alt=""
-                    draggable="false"
-                    decoding="async"
-                    onError={handleFrameError}
-                  />
-                )}
+                <img
+                  key={displayedFrame}
+                  className={imageClassName}
+                  src={displayedFrame}
+                  alt=""
+                  draggable="false"
+                  decoding="async"
+                  onError={handleFrameError}
+                />
+                {accessoryNode}
               </button>
             </div>
           </div>

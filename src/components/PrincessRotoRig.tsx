@@ -2,6 +2,12 @@ import { type CSSProperties, type ReactNode, useEffect, useId, useMemo, useRef }
 import { getPrincessRotoProfile, supportsPrincessMotion } from '../lib/princessRotoProfiles.js';
 import styles from './PrincessRotoRig.module.css';
 
+/**
+ * @deprecated Real Princess photography is now rendered as one complete image.
+ * This historical implementation remains only for compatibility and is not
+ * imported by the production PrincessPet rendering path.
+ */
+
 type Region = { cx: number; cy: number; rx: number; ry: number; rotate?: number };
 type Props = { imageSrc: string; motionLevel: 'full' | 'reduced' | 'none'; autoBehaviorEnabled: boolean; active: boolean; accessory?: ReactNode };
 

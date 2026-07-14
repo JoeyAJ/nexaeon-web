@@ -37,9 +37,9 @@ test('sitting smile renders on desktop light mode, survives scrolling, and yield
   await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'resting_awake');
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexaeon:pet-sitting-smile')));
   const root = await expectSittingSmile(page, '公主正坐著微笑陪伴你');
-  await expect.poll(() => root.locator('[data-testid="princess-roto-rig"] g[class*="body"]').evaluate(
+  await expect.poll(() => root.locator('[class*="wholeImageMotionLayer"]').evaluate(
     (node) => getComputedStyle(node).animationName,
-  )).toMatch(/roto-body-breathe/);
+  )).toMatch(/princess-sitting-smile-breathe/);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect(root).toHaveAttribute('data-pet-state', 'sitting_smile');
   await expect(root).toBeInViewport();
@@ -51,15 +51,15 @@ test('sitting smile renders on desktop light mode, survives scrolling, and yield
   expect(errors).toEqual([]);
 });
 
-test('sitting smile renders on mobile dark mode and keeps only reduced breathing motion', async ({ page }) => {
+test('sitting smile renders on mobile dark mode and disables breathing motion', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.goto('/');
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexaeon:pet-sitting-smile')));
   const root = await expectSittingSmile(page, '公主正坐著微笑陪伴你');
-  await expect.poll(() => root.locator('[data-testid="princess-roto-rig"] g[class*="body"]').evaluate(
+  await expect.poll(() => root.locator('[class*="wholeImageMotionLayer"]').evaluate(
     (node) => getComputedStyle(node).animationName,
-  )).toMatch(/roto-body-breathe/);
+  )).toBe('none');
   await expect(root).toBeInViewport();
   await page.screenshot({ path: 'test-results/sitting-smile-mobile-dark-reduced.png' });
 });

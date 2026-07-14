@@ -41,7 +41,8 @@
     saturate(calc(0.78 + var(--princess-intro-materialize) * 0.22))
     drop-shadow(0 0 calc(8px + var(--princess-intro-materialize) * 14px) rgb(var(--princess-summon-blue) / 68%))
     drop-shadow(0 0 calc(14px + var(--princess-intro-materialize) * 18px) rgb(var(--princess-summon-violet) / 38%));
-  transform: translateY(calc((1 - var(--princess-intro-materialize)) * 12px)) scale(calc(0.88 + var(--princess-intro-materialize) * 0.11));
+  transform: translateY(calc((1 - var(--princess-intro-materialize)) * 8px)) scale(calc(0.94 + var(--princess-intro-materialize) * 0.06));
+  clip-path: inset(calc((1 - var(--princess-intro-materialize)) * 72%) 0 0 round 20%);
 }
 
 .root[data-princess-intro-phase="emerging"] .frameLayer {
@@ -200,6 +201,7 @@
 
 .walkOffsetLayer,
 .scaleLayer,
+.wholeImageMotionLayer,
 .aliveLayer,
 .frameLayer {
   display: flex;
@@ -380,11 +382,6 @@
   transform: none;
 }
 
-.aliveLayer[data-roto-active="true"] {
-  animation: none;
-  transform: none;
-}
-
 .frameLayer {
   min-width: 0;
   position: relative;
@@ -507,17 +504,6 @@
   animation: princess-pose-fade-in var(--princess-pose-transition-duration) ease both;
 }
 
-.rigSourceImage {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center bottom;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
 .flipped {
   transform: scaleX(-1) scale(var(--princess-depth-scale, 1));
 }
@@ -536,31 +522,31 @@
 
 @keyframes princess-sit-breathe {
   0% {
-    transform: translateY(0) scale(0.996);
+    transform: translateY(0) scaleY(1);
   }
 
   100% {
-    transform: translateY(-2px) scale(1.006);
+    transform: translateY(-0.5px) scaleY(1.006);
   }
 }
 
 @keyframes princess-sitting-smile-breathe {
   0% {
-    transform: translateY(0) scale(0.997);
+    transform: translateY(0) scaleY(1);
   }
 
   100% {
-    transform: translateY(-1px) scale(1.005);
+    transform: translateY(-0.5px) scaleY(1.006);
   }
 }
 
 @keyframes princess-pose-breathe {
   0% {
-    transform: translateY(0) scale(0.998);
+    transform: translateY(0) scaleY(1);
   }
 
   100% {
-    transform: translateY(-1px) scale(1.004);
+    transform: translateY(-0.5px) scaleY(1.006);
   }
 }
 
@@ -571,52 +557,52 @@
 
 @keyframes princess-rest-breathe {
   0% {
-    transform: translateY(0) scale(0.998);
+    transform: translateY(0) scaleY(1);
   }
 
   100% {
-    transform: translateY(-1.5px) scale(1.004);
+    transform: translateY(-0.4px) scaleY(1.004);
   }
 }
 
 @keyframes princess-quiet-breathe {
   0% {
-    transform: translateY(0) scale(0.997) rotate(0deg);
+    transform: translateY(0) scaleY(1);
   }
 
   100% {
-    transform: translateY(1px) scale(1.002) rotate(-0.4deg);
+    transform: translateY(-0.25px) scaleY(1.002);
   }
 }
 
 @keyframes princess-sleep-breathe {
   0% {
-    transform: translateY(0) scale(0.998);
+    transform: translateY(0) scaleY(1);
   }
 
   100% {
-    transform: translateY(-1px) scale(1.003);
+    transform: translateY(-0.35px) scaleY(1.003);
   }
 }
 
 @keyframes princess-sleeping-prone-breathe {
   0% {
-    transform: translateY(0) scale(0.998);
+    transform: translateY(0) scaleY(1);
   }
 
   100% {
-    transform: translateY(-1px) scale(1.005);
+    transform: translateY(-0.35px) scaleY(1.004);
   }
 }
 
 @keyframes princess-module-resting {
-  0% { transform: translateY(0) scale(0.998) rotate(0deg); }
-  100% { transform: translateY(1px) scale(1.003) rotate(-0.25deg); }
+  0% { transform: translateY(0) scaleY(1); }
+  100% { transform: translateY(-0.25px) scaleY(1.002); }
 }
 
 @keyframes princess-module-sleepy {
-  0% { transform: translateY(0) scale(0.997) rotate(0deg); }
-  100% { transform: translateY(2px) scale(1.002) rotate(-0.45deg); }
+  0% { transform: translateY(0) scaleY(1); }
+  100% { transform: translateY(-0.2px) scaleY(1.002); }
 }
 
 @keyframes princess-walk-bob {
@@ -626,79 +612,79 @@
   }
 
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-1px);
   }
 }
 
 @keyframes princess-wave-bob {
   0% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0) scale(1);
   }
 
   35% {
-    transform: translateY(-3px) rotate(-1deg);
+    transform: translateY(-5px) scale(1.025);
   }
 
   70% {
-    transform: translateY(-1px) rotate(1deg);
+    transform: translateY(-2px) scale(1.012);
   }
 
   100% {
-    transform: translateY(0) rotate(0deg);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes princess-happy-bounce {
   0% {
-    transform: translateY(0) scale(1) rotate(0deg);
+    transform: translateY(0) scale(1);
   }
 
   25% {
-    transform: translateY(-5px) scale(1.015) rotate(-1deg);
+    transform: translateY(-6px) scale(1.025);
   }
 
   55% {
-    transform: translateY(-2px) scale(1.008) rotate(1deg);
+    transform: translateY(-2px) scale(1.01);
   }
 
   100% {
-    transform: translateY(0) scale(1) rotate(0deg);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes princess-curious-look {
   0% {
-    transform: rotate(0deg);
+    transform: translateY(0) scale(1);
   }
 
   35% {
-    transform: rotate(-1.5deg);
+    transform: translateY(-1px) scale(1.006);
   }
 
   70% {
-    transform: rotate(1deg);
+    transform: translateY(-0.5px) scale(1.003);
   }
 
   100% {
-    transform: rotate(0deg);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes princess-affection-nuzzle {
   0% {
-    transform: translateX(0) rotate(0deg);
+    transform: translateY(0) scale(1);
   }
 
   30% {
-    transform: translateX(-2px) rotate(-1deg);
+    transform: translateY(-2px) scale(1.012);
   }
 
   60% {
-    transform: translateX(2px) rotate(1deg);
+    transform: translateY(-1px) scale(1.006);
   }
 
   100% {
-    transform: translateX(0) rotate(0deg);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -770,6 +756,7 @@
 @media (prefers-reduced-motion: reduce) {
   .walkOffsetLayer,
   .scaleLayer,
+  .wholeImageMotionLayer,
   .aliveLayer,
   .frameLayer,
   .interactiveLayer,
