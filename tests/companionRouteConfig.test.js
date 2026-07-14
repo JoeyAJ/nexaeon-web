@@ -42,6 +42,8 @@ test('accessories use module-specific fixed anchors', () => {
   assert.equal(getAccessoryAnchor('round-glasses', 'identity', 1440), null);
   assert.equal(getAccessoryAnchor('round-glasses', 'home', 1440), null);
   assert.ok(getAccessoryAnchor('academic-cap', 'coaching', 1440));
+  assert.deepEqual(getAccessoryAnchor('academic-cap', 'coaching', 1440), { left: 50, top: 1, width: 34, rotate: 0 });
+  assert.deepEqual(getAccessoryAnchor('academic-cap', 'coaching', 390), { left: 50, top: 2, width: 32, rotate: 0 });
 });
 
 test('all eight contexts have a distinct fixed transparent pose asset', () => {

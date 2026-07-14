@@ -95,8 +95,8 @@ export const accessoryAnchorsByPose = Object.freeze({
   }),
   'academic-cap': Object.freeze({
     coaching: Object.freeze({
-      desktop: Object.freeze({ left: 50, top: 10, width: 48, rotate: 0 }),
-      mobile: Object.freeze({ left: 50, top: 11, width: 44, rotate: 0 }),
+      desktop: Object.freeze({ left: 50, top: 1, width: 34, rotate: 0 }),
+      mobile: Object.freeze({ left: 50, top: 2, width: 32, rotate: 0 }),
     }),
   }),
 });

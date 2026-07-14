@@ -68,3 +68,22 @@ test('new pose PNG file is the uploaded complete image', async () => {
     assert.ok((await readFile(assetPath)).byteLength > 0);
   }
 });
+
+test('every uploaded Princess state asset has a genuinely transparent background', async () => {
+  const filenames = new Set(Object.values(expectedVisualByState));
+  for (const filename of filenames) {
+    const assetPath = fileURLToPath(new URL(`../public/images/princess/${filename}`, import.meta.url));
+    const { data, info } = await sharp(assetPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let transparentPixels = 0;
+    let opaquePixels = 0;
+    for (let offset = 3; offset < data.length; offset += info.channels) {
+      if (data[offset] === 0) transparentPixels += 1;
+      if (data[offset] === 255) opaquePixels += 1;
+    }
+    assert.ok(transparentPixels > info.width * info.height * 0.5, `${filename} should not contain an opaque rectangular background`);
+    assert.ok(opaquePixels > info.width * info.height * 0.1, `${filename} should retain the complete Princess subject`);
+    for (const cornerOffset of [3, (info.width - 1) * info.channels + 3, (info.width * (info.height - 1)) * info.channels + 3, (info.width * info.height - 1) * info.channels + 3]) {
+      assert.equal(data[cornerOffset], 0, `${filename} canvas corners must be transparent`);
+    }
+  }
+});
