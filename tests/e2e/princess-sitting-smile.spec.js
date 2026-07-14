@@ -14,7 +14,7 @@ async function expectSittingSmile(page, ariaLabel) {
   await expect(root).toBeVisible();
   await expect(root).toHaveAttribute('data-pet-state', 'sitting_smile');
   await expect(root.getByRole('button')).toHaveAttribute('aria-label', ariaLabel);
-  await expect(image).toHaveAttribute('src', /princess-module-pose-02\.png$/);
+  await expect(image).toHaveAttribute('src', /frame-001\.png$/);
   await expect.poll(() => image.evaluate((node) => ({
     complete: node.complete,
     width: node.naturalWidth,

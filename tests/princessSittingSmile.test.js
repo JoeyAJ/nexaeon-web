@@ -10,13 +10,13 @@ import {
   getPrincessStatePriority,
 } from '../src/lib/princessStateController.js';
 
-const ASSET_PATH = fileURLToPath(new URL('../public/pet/princess/frames/princess-sitting-smile.webp', import.meta.url));
+const ASSET_PATH = fileURLToPath(new URL('../public/pet/princess/frames/frame-001.png', import.meta.url));
 
-test('sitting smile configuration is localized and uses its dedicated fallback-safe asset', () => {
+test('sitting smile configuration is localized and uses the consistent legacy Princess asset', () => {
   const sittingSmile = princessAnimations.sitting_smile;
 
   assert.equal(sittingSmile.name, 'sitting_smile');
-  assert.deepEqual(sittingSmile.frames, ['/pet/princess/frames/princess-sitting-smile.webp']);
+  assert.deepEqual(sittingSmile.frames, ['/pet/princess/frames/frame-001.png']);
   assert.deepEqual(sittingSmile.localizedLabel, {
     zh: '坐著微笑',
     ko: '앉아서 미소',
@@ -47,14 +47,14 @@ test('sitting smile is a low-priority state and cannot overwrite active interact
   }), false);
 });
 
-test('sitting smile asset is compact, high-resolution, and contains transparency', async () => {
+test('legacy sitting smile asset is compact and contains transparency', async () => {
   const metadata = await sharp(ASSET_PATH).metadata();
   const bytes = (await readFile(ASSET_PATH)).byteLength;
 
-  assert.equal(metadata.format, 'webp');
+  assert.equal(metadata.format, 'png');
   assert.equal(metadata.hasAlpha, true);
-  assert.ok(metadata.width >= 300);
-  assert.ok(metadata.height >= 450);
+  assert.ok(metadata.width >= 100);
+  assert.ok(metadata.height >= 180);
   assert.ok(bytes < 200_000);
 });
 

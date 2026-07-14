@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 const expectedStates = {
-  resting_awake: /princess-resting-awake-closeup\.png$/,
-  standing_attentive: /princess-standing-attentive\.png$/,
-  sitting_smile: /princess-sitting-smile\.webp$/,
+  resting_awake: /frame-001\.png$/,
+  standing_attentive: /frame-001\.png$/,
+  sitting_smile: /frame-001\.png$/,
 };
 
 test.beforeEach(async ({ page }) => {

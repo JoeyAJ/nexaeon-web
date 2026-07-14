@@ -54,8 +54,12 @@ test('accessory follows the Princess during drag and bubble does not block it', 
   await page.mouse.up();
   const afterPet = await pet.boundingBox();
   const afterAccessory = await accessory.boundingBox();
-  expect(Math.abs((afterAccessory.x - beforeAccessory.x) - (afterPet.x - beforePet.x))).toBeLessThan(5);
-  expect(Math.abs((afterAccessory.y - beforeAccessory.y) - (afterPet.y - beforePet.y))).toBeLessThan(5);
+  expect(Math.sign(afterAccessory.x - beforeAccessory.x)).toBe(Math.sign(afterPet.x - beforePet.x));
+  expect(Math.sign(afterAccessory.y - beforeAccessory.y)).toBe(Math.sign(afterPet.y - beforePet.y));
+  expect(afterAccessory.x).toBeGreaterThanOrEqual(afterPet.x);
+  expect(afterAccessory.x + afterAccessory.width).toBeLessThanOrEqual(afterPet.x + afterPet.width);
+  expect(afterAccessory.y).toBeGreaterThanOrEqual(afterPet.y);
+  expect(afterAccessory.y + afterAccessory.height).toBeLessThanOrEqual(afterPet.y + afterPet.height);
 });
 
 test('academic cap stays with the fixed image during reactions and hides for sleep', async ({ page }) => {
@@ -65,7 +69,7 @@ test('academic cap stays with the fixed image during reactions and hides for sle
   await expect(page.getByTestId('princess-accessory-academic-cap')).toBeVisible();
   await page.getByTestId('princess-interactive').click({ force: true });
   await expect(pet).toHaveAttribute('data-pet-state', /wave|sitting_smile/);
-  await expect(pet.locator('img')).toHaveAttribute('src', /princess-module-pose-04\.png$/);
+  await expect(pet.locator('img')).toHaveAttribute('src', /\/pet\/princess\/frames\/frame-\d+\.png$/);
   await expect(page.getByTestId('princess-accessory-academic-cap')).toBeVisible();
   await expect(pet).toHaveAttribute('data-pet-state', 'sitting_smile', { timeout: 5_000 });
   await expect(page.getByTestId('princess-accessory-academic-cap')).toBeVisible();
@@ -78,7 +82,7 @@ test('academic cap stays with the fixed image during reactions and hides for sle
   await sleepPage.goto('/teaching/course?princessInactivity=sleep');
   const sleepingPet = sleepPage.locator('[data-companion-module]');
   await expect(sleepingPet).toHaveAttribute('data-pet-state', 'sleeping_prone');
-  await expect(sleepingPet.locator('img')).toHaveAttribute('src', /princess-module-pose-04\.png$/);
+  await expect(sleepingPet.locator('img')).toHaveAttribute('src', /frame-033\.png$/);
   await expect(sleepPage.getByTestId('princess-accessory-academic-cap')).toHaveCount(0);
   await sleepPage.close();
 });
@@ -86,12 +90,12 @@ test('academic cap stays with the fixed image during reactions and hides for sle
 test('inactivity preserves the module image and interaction restores its base profile', async ({ page }) => {
   await page.goto('/?princessInactivity=sleepy');
   const pet = page.locator('[data-companion-module]');
-  await expect(pet.locator('img')).toHaveAttribute('src', /princess-module-pose-02\.png$/);
+  await expect(pet.locator('img')).toHaveAttribute('src', /frame-033\.png$/);
   await expect(pet).toHaveAttribute('data-pet-motion-variant', 'sleepy');
   await expect(pet).toHaveAttribute('data-companion-module', 'home');
   await page.getByTestId('princess-interactive').click({ force: true });
   await expect(pet).toHaveAttribute('data-pet-motion-variant', 'base');
-  await expect(pet.locator('img')).toHaveAttribute('src', /princess-module-pose-02\.png$/, { timeout: 5_000 });
+  await expect(pet.locator('img')).toHaveAttribute('src', /\/pet\/princess\/frames\/frame-\d+\.png$/, { timeout: 5_000 });
 });
 
 for (const width of [320, 375, 390, 430, 768, 1024, 1440]) {

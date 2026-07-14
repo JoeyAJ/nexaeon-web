@@ -7,9 +7,9 @@ import { princessAnimations } from '../src/lib/princessPetAnimations.ts';
 import { PRINCESS_STATES, PRINCESS_STATE_GROUPS } from '../src/lib/princessStateController.js';
 
 const poseAssets = {
-  resting_awake: 'princess-resting-awake-closeup.png',
-  standing_attentive: 'princess-standing-attentive.png',
-  attentive_portrait: 'princess-attentive-portrait.png',
+  resting_awake: 'frame-001.png',
+  standing_attentive: 'frame-001.png',
+  attentive_portrait: 'frame-001.png',
 };
 
 test('new Princess pose states extend the existing state system', () => {

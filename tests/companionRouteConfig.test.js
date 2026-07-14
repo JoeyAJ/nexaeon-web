@@ -35,7 +35,7 @@ test('module image profiles favor natural semantic matches over accessory covera
   assert.deepEqual(Object.keys(accessoryAnchorsByPose).sort(), ['academic-cap', 'round-glasses']);
   assert.equal(Object.keys(companionImageSuitabilityRules).length, 8);
   assert.deepEqual(companionAccessorySuitabilityRules['round-glasses'].modules, []);
-  assert.equal(companionInteractionFallbackRules.imageStrategy, 'preserve-module-base-image');
+  assert.equal(companionInteractionFallbackRules.imageStrategy, 'use-legacy-complete-frame');
 });
 
 test('accessories use module-specific fixed anchors', () => {
@@ -50,12 +50,12 @@ test('all eight contexts have a distinct fixed transparent pose asset', () => {
   assert.ok(assets.every((asset) => asset.endsWith('.png')));
 });
 
-test('every module preserves its fixed image throughout interaction and inactivity', () => {
+test('every module uses the active legacy complete frame throughout interaction and inactivity', () => {
   for (const key of ['home', 'identity', 'research', 'coaching', 'knowledge', 'prototype', 'action', 'navigator']) {
     const profile = companionModuleProfiles[key];
-    assert.equal(getCompanionDisplayedAsset(profile, '/legacy-sleep.png', 'sleeping_prone', 'inactivity'), profile.asset);
-    assert.equal(getCompanionDisplayedAsset(profile, '/interaction.png', 'happy', 'interaction'), profile.baseImage);
-    assert.equal(getCompanionDisplayedAsset(profile, '/base.png', profile.pose, 'context'), profile.asset);
+    assert.equal(getCompanionDisplayedAsset(profile, '/legacy-sleep.png', 'sleeping_prone', 'inactivity'), '/legacy-sleep.png');
+    assert.equal(getCompanionDisplayedAsset(profile, '/interaction.png', 'happy', 'interaction'), '/interaction.png');
+    assert.equal(getCompanionDisplayedAsset(profile, '/base.png', profile.pose, 'context'), '/base.png');
     assert.ok(profile.allowedInteractionVariants.includes(getCompanionInteractionVariant(profile, 'happy')));
   }
 });

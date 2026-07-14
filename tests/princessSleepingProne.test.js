@@ -6,7 +6,7 @@ test('sleeping prone animation has its dedicated transparent asset and three-lan
   const sleeping = princessAnimations.sleeping_prone;
 
   assert.equal(sleeping.name, 'sleeping_prone');
-  assert.deepEqual(sleeping.frames, ['/pet/princess/frames/princess-sleeping-prone.webp']);
+  assert.deepEqual(sleeping.frames, ['/pet/princess/frames/frame-033.png']);
   assert.deepEqual(sleeping.localizedLabel, {
     zh: '趴著睡覺',
     ko: '엎드려 자기',

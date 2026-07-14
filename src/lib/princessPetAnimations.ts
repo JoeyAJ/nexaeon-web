@@ -67,7 +67,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/princess-sitting-smile.webp',
+      '/pet/princess/frames/frame-001.png',
     ],
   },
   resting_awake: {
@@ -87,7 +87,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/princess-resting-awake-closeup.png',
+      '/pet/princess/frames/frame-001.png',
     ],
   },
   standing_attentive: {
@@ -107,7 +107,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/princess-standing-attentive.png',
+      '/pet/princess/frames/frame-001.png',
     ],
   },
   attentive_portrait: {
@@ -127,7 +127,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/princess-attentive-portrait.png',
+      '/pet/princess/frames/frame-001.png',
     ],
   },
   wave: {
@@ -199,7 +199,7 @@ export const princessAnimations = {
     loop: true,
     preload: false,
     frames: [
-      '/pet/princess/frames/princess-sleeping-prone.webp',
+      '/pet/princess/frames/frame-033.png',
     ],
   },
   curious: {

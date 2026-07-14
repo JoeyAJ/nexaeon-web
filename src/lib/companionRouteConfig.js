@@ -47,7 +47,7 @@ export const companionInteractionFallbackRules = Object.freeze({
     rest: 'resting', quiet: 'sleepy', sleep: 'sleepy', sleeping_prone: 'sleepy',
   }),
   fallbackVariant: 'base',
-  imageStrategy: 'preserve-module-base-image',
+  imageStrategy: 'use-legacy-complete-frame',
 });
 
 const profile = (value) => Object.freeze({
@@ -108,9 +108,13 @@ export function getAccessoryAnchor(accessory, moduleKey, viewportWidth, mobileBr
 }
 
 export function getCompanionDisplayedAsset(profile, currentFrame, petState, behaviorSource) {
-  const debugInactivity = behaviorSource === 'debug' && ['rest', 'sleep', 'sleeping_prone'].includes(petState);
-  const isStatePreview = behaviorSource === 'debug' && !debugInactivity;
-  return !isStatePreview && profile?.baseImage ? profile.baseImage : currentFrame;
+  // The module-pose photos have inconsistent crops and color mattes. Keep the
+  // module behavior profile, but render the established complete-frame Princess
+  // artwork for every route and state.
+  void profile;
+  void petState;
+  void behaviorSource;
+  return currentFrame;
 }
 
 export function getCompanionInteractionVariant(profile, petState) {

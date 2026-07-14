@@ -1,30 +1,21 @@
 import { expect, test } from '@playwright/test';
 
-const routes = [
-  ['/', 'princess-module-pose-02.png'],
-  ['/#identity', 'princess-module-pose-01.png'],
-  ['/#research', 'princess-module-pose-06.png'],
-  ['/#teaching', 'princess-module-pose-04.png'],
-  ['/#knowledge-lab', 'princess-module-pose-08.png'],
-  ['/#projects', 'princess-module-pose-07.png'],
-  ['/#field-lab', 'princess-module-pose-03.png'],
-  ['/identity/nexaeon-navigator', 'princess-module-pose-05.png'],
-];
+const routes = ['/', '/#identity', '/#research', '/#teaching', '/#knowledge-lab', '/#projects', '/#field-lab', '/identity/nexaeon-navigator'];
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.setItem('nexaeon_intro_seen', 'true'));
 });
 
-for (const [route, profile] of routes) {
-  test(`${profile} uses one complete image without overflow`, async ({ page }, testInfo) => {
+for (const route of routes) {
+  test(`${route} uses the legacy complete Princess without overflow`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(route);
     const pet = page.locator('[data-pet-state]');
     await expect(pet.locator('[data-testid="princess-roto-rig"]')).toHaveCount(0);
     await expect(pet.locator('button img')).toHaveCount(1);
-    await expect(pet.locator('button img')).toHaveAttribute('src', new RegExp(`${profile.replace('.', '\\.')}$`));
+    await expect(pet.locator('button img')).toHaveAttribute('src', /\/pet\/princess\/frames\/frame-001\.png$/);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
-    if (profile === 'princess-module-pose-02.png') {
+    if (route === '/') {
       await page.screenshot({ path: testInfo.outputPath('home-mobile-whole-image.png'), fullPage: true });
       await pet.screenshot({ path: testInfo.outputPath('home-mobile-whole-image-closeup.png') });
     }

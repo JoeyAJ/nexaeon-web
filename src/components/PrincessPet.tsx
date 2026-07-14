@@ -2644,9 +2644,8 @@ export default function PrincessPet({
     : null;
   const accessory = moduleProfile.baseAccessory;
   const displayedFrame = getCompanionDisplayedAsset(moduleProfile, currentFrame, petState, behaviorSource);
-  const preservesModuleVisual = displayedFrame === moduleProfile.baseImage;
   const interactionVariant = getCompanionInteractionVariant(moduleProfile, petState);
-  const accessoryAnchor = accessory !== 'none' && preservesModuleVisual
+  const accessoryAnchor = accessory !== 'none'
     ? getAccessoryAnchor(accessory, moduleProfile.moduleKey, getViewportSize().width, MOBILE_BREAKPOINT)
     : null;
   const accessoryVisible = Boolean(
@@ -2735,7 +2734,7 @@ export default function PrincessPet({
       ) : null}
       <div className={styles.walkOffsetLayer} style={walkStyle}>
         <div className={styles.scaleLayer} style={scaleStyle}>
-          <div className={`${styles.wholeImageMotionLayer} ${aliveClassName}`} data-state={preservesModuleVisual ? moduleProfile.pose : petState}>
+          <div className={`${styles.wholeImageMotionLayer} ${aliveClassName}`} data-state={petState}>
             <div className={styles.frameLayer}>
               {moduleProfile.visualProfile.shadowType === 'ground' ? (
                 <span className={styles.groundShadow} aria-hidden="true" data-testid="princess-ground-shadow" />
