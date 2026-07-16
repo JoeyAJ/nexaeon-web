@@ -776,12 +776,15 @@ function BackendReadinessStatus({ lang }) {
   );
 }
 
-export function useModuleData(moduleKey, endpoint) {
+export function useModuleData(moduleKey, endpoint, activityAdapter) {
   const createClientFallbackPayload = useCallback(
     () => createFallbackModuleResponse(moduleKey, 'upstream_failed'),
     [moduleKey],
   );
-  return usePublicApiResource(endpoint || getModuleEndpoint(moduleKey), { createClientFallbackPayload });
+  return usePublicApiResource(endpoint || getModuleEndpoint(moduleKey), {
+    createClientFallbackPayload,
+    companionEventAdapter: activityAdapter,
+  });
 }
 
 export function ModuleFilterTabs({ moduleKey, activeFilter, setActiveFilter, lang }) {
@@ -1181,7 +1184,7 @@ function MvpCoreFeatures({ label, value }) {
 }
 
 function MvpDataPanel({ moduleKey, endpoint, lang, activityAdapter, navigate = (path) => { window.location.href = path; } }) {
-  const moduleState = useModuleData(moduleKey, endpoint);
+  const moduleState = useModuleData(moduleKey, endpoint, activityAdapter);
   const ui = MVP_DATABASE_UI[lang] || MVP_DATABASE_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
   const [demoTypeFilter, setDemoTypeFilter] = useState('all');
@@ -1243,7 +1246,7 @@ function MvpDataPanel({ moduleKey, endpoint, lang, activityAdapter, navigate = (
   function handleSearchKeyDown(event) {
     if (event.key === 'Enter') {
       if (!searchQuery.trim()) return;
-      activityAdapter?.dispatch('search-submitted', { entityType: 'demo' });
+      activityAdapter?.search(filteredItems.length, { entityType: 'demo', key: 'prototype-search' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -1441,7 +1444,7 @@ function TeachingFilterGroup({ label, filters, activeValue, onSelect, lang }) {
 }
 
 function TeachingDataPanel({ moduleKey, endpoint, lang, activityAdapter }) {
-  const moduleState = useModuleData(moduleKey, endpoint);
+  const moduleState = useModuleData(moduleKey, endpoint, activityAdapter);
   const ui = TEACHING_DATABASE_UI[lang] || TEACHING_DATABASE_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -1538,7 +1541,7 @@ function TeachingDataPanel({ moduleKey, endpoint, lang, activityAdapter }) {
 
   function handleSearchKeyDown(event) {
     if (event.key === 'Enter' && searchQuery.trim()) {
-      activityAdapter?.dispatch('search-submitted', { entityType: 'course' });
+      activityAdapter?.search(filteredItems.length, { entityType: 'course', key: 'coaching-search' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -1723,8 +1726,8 @@ function TeachingDataPanel({ moduleKey, endpoint, lang, activityAdapter }) {
   );
 }
 
-function StandardModuleDataPanel({ moduleKey, endpoint, lang }) {
-  const moduleState = useModuleData(moduleKey, endpoint);
+function StandardModuleDataPanel({ moduleKey, endpoint, lang, activityAdapter }) {
+  const moduleState = useModuleData(moduleKey, endpoint, activityAdapter);
   const [activeFilter, setActiveFilter] = useState('all');
   const labels = MODULE_DATA_LABELS[lang] || MODULE_DATA_LABELS.zh;
   const items = useMemo(() => moduleState.items || [], [moduleState.items]);
@@ -1767,7 +1770,7 @@ export function ModuleDataPanel({ moduleKey, endpoint, lang, navigate, activityA
     return <MvpDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} navigate={navigate} activityAdapter={activityAdapter} />;
   }
 
-  return <StandardModuleDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} />;
+  return <StandardModuleDataPanel moduleKey={moduleKey} endpoint={endpoint} lang={lang} activityAdapter={activityAdapter} />;
 }
 
 export default function ModuleDataLayer({ item, common, lang, navigate, activityAdapter }) {

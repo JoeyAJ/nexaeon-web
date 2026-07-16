@@ -164,6 +164,7 @@ export default function App() {
 
   const handleCompanionAction = (action, moduleKey) => {
     setCompanionActionPanelOpen(false);
+    princessEventBridge.emit({ type: 'action_complete', moduleId: moduleKey, key: action.id, timestamp: Date.now() });
     if (action.type === 'navigate' && action.route) {
       navigate(action.route);
       return;
@@ -216,11 +217,9 @@ export default function App() {
   }, [princessContext.id, princessContext.profile, princessEventBridge]);
 
   useEffect(() => {
-    if (!companionSettings.visible || !companionSettings.autoBehavior) return undefined;
+    if (!companionSettings.visible || !companionSettings.autoBehavior || companionIntroActive) return undefined;
     const currentRouteKey = companionNavigationKey || 'home';
-    if (previousRouteKeyRef.current && previousRouteKeyRef.current !== currentRouteKey) {
-      princessEventBridge.emit({ type: 'route_leave', key: previousRouteKeyRef.current });
-    }
+    const previousRouteKey = previousRouteKeyRef.current;
 
     const moduleId = route.kind === 'detail'
       ? route.type
@@ -228,13 +227,16 @@ export default function App() {
         ? route.hash.replace(/^#/, '')
         : null;
 
-    if (moduleId) {
-      princessEventBridge.emit({ type: 'module_enter', moduleId, key: currentRouteKey });
-    }
-    if (route.kind === 'detail' || route.kind === 'demoRuntime' || route.kind === 'role') {
-      princessEventBridge.emit({ type: 'subpage_enter', key: currentRouteKey });
-    }
     previousRouteKeyRef.current = currentRouteKey;
+    const routeFrame = window.requestAnimationFrame(() => {
+      if (previousRouteKey && previousRouteKey !== currentRouteKey) {
+        princessEventBridge.emit({ type: 'route_leave', key: previousRouteKey });
+      }
+      if (moduleId) princessEventBridge.emit({ type: 'route_enter', moduleId, key: currentRouteKey });
+      if (route.kind === 'detail' || route.kind === 'demoRuntime' || route.kind === 'role') {
+        princessEventBridge.emit({ type: 'subpage_enter', key: currentRouteKey });
+      }
+    });
 
     const milestones = new Set();
     let frame = 0;
@@ -258,10 +260,11 @@ export default function App() {
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
+      window.cancelAnimationFrame(routeFrame);
       window.removeEventListener('scroll', onScroll);
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [companionNavigationKey, companionSettings.autoBehavior, companionSettings.visible, princessEventBridge, route.hash, route.kind, route.type]);
+  }, [companionIntroActive, companionNavigationKey, companionSettings.autoBehavior, companionSettings.visible, princessEventBridge, route.hash, route.kind, route.type]);
 
   useEffect(() => {
     const moduleId = princessContext.profile?.id || companionNavigationKey || 'home';

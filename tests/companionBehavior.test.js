@@ -29,11 +29,11 @@ test('emotion, module, inactivity, and system-event mappings are centralized', (
   assert.deepEqual(getCompanionEventBehavior('loading'), { emotion: 'attentive', pose: 'standing_attentive' });
 });
 
-test('inactivity and interaction timing follows the Sprint 2-C thresholds', () => {
+test('inactivity and interaction timing follows the website-event thresholds', () => {
   assert.deepEqual(COMPANION_BEHAVIOR_TIMING.inactivity, {
     calm: 45_000,
-    sleepy: 90_000,
-    sleeping: 150_000,
+    sleepy: 60_000,
+    sleeping: 90_000,
     reevaluation: 5_000,
   });
   assert.ok(COMPANION_BEHAVIOR_TIMING.hover.minimumHold >= 1_500);

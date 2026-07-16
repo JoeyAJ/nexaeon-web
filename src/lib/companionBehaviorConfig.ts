@@ -32,8 +32,8 @@ export const COMPANION_BEHAVIOR_PRIORITY = Object.freeze({
 export const COMPANION_BEHAVIOR_TIMING = Object.freeze({
   inactivity: Object.freeze({
     calm: 45_000,
-    sleepy: 90_000,
-    sleeping: 150_000,
+    sleepy: 60_000,
+    sleeping: 90_000,
     reevaluation: 5_000,
   }),
   hover: Object.freeze({

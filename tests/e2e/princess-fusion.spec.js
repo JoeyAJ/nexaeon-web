@@ -44,11 +44,11 @@ test('valid submit produces one listening reaction and one resolved reaction wit
   await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'standing_attentive');
   await expect(page.locator(PET)).toHaveAttribute('data-pet-emotion', 'attentive');
   await expect(page.getByText('Grounded answer', { exact: true })).toBeVisible();
-  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'happy');
+  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'sitting_smile');
   await expect(page.locator(PET)).toHaveAttribute('data-pet-emotion', 'happy');
   await expect(page.locator(PET)).not.toHaveAttribute('data-pet-state', /curious|happy|wave|quiet/, { timeout: 5_000 });
   const states = await page.evaluate(() => window.__fusionPetStates);
-  expect(states.filter((state) => state === 'happy')).toHaveLength(1);
+  expect(states.filter((state) => state === 'sitting_smile')).toHaveLength(1);
 });
 
 test('citation availability is passive and a real citation open acknowledges once', async ({ page }) => {
@@ -63,7 +63,7 @@ test('citation availability is passive and a real citation open acknowledges onc
   await openNavigator(page);
   await submit(page);
   await expect(page.getByRole('button', { name: 'Jump to source S1' })).toBeVisible();
-  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'happy');
+  await expect(page.locator(PET)).toHaveAttribute('data-pet-state', 'sitting_smile');
   await expect(page.locator(PET)).not.toHaveAttribute('data-pet-state', /curious|happy|wave|quiet/, { timeout: 5_000 });
   const beforeOpen = await page.evaluate(() => window.__fusionPetStates.length);
   await page.getByRole('button', { name: 'Jump to source S1' }).click();
@@ -107,7 +107,7 @@ test('abort blocks late success and remains stable on mobile across locales', as
   await expect(page.getByText('Must not appear')).toHaveCount(0);
   await page.waitForTimeout(2_200);
   const states = await page.evaluate(() => window.__fusionPetStates);
-  expect(states).not.toContain('happy');
+  expect(states).not.toContain('sitting_smile');
   await page.getByRole('button', { name: '한국어로 전환' }).click();
   await page.getByRole('button', { name: '切換為繁體中文' }).click();
   await expect(page.locator(PET)).toHaveCount(1);

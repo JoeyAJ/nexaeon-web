@@ -5,9 +5,30 @@ import { createPrincessEventBridge, mapPrincessEvent } from '../src/lib/princess
 const nextTick = () => new Promise((resolve) => queueMicrotask(resolve));
 
 test('module events map to the intended Princess states', () => {
-  assert.equal(mapPrincessEvent({ type: 'module_enter', moduleId: 'research' })?.state, 'curious');
-  assert.equal(mapPrincessEvent({ type: 'module_enter', moduleId: 'teaching' })?.state, 'happy');
-  assert.equal(mapPrincessEvent({ type: 'module_enter', moduleId: 'projects' })?.state, 'wave');
+  assert.equal(mapPrincessEvent({ type: 'module_enter', moduleId: 'identity' })?.state, 'sitting_smile');
+  assert.equal(mapPrincessEvent({ type: 'module_enter', moduleId: 'research' })?.state, 'sit');
+  assert.equal(mapPrincessEvent({ type: 'module_enter', moduleId: 'teaching' })?.state, 'sitting_smile');
+  assert.equal(mapPrincessEvent({ type: 'module_enter', moduleId: 'knowledge-lab' })?.state, 'sit');
+  assert.equal(mapPrincessEvent({ type: 'module_enter', moduleId: 'projects' })?.state, 'curious');
+  assert.equal(mapPrincessEvent({ type: 'module_enter', moduleId: 'field-lab' })?.state, 'standing_attentive');
+});
+
+test('route enter uses the same centralized module mapping', () => {
+  assert.equal(mapPrincessEvent({ type: 'route_enter', moduleId: 'research' })?.state, 'sit');
+  assert.equal(mapPrincessEvent({ type: 'route_enter', moduleId: 'teaching' })?.state, 'sitting_smile');
+});
+
+test('route enter fires once per active route and can fire again after leaving', async () => {
+  const requests = [];
+  const bridge = createPrincessEventBridge();
+  bridge.subscribe((request) => { requests.push(request); return true; });
+  assert.equal(bridge.emit({ type: 'route_enter', moduleId: 'research', key: 'research:topic' }), true);
+  assert.equal(bridge.emit({ type: 'route_enter', moduleId: 'research', key: 'research:topic' }), false);
+  await nextTick();
+  bridge.emit({ type: 'route_leave', key: 'research:topic' });
+  assert.equal(bridge.emit({ type: 'route_enter', moduleId: 'research', key: 'research:topic' }), true);
+  await nextTick();
+  assert.equal(requests.filter(({ event }) => event.type === 'route_enter').length, 2);
 });
 
 test('same keyed event is suppressed during cooldown and allowed afterward', async () => {
@@ -58,11 +79,55 @@ test('unsubscribing removes the bridge listener', async () => {
 });
 
 test('Navigator lifecycle maps submitted, thinking, completed, error, and abort states', () => {
-  assert.equal(mapPrincessEvent({ type: 'navigator_question_submitted', requestId: 'one' })?.state, 'curious');
-  assert.equal(mapPrincessEvent({ type: 'navigator_response_started', requestId: 'one' })?.state, 'sit');
-  assert.equal(mapPrincessEvent({ type: 'navigator_response_completed', requestId: 'one' })?.state, 'happy');
+  assert.equal(mapPrincessEvent({ type: 'navigator_question_submitted', requestId: 'one' })?.state, 'standing_attentive');
+  assert.equal(mapPrincessEvent({ type: 'navigator_response_started', requestId: 'one' })?.state, 'standing_attentive');
+  assert.equal(mapPrincessEvent({ type: 'navigator_response_started', requestId: 'one' })?.persistent, true);
+  assert.equal(mapPrincessEvent({ type: 'navigator_response_completed', requestId: 'one' })?.state, 'sitting_smile');
   assert.equal(mapPrincessEvent({ type: 'navigator_response_error', requestId: 'one', errorType: 'network' })?.state, 'quiet');
   assert.equal(mapPrincessEvent({ type: 'navigator_response_aborted', requestId: 'one' })?.state, 'idle');
+});
+
+test('data, search, action, idle, and return events map without direct asset knowledge', () => {
+  assert.equal(mapPrincessEvent({ type: 'data_loading', requestId: 'data-1' })?.state, 'sit');
+  assert.equal(mapPrincessEvent({ type: 'data_loading', requestId: 'data-1' })?.persistent, true);
+  assert.equal(mapPrincessEvent({ type: 'data_success', requestId: 'data-1' })?.state, 'sitting_smile');
+  assert.equal(mapPrincessEvent({ type: 'data_error', requestId: 'data-1' })?.state, 'quiet');
+  assert.equal(mapPrincessEvent({ type: 'search_empty' })?.state, 'quiet');
+  assert.equal(mapPrincessEvent({ type: 'action_complete' })?.state, 'happy');
+  assert.equal(mapPrincessEvent({ type: 'user_idle' })?.state, 'sleeping_prone');
+  assert.equal(mapPrincessEvent({ type: 'user_return' })?.state, 'sitting_smile');
+});
+
+test('parallel data requests produce one loading reaction and one final success reaction', async () => {
+  const requests = [];
+  const bridge = createPrincessEventBridge();
+  bridge.subscribe((request) => { requests.push(request); return true; });
+
+  assert.equal(bridge.emit({ type: 'data_loading', requestId: 'one', key: 'research' }), true);
+  assert.equal(bridge.emit({ type: 'data_loading', requestId: 'two', key: 'knowledge' }), false);
+  await nextTick();
+  assert.equal(bridge.emit({ type: 'data_success', requestId: 'one', key: 'research' }), false);
+  assert.equal(bridge.emit({ type: 'data_success', requestId: 'two', key: 'knowledge' }), true);
+  await nextTick();
+
+  assert.deepEqual(requests.map(({ event }) => event.type), ['data_loading', 'data_success']);
+});
+
+test('data error prevents an older parallel success from replacing the concern state', async () => {
+  let now = 1_000;
+  const requests = [];
+  const bridge = createPrincessEventBridge({ now: () => now });
+  bridge.subscribe((request) => { requests.push(request); return true; });
+  bridge.emit({ type: 'data_loading', requestId: 'one', key: 'research' });
+  bridge.emit({ type: 'data_loading', requestId: 'two', key: 'knowledge' });
+  await nextTick();
+  assert.equal(bridge.emit({ type: 'data_error', requestId: 'two', key: 'knowledge' }), true);
+  await nextTick();
+  assert.equal(bridge.emit({ type: 'data_success', requestId: 'one', key: 'research' }), false);
+  now += 4_001;
+  assert.equal(bridge.emit({ type: 'data_success', requestId: 'one', key: 'research-2' }), true);
+  await nextTick();
+  assert.deepEqual(requests.map(({ event }) => event.type), ['data_loading', 'data_error', 'data_success']);
 });
 
 test('Navigator submission and completion are accepted only once per request', async () => {

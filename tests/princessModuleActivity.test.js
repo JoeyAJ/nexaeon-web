@@ -89,6 +89,17 @@ test('adapter emits a minimal payload without user content or raw errors', async
   assert.equal(JSON.stringify(payload).includes('secret title'), false);
 });
 
+test('search adapter distinguishes successful and empty results without treating empty as an error', async () => {
+  const requests = [];
+  const bridge = createPrincessEventBridge();
+  bridge.subscribe((request) => { requests.push(request); return true; });
+  const adapter = createPrincessModuleActivityAdapter(bridge, 'research', () => 2_000);
+  adapter.search(0, { entityType: 'literature', key: 'research-empty' });
+  await nextTick();
+  assert.deepEqual(requests.map(({ event }) => event.type), ['search_start', 'search_empty']);
+  assert.equal(requests.some(({ event }) => event.type === 'data_error'), false);
+});
+
 test('development debug is opt-in and production mode emits no console output', async () => {
   let calls = 0;
   const original = console.debug;

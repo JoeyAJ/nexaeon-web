@@ -11,6 +11,16 @@ export const PRINCESS_EVENT_TYPES = [
   'idle_long',
   'action_success',
   'action_error',
+  'action_complete',
+  'search_start',
+  'search_success',
+  'search_empty',
+  'data_loading',
+  'data_success',
+  'data_error',
+  'data_aborted',
+  'user_idle',
+  'user_return',
   'navigator_question_submitted',
   'navigator_response_started',
   'navigator_response_completed',
@@ -22,7 +32,7 @@ export const PRINCESS_EVENT_TYPES = [
 ] as const;
 
 export type PrincessEventType = (typeof PRINCESS_EVENT_TYPES)[number];
-export type PrincessWebsiteState = 'idle' | 'walkLeft' | 'sit' | 'wave' | 'happy' | 'curious' | 'quiet' | 'rest' | 'sleep';
+export type PrincessWebsiteState = 'idle' | 'walkLeft' | 'sit' | 'sitting_smile' | 'standing_attentive' | 'wave' | 'happy' | 'curious' | 'quiet' | 'rest' | 'sleep' | 'sleeping_prone';
 
 export const PRINCESS_MODULE_ACTION_TYPES = [
   'search-submitted', 'filter-applied', 'item-opened', 'item-expanded', 'item-closed',
@@ -60,12 +70,13 @@ export type PrincessEventRequest = {
   duration: number;
   priority: number;
   canWakeSleeping?: boolean;
+  persistent?: boolean;
 };
 
 type EventHandler = (request: PrincessEventRequest) => boolean;
 
 export const PRINCESS_EVENT_COOLDOWNS: Readonly<Record<PrincessEventType, number>> = Object.freeze({
-  route_enter: 12_000,
+  route_enter: 0,
   route_leave: 0,
   module_enter: 8_000,
   subpage_enter: 60_000,
@@ -75,6 +86,16 @@ export const PRINCESS_EVENT_COOLDOWNS: Readonly<Record<PrincessEventType, number
   idle_long: 0,
   action_success: 4_000,
   action_error: 4_000,
+  action_complete: 4_000,
+  search_start: 0,
+  search_success: 2_000,
+  search_empty: 2_000,
+  data_loading: 0,
+  data_success: 2_000,
+  data_error: 3_000,
+  data_aborted: 0,
+  user_idle: 0,
+  user_return: 0,
   navigator_question_submitted: 0,
   navigator_response_started: 0,
   navigator_response_completed: 4_000,
@@ -87,16 +108,26 @@ export const PRINCESS_EVENT_COOLDOWNS: Readonly<Record<PrincessEventType, number
 
 const EVENT_PRIORITIES: Readonly<Record<PrincessEventType, number>> = Object.freeze({
   action_success: 5,
-  action_error: 5,
-  navigator_response_error: 8,
+  action_error: 9,
+  action_complete: 6,
+  search_start: 7,
+  search_success: 6,
+  search_empty: 3,
+  data_loading: 8,
+  data_success: 6,
+  data_error: 9,
+  data_aborted: 10,
+  user_idle: 1,
+  user_return: 7,
+  navigator_response_error: 10,
   // Fusion owns the semantic terminal reaction. Keep the generic completion
   // below every Fusion terminal priority so both events emitted in the same
   // microtask cannot discard clarification, uncertainty, or unavailable.
   navigator_response_completed: 4,
   navigator_navigation_completed: 7,
-  navigator_response_started: 6,
-  navigator_question_submitted: 5,
-  navigator_response_aborted: 9,
+  navigator_response_started: 8,
+  navigator_question_submitted: 8,
+  navigator_response_aborted: 10,
   module_enter: 4,
   route_enter: 3,
   route_leave: 3,
@@ -110,12 +141,16 @@ const EVENT_PRIORITIES: Readonly<Record<PrincessEventType, number>> = Object.fre
 });
 
 const MODULE_STATE: Readonly<Record<string, PrincessWebsiteState>> = Object.freeze({
-  identity: 'curious',
-  research: 'curious',
-  teaching: 'happy',
-  'knowledge-lab': 'curious',
-  projects: 'wave',
-  'field-lab': 'happy',
+  identity: 'sitting_smile',
+  research: 'sit',
+  teaching: 'sitting_smile',
+  coaching: 'sitting_smile',
+  'knowledge-lab': 'sit',
+  knowledge: 'sit',
+  projects: 'curious',
+  prototype: 'curious',
+  'field-lab': 'standing_attentive',
+  action: 'standing_attentive',
 });
 
 export const PRINCESS_EVENT_DURATIONS: Readonly<Partial<Record<PrincessEventType, number>>> = Object.freeze({
@@ -126,9 +161,18 @@ export const PRINCESS_EVENT_DURATIONS: Readonly<Partial<Record<PrincessEventType
   scroll_milestone: 2_400,
   action_success: 1_600,
   action_error: 2_400,
-  navigator_question_submitted: 1_000,
-  navigator_response_started: 2_400,
-  navigator_response_completed: 2_000,
+  action_complete: 3_000,
+  search_start: 0,
+  search_success: 2_500,
+  search_empty: 3_000,
+  data_loading: 0,
+  data_success: 2_500,
+  data_error: 4_000,
+  user_idle: 0,
+  user_return: 2_000,
+  navigator_question_submitted: 0,
+  navigator_response_started: 0,
+  navigator_response_completed: 3_000,
   navigator_navigation_completed: 1_800,
   navigator_response_error: 2_800,
   navigator_response_aborted: 0,
@@ -185,7 +229,7 @@ const FUSION_REACTIONS: Readonly<Record<NexonFusionPhase, { state: PrincessWebsi
   retrieving: { state: 'sit', duration: 1_600, priority: 5 },
   connecting: { state: 'curious', duration: 1_600, priority: 6 },
   guiding: { state: 'wave', duration: 1_500, priority: 6 },
-  resolved: { state: 'happy', duration: 1_800, priority: 7, canWakeSleeping: true },
+  resolved: { state: 'sitting_smile', duration: 3_000, priority: 7, canWakeSleeping: true },
   needsClarification: { state: 'curious', duration: 1_800, priority: 6 },
   uncertain: { state: 'quiet', duration: 1_800, priority: 6 },
   unavailable: { state: 'quiet', duration: 2_000, priority: 7 },
@@ -209,26 +253,38 @@ export function mapPrincessEvent(event: PrincessWebsiteEvent): PrincessEventRequ
   if (event.type === 'nexon_fusion_state' && event.fusion) return mapFusionState(event.fusion);
   let state: PrincessWebsiteState | null = null;
 
-  if (event.type === 'module_enter') state = MODULE_STATE[event.moduleId || ''] || 'curious';
+  if (event.type === 'route_enter' || event.type === 'module_enter') state = MODULE_STATE[event.moduleId || ''] || 'curious';
   if (event.type === 'subpage_enter') state = 'curious';
   if (event.type === 'language_change') state = 'wave';
   if (event.type === 'theme_change') state = 'curious';
   if (event.type === 'scroll_milestone') state = event.milestone === 'bottom' ? 'happy' : 'curious';
   if (event.type === 'action_success') state = 'happy';
   if (event.type === 'action_error') state = 'quiet';
-  if (event.type === 'navigator_question_submitted') state = 'curious';
-  if (event.type === 'navigator_response_started') state = 'sit';
-  if (event.type === 'navigator_response_completed') state = 'happy';
+  if (event.type === 'action_complete') state = 'happy';
+  if (event.type === 'search_start') state = 'standing_attentive';
+  if (event.type === 'search_success') state = 'sitting_smile';
+  if (event.type === 'search_empty') state = 'quiet';
+  if (event.type === 'data_loading') state = 'sit';
+  if (event.type === 'data_success') state = 'sitting_smile';
+  if (event.type === 'data_error') state = 'quiet';
+  if (event.type === 'user_idle') state = 'sleeping_prone';
+  if (event.type === 'user_return') state = 'sitting_smile';
+  if (event.type === 'navigator_question_submitted') state = 'standing_attentive';
+  if (event.type === 'navigator_response_started') state = 'standing_attentive';
+  if (event.type === 'navigator_response_completed') state = 'sitting_smile';
   if (event.type === 'navigator_navigation_completed') state = 'happy';
   if (event.type === 'navigator_response_error') state = 'quiet';
   if (event.type === 'navigator_response_aborted') state = 'idle';
 
   if (!state) return null;
+  const persistent = ['navigator_question_submitted', 'navigator_response_started', 'search_start', 'data_loading', 'user_idle'].includes(event.type);
   return {
     event,
     state,
-    duration: PRINCESS_EVENT_DURATIONS[event.type] || 2_400,
+    duration: PRINCESS_EVENT_DURATIONS[event.type] ?? 2_400,
     priority: EVENT_PRIORITIES[event.type],
+    persistent,
+    canWakeSleeping: event.type === 'user_return',
   };
 }
 
@@ -246,6 +302,9 @@ export function createPrincessEventBridge({ now = Date.now, debug = false } = {}
   const recentActivityAt = new Map<string, number>();
   let activityBurst: number[] = [];
   let moduleContextAllowedAt = 0;
+  const activeDataRequests = new Set<string>();
+  let dataErrorUntil = 0;
+  let activeRouteKey: string | null = null;
 
   const log = (event: PrincessWebsiteEvent, accepted: boolean, reason: string) => {
     if (!debug || typeof console === 'undefined') return;
@@ -307,6 +366,33 @@ export function createPrincessEventBridge({ now = Date.now, debug = false } = {}
 
   return {
     emit(event: PrincessWebsiteEvent) {
+      if (event.type === 'route_leave') {
+        if (!event.key || event.key === activeRouteKey) activeRouteKey = null;
+      }
+      if (event.type === 'route_enter') {
+        const routeKey = event.key || event.moduleId || 'route';
+        if (routeKey === activeRouteKey) { log(event, false, 'duplicate_route'); return false; }
+        activeRouteKey = routeKey;
+      }
+      if (event.type === 'data_loading') {
+        if (!event.requestId) { log(event, false, 'missing_request_id'); return false; }
+        activeDataRequests.add(event.requestId);
+        if (activeDataRequests.size > 1) { log(event, false, 'parallel_data_request'); return false; }
+      }
+      if (event.type === 'data_success' || event.type === 'data_error' || event.type === 'data_aborted') {
+        if (event.requestId) activeDataRequests.delete(event.requestId);
+        if (event.type === 'data_aborted') { log(event, false, 'data_request_aborted'); return false; }
+        if (event.type === 'data_error') {
+          activeDataRequests.clear();
+          dataErrorUntil = now() + (PRINCESS_EVENT_DURATIONS.data_error || 4_000);
+        }
+        if (event.type === 'data_success' && now() < dataErrorUntil) {
+          log(event, false, 'data_error_active'); return false;
+        }
+        if (event.type === 'data_success' && activeDataRequests.size > 0) {
+          log(event, false, 'parallel_data_request_pending'); return false;
+        }
+      }
       if (event.type === 'module_activity') {
         const activity = event.activity;
         if (!activity || !activity.activityId || !PRINCESS_MODULE_ACTION_TYPES.includes(activity.actionType)) {

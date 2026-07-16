@@ -20,7 +20,7 @@ test('Research submit and item open produce one low-disruption reaction without 
   await search.fill('AI');
   await expect(pet).not.toHaveAttribute('data-pet-state', 'curious');
   await search.press('Enter');
-  await expect(pet).toHaveAttribute('data-pet-state', 'curious');
+  await expect(pet).toHaveAttribute('data-pet-state', 'sitting_smile');
   await expect(pet).toHaveAttribute('data-pet-state', 'standing_attentive', { timeout: 5_000 });
 
   await page.locator('.literature-expand-button').first().click();

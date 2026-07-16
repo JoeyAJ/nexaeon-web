@@ -334,12 +334,12 @@ function createClientActionFallbackResponse(reason, lang) {
   };
 }
 
-function useActionProjects(lang) {
+function useActionProjects(lang, activityAdapter) {
   const createClientFallbackPayload = useCallback(
     () => createClientActionFallbackResponse('upstream_failed', lang),
     [lang],
   );
-  return usePublicApiResource('/api/action/projects', { createClientFallbackPayload });
+  return usePublicApiResource('/api/action/projects', { createClientFallbackPayload, companionEventAdapter: activityAdapter });
 }
 
 function hasActionValue(value) {
@@ -448,7 +448,7 @@ function ActionDetailField({ label, value }) {
 }
 
 function ActionProjectDashboard({ item, common, lang, activityAdapter }) {
-  const projectState = useActionProjects(lang);
+  const projectState = useActionProjects(lang, activityAdapter);
   const ui = ACTION_PAGE_UI[lang] || ACTION_PAGE_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
   const [projectTypeFilter, setProjectTypeFilter] = useState('all');
@@ -531,7 +531,7 @@ function ActionProjectDashboard({ item, common, lang, activityAdapter }) {
 
   function handleSearchKeyDown(event) {
     if (event.key === 'Enter' && searchQuery.trim()) {
-      activityAdapter?.dispatch('search-submitted', { entityType: 'project' });
+      activityAdapter?.search(filteredProjects.length, { entityType: 'project', key: 'action-search' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -1636,14 +1636,14 @@ function KnowledgeLinkField({ label, value, emptyValue, linkLabel }) {
   );
 }
 
-function useResearchLiterature() {
+function useResearchLiterature(activityAdapter) {
   const createClientFallbackPayload = useCallback(() => createFallbackLiteratureResponse('upstream_failed'), []);
-  return usePublicApiResource('/api/research/literature', { createClientFallbackPayload });
+  return usePublicApiResource('/api/research/literature', { createClientFallbackPayload, companionEventAdapter: activityAdapter });
 }
 
-function useKnowledgeResources() {
+function useKnowledgeResources(activityAdapter) {
   const createClientFallbackPayload = useCallback(() => createFallbackKnowledgeResponse('upstream_failed'), []);
-  return usePublicApiResource('/api/knowledge/resources', { createClientFallbackPayload });
+  return usePublicApiResource('/api/knowledge/resources', { createClientFallbackPayload, companionEventAdapter: activityAdapter });
 }
 
 function LiteratureStatusCard({ source, lang }) {
@@ -1661,7 +1661,7 @@ function LiteratureStatusCard({ source, lang }) {
 }
 
 function LiteratureDatabase({ item, common, lang, activityAdapter }) {
-  const literatureState = useResearchLiterature();
+  const literatureState = useResearchLiterature(activityAdapter);
   const ui = LITERATURE_UI[lang] || LITERATURE_UI.zh;
   const databaseUi = LITERATURE_DATABASE_UI[lang] || LITERATURE_DATABASE_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
@@ -1743,7 +1743,7 @@ function LiteratureDatabase({ item, common, lang, activityAdapter }) {
 
   function handleSearchKeyDown(event) {
     if (event.key === 'Enter' && searchQuery.trim()) {
-      activityAdapter?.dispatch('search-submitted', { entityType: 'literature' });
+      activityAdapter?.search(filteredLiterature.length, { entityType: 'literature', key: 'research-search' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -1959,7 +1959,7 @@ function KnowledgeStatusCard({ source, lang }) {
 }
 
 function KnowledgeResourceDatabase({ item, common, lang, activityAdapter }) {
-  const knowledgeState = useKnowledgeResources();
+  const knowledgeState = useKnowledgeResources(activityAdapter);
   const ui = KNOWLEDGE_RESOURCE_UI[lang] || KNOWLEDGE_RESOURCE_UI.zh;
   const databaseUi = KNOWLEDGE_DATABASE_UI[lang] || KNOWLEDGE_DATABASE_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
@@ -2053,7 +2053,7 @@ function KnowledgeResourceDatabase({ item, common, lang, activityAdapter }) {
 
   function handleSearchKeyDown(event) {
     if (event.key === 'Enter' && searchQuery.trim()) {
-      activityAdapter?.dispatch('search-submitted', { entityType: 'resource' });
+      activityAdapter?.search(filteredResources.length, { entityType: 'resource', key: 'knowledge-search' });
       scrollResultsIntoView(resultsRef);
     }
   }
@@ -2423,13 +2423,13 @@ function IdentityProfileImage({ profile }) {
   );
 }
 
-function useIdentityProfiles() {
+function useIdentityProfiles(activityAdapter) {
   const createClientFallbackPayload = useCallback(() => createFallbackIdentityProfilesResponse('upstream_failed'), []);
-  return usePublicApiResource('/api/identity/profiles', { createClientFallbackPayload });
+  return usePublicApiResource('/api/identity/profiles', { createClientFallbackPayload, companionEventAdapter: activityAdapter });
 }
 
 function IdentityProfilesDatabase({ item, common, lang, activityAdapter }) {
-  const profileState = useIdentityProfiles();
+  const profileState = useIdentityProfiles(activityAdapter);
   const ui = IDENTITY_PROFILES_UI[lang] || IDENTITY_PROFILES_UI.zh;
   const [searchQuery, setSearchQuery] = useState('');
   const [identityTypeFilter, setIdentityTypeFilter] = useState('all');
@@ -2500,7 +2500,8 @@ function IdentityProfilesDatabase({ item, common, lang, activityAdapter }) {
   }
 
   function handleSearchKeyDown(event) {
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && searchQuery.trim()) {
+      activityAdapter?.search(filteredProfiles.length, { entityType: 'identity', key: 'identity-search' });
       scrollResultsIntoView(resultsRef);
     }
   }

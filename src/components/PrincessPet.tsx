@@ -220,13 +220,6 @@ function hasCompanionDebugQuery(): boolean {
     .some((key) => params.has(key));
 }
 
-function getBridgeCompanionEvent(eventType: string): CompanionSystemEventType | null {
-  if (eventType === 'action_success') return 'success';
-  if (eventType === 'action_error' || eventType === 'navigator_response_error') return 'error';
-  if (eventType === 'navigator_question_submitted' || eventType === 'navigator_response_started') return 'loading';
-  return null;
-}
-
 function canStartDirectInteraction(state: PetState): boolean {
   return [
     PRINCESS_STATES.IDLE,
@@ -617,6 +610,7 @@ export default function PrincessPet({
       contextProfile,
       onPersistentStateChange: (persistentState: string) => {
         if (isDraggingRef.current || PRINCESS_STATE_GROUPS.INTERACTION.includes(stateRef.current)) return;
+        if (persistentState === 'sleeping' && eventBridge?.emit({ type: 'user_idle', timestamp: Date.now() })) return;
         const behavior = selectContextCompanionBehavior(contextProfileRef.current, persistentState);
         stateControllerRef.current?.requestBehavior({
           ...behavior,
@@ -629,6 +623,7 @@ export default function PrincessPet({
       },
       onWake: () => {
         if (isDraggingRef.current) return;
+        if (eventBridge?.emit({ type: 'user_return', timestamp: Date.now() })) return;
         const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
         stateControllerRef.current?.requestBehavior({
           emotion: COMPANION_EMOTIONS.ATTENTIVE,
@@ -1696,7 +1691,7 @@ export default function PrincessPet({
   ]);
 
   useEffect(() => {
-    if (prefersReducedMotion || !visible || !eventBridge || debugBehaviorOverride) return undefined;
+    if (!visible || !eventBridge || debugBehaviorOverride || introPhase !== 'active') return undefined;
 
     return eventBridge.subscribe((request) => {
       if (isDraggingRef.current) return false;
@@ -1713,22 +1708,6 @@ export default function PrincessPet({
       if (request.event.type === 'navigator_navigation_completed') {
         noteUserInteraction({ immediate: true, type: 'primaryNavigation' });
       }
-      const companionEventType = getBridgeCompanionEvent(request.event.type);
-      if (companionEventType) {
-        const behavior = getCompanionEventBehavior(companionEventType);
-        const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
-        if (!behavior) return false;
-        return stateControllerRef.current?.requestBehavior({
-          ...behavior,
-          source: COMPANION_BEHAVIOR_SOURCES.SYSTEM,
-          duration: request.duration || COMPANION_BEHAVIOR_TIMING.eventDuration[companionEventType],
-          minDuration: COMPANION_BEHAVIOR_TIMING.stateMinimumDuration.system,
-          completionState: completionBehavior.pose,
-          completionSource: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
-          resolveCompletionEmotion: () => completionBehavior.emotion,
-        }) || false;
-      }
-      if (request.event.type === 'navigator_response_completed') return false;
       if (request.event.type === 'navigator_response_aborted' || (request.event.type === 'nexon_fusion_state' && request.event.fusion?.phase === 'aborted')) {
         const navigatorTransientStates = new Set(['curious', 'sit', 'happy', 'quiet']);
         if (!navigatorTransientStates.has(stateRef.current)) return false;
@@ -1738,25 +1717,39 @@ export default function PrincessPet({
         );
         return stateControllerRef.current?.transition(restoreState, { source: 'presence' }) || false;
       }
-      return stateControllerRef.current?.transition(request.state, {
-        source: request.canWakeSleeping && PRINCESS_STATE_GROUPS.SLEEP.includes(stateRef.current) ? 'wake' : 'websiteEvent',
-        behaviorSource: request.priority >= 5
-          ? COMPANION_BEHAVIOR_SOURCES.SYSTEM
-          : COMPANION_BEHAVIOR_SOURCES.CONTEXT,
-        priority: request.priority >= 5
-          ? COMPANION_BEHAVIOR_PRIORITY.system
-          : COMPANION_BEHAVIOR_PRIORITY.context,
-        minDuration: request.priority >= 5
+      const completionBehavior = getCompanionModuleBehavior(contextProfileRef.current.id);
+      const fusionCanInterrupt = request.event.type === 'nexon_fusion_state'
+        && ['guiding', 'resolved', 'needsClarification', 'uncertain', 'unavailable', 'failed'].includes(request.event.fusion?.phase || '');
+      const terminalEvent = request.event.type === 'module_activity' || fusionCanInterrupt || [
+        'navigator_response_completed', 'navigator_response_error',
+        'data_success', 'data_error', 'search_success', 'search_empty',
+        'action_complete', 'action_error', 'user_return',
+      ].includes(request.event.type);
+      const behaviorSource = request.priority >= 7
+        ? COMPANION_BEHAVIOR_SOURCES.SYSTEM
+        : COMPANION_BEHAVIOR_SOURCES.CONTEXT;
+      return stateControllerRef.current?.requestBehavior({
+        emotion: getCompanionEmotionForPose(request.state),
+        pose: request.state,
+        source: behaviorSource,
+        priority: request.priority * 10,
+        minDuration: behaviorSource === COMPANION_BEHAVIOR_SOURCES.SYSTEM
           ? COMPANION_BEHAVIOR_TIMING.stateMinimumDuration.system
           : COMPANION_BEHAVIOR_TIMING.stateMinimumDuration.context,
-        duration: request.duration,
+        duration: request.persistent ? undefined : request.duration,
+        interruptible: !request.persistent,
+        force: terminalEvent,
+        completionState: completionBehavior.pose,
+        completionSource: COMPANION_BEHAVIOR_SOURCES.CONTEXT,
+        resolveCompletionEmotion: () => completionBehavior.emotion,
         resolveCompletionState: () => selectContextIdleAnimation(
           contextProfileRef.current,
           presenceControllerRef.current?.evaluate('transient_complete'),
         ),
+        canWakeSleeping: request.canWakeSleeping,
       }) || false;
     });
-  }, [debugBehaviorOverride, eventBridge, noteUserInteraction, prefersReducedMotion, visible]);
+  }, [debugBehaviorOverride, eventBridge, introPhase, noteUserInteraction, visible]);
 
   useEffect(() => {
     if (!visible) return undefined;

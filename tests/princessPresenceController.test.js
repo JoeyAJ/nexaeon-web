@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { COMPANION_BEHAVIOR_TIMING } from '../src/lib/companionBehaviorConfig.ts';
 import {
   PRINCESS_PERSISTENT_STATES,
   PRINCESS_PRESENCE_STORAGE_KEY,
@@ -60,6 +61,12 @@ const TEST_TIMING = {
   reevaluationInterval: 25,
   minimumPersistentStateDuration: 0,
 };
+
+test('production inactivity timing reaches sleeping at 90 seconds', () => {
+  assert.equal(COMPANION_BEHAVIOR_TIMING.inactivity.sleeping, 90_000);
+  assert.equal(getPersistentStateForInactivity(89_999), PRINCESS_PERSISTENT_STATES.RESTING);
+  assert.equal(getPersistentStateForInactivity(90_000), PRINCESS_PERSISTENT_STATES.SLEEPING);
+});
 
 test('inactivity thresholds map to active, calm, rest, and sleep', () => {
   assert.equal(getPersistentStateForInactivity(0, TEST_TIMING), PRINCESS_PERSISTENT_STATES.ACTIVE_IDLE);

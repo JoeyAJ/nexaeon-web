@@ -110,7 +110,7 @@ test('fusion phases map to existing Princess states with clarification distinct 
   const base = { fusionId: 'f', requestId: 'r', generation: 1, operationType: 'question', timestamp: 1 };
   assert.equal(mapPrincessEvent({ type: 'nexon_fusion_state', fusion: { ...base, phase: 'listening' } })?.state, 'curious');
   assert.equal(mapPrincessEvent({ type: 'nexon_fusion_state', fusion: { ...base, phase: 'retrieving' } })?.state, 'sit');
-  assert.equal(mapPrincessEvent({ type: 'nexon_fusion_state', fusion: { ...base, phase: 'resolved' } })?.state, 'happy');
+  assert.equal(mapPrincessEvent({ type: 'nexon_fusion_state', fusion: { ...base, phase: 'resolved' } })?.state, 'sitting_smile');
   assert.equal(mapPrincessEvent({ type: 'nexon_fusion_state', fusion: { ...base, phase: 'needsClarification' } })?.state, 'curious');
   assert.equal(mapPrincessEvent({ type: 'nexon_fusion_state', fusion: { ...base, phase: 'uncertain' } })?.state, 'quiet');
   assert.equal(mapPrincessEvent({ type: 'nexon_fusion_state', fusion: { ...base, phase: 'unavailable' } })?.priority, 7);
@@ -138,7 +138,7 @@ test('Navigator lifecycle de-duplicates submitted/listening and completed/resolv
   bridge.emit({ type: 'navigator_response_completed', requestId: 'nav-dedup' });
   await nextTick();
   assert.equal(requests.filter((request) => ['nexon_fusion_state', 'navigator_question_submitted'].includes(request.event.type)).length >= 1, true);
-  assert.equal(requests.filter((request) => request.state === 'happy').length, 1);
+  assert.equal(requests.filter((request) => request.state === 'sitting_smile').length, 1);
 });
 
 test('fusion cannot interrupt drag or affection and low priority retrieval cannot wake sleep', async () => {
