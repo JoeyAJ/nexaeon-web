@@ -38,6 +38,16 @@ export function createApiResponse({
   const publicItems = Array.isArray(items) ? items : [];
   const safeReason = normalizeReason(reason);
 
+  const providedMeta = extra?.meta && typeof extra.meta === 'object' ? extra.meta : {};
+  const responseMeta = {
+    ...providedMeta,
+    count: publicItems.length,
+    module: extra?.moduleKey || providedMeta.module || null,
+    locale: providedMeta.locale || null,
+    sources: providedMeta.sources || extra?.sources || [source],
+    generatedAt: new Date().toISOString(),
+  };
+
   return {
     source,
     reason: safeReason,
@@ -46,6 +56,7 @@ export function createApiResponse({
     items: publicItems,
     data: publicItems,
     ...extra,
+    meta: responseMeta,
   };
 }
 

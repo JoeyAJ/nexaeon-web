@@ -115,10 +115,13 @@ test('reason is restricted to safe enum values', () => {
   assert.equal(payload.reason, 'upstream_failed');
 });
 
-test('Notion public status is exact and fail-closed', () => {
+test('Notion public status accepts normalized published aliases and remains fail-closed', () => {
   assert.equal(isPublishedNotionPage(makeStatusPage('Published'), ['公開狀態']), true);
+  for (const value of ['published', 'PUBLISHED', 'publish', 'live']) {
+    assert.equal(isPublishedNotionPage(makeStatusPage(value), ['公開狀態']), true);
+  }
 
-  for (const value of ['Draft', 'Hidden', '', 'published', 'PUBLISHED', 'Other']) {
+  for (const value of ['Draft', 'Hidden', 'archived', '', 'Other']) {
     assert.equal(isPublishedNotionPage(makeStatusPage(value), ['公開狀態']), false);
   }
 
@@ -126,11 +129,13 @@ test('Notion public status is exact and fail-closed', () => {
   assert.equal(isPublishedNotionPage(makeStatusPage('Published', 'Status'), ['公開狀態']), false);
 });
 
-test('Airtable visibility is exact Public only', () => {
+test('Airtable visibility accepts normalized public aliases and rejects non-public states', () => {
   assert.equal(isPublicAirtableVisibility('Public'), true);
   assert.equal(isPublicAirtableVisibility({ name: 'Public' }), true);
 
-  for (const value of ['Private', 'Internal', 'Draft', 'Hidden', '', 'public', 'PUBLIC', undefined]) {
+  assert.equal(isPublicAirtableVisibility('public'), true);
+  assert.equal(isPublicAirtableVisibility('PUBLIC'), true);
+  for (const value of ['Private', 'Internal', 'Draft', 'Hidden', 'archived', '', undefined]) {
     assert.equal(isPublicAirtableVisibility(value), false);
   }
 });
