@@ -465,6 +465,8 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
           query: trimmed,
           lang,
           history,
+          currentRoute: companionHandoff?.currentRoute || window.location.pathname,
+          currentModule: companionHandoff?.currentModule || 'navigator',
         }),
         signal: controller.signal,
       });

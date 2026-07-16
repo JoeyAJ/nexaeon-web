@@ -9,8 +9,10 @@ import {
   validateSuggestedQuestions,
 } from '../lib/agent/chatRuntime.js';
 import { buildDeveloperInstruction } from '../lib/agent/chatRuntime.js';
+import { routeAgentRequest } from '../lib/agent/agentRouter.js';
 
 const FIXTURE_PATH = new URL('../tests/fixtures/navigator-evals.json', import.meta.url);
+const ROUTING_FIXTURE_PATH = new URL('../tests/fixtures/agent-routing-evals.json', import.meta.url);
 
 const MOCK_PAYLOADS = {
   '/api/identity/profiles': {
@@ -277,6 +279,7 @@ async function runCase(entry) {
 
 async function main() {
   const entries = JSON.parse(await readFile(FIXTURE_PATH, 'utf8'));
+  const routingEntries = JSON.parse(await readFile(ROUTING_FIXTURE_PATH, 'utf8'));
   let passed = 0;
   const failures = [];
   for (const entry of entries) {
@@ -288,8 +291,20 @@ async function main() {
     }
   }
 
+  for (const entry of routingEntries) {
+    try {
+      const routing = routeAgentRequest(entry);
+      assertEqual(routing.primaryAgent, entry.primaryAgent, `${entry.id} primaryAgent`);
+      assertEqual(routing.supportingAgents[0] || null, entry.supportingAgent || null, `${entry.id} supportingAgent`);
+      if (routing.supportingAgents.length > 1) throw new Error(`${entry.id} selected more than one supporting agent`);
+      passed += 1;
+    } catch (error) {
+      failures.push(`${entry.id}: ${error.message}`);
+    }
+  }
+
   console.log('Navigator Offline Eval');
-  console.log(`${passed}/${entries.length} passed`);
+  console.log(`${passed}/${entries.length + routingEntries.length} passed`);
   if (failures.length) {
     console.log(failures.join('\n'));
     process.exitCode = 1;

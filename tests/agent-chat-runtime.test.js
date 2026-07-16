@@ -326,6 +326,29 @@ test('no sources does not call OpenAI', async () => {
   assert.equal(openai.calls.length, 0);
 });
 
+test('selected module agent can provide labeled general guidance when public retrieval is empty', async () => {
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
+  process.env.OPENAI_API_KEY = 'test-key';
+  const openai = createOpenAIMock({
+    responsePayload: {
+      answer: 'General guidance: start with one measurable research question and document the evidence boundary.',
+      citedSourceIds: [],
+      suggestedQuestions: ['What research content is available in NexAeon?'],
+      localizedCitations: [],
+    },
+  });
+  const res = await callHandler({
+    req: createReq({ body: { query: 'Help me formulate a research question', lang: 'en' } }),
+    openai: openai.client,
+    retrieval: createRetrieval({ results: [], allSourcesFailed: false, partialSources: false }),
+  });
+
+  assert.equal(res.payload.mode, 'ai');
+  assert.equal(res.payload.agentId, 'research');
+  assert.deepEqual(res.payload.citations, []);
+  assert.match(res.payload.answer, /General guidance/);
+});
+
 test('partial sources can still produce an AI answer', async () => {
   process.env.NEXAEON_AGENT_ENABLED = 'true';
   process.env.OPENAI_API_KEY = 'test-key';
