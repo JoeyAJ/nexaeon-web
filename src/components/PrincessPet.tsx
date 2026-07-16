@@ -257,6 +257,22 @@ function usePrefersReducedMotion() {
   return prefersReducedMotion;
 }
 
+function useDocumentVisibility() {
+  const [documentVisible, setDocumentVisible] = useState(() => (
+    typeof document === 'undefined' || !document.hidden
+  ));
+
+  useEffect(() => {
+    const handleVisibilityChange = () => setDocumentVisible(!document.hidden);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    handleVisibilityChange();
+
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  return documentVisible;
+}
+
 function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -462,6 +478,7 @@ export default function PrincessPet({
   onCompanionAction,
 }: PrincessPetProps) {
   const systemPrefersReducedMotion = usePrefersReducedMotion();
+  const documentVisible = useDocumentVisibility();
   const effectiveMotionLevel = resolveEffectiveMotionLevel(motionLevel, systemPrefersReducedMotion);
   const prefersReducedMotion = effectiveMotionLevel !== 'full';
   const debugPreviewState = useMemo(getDevPreviewState, []);
@@ -1439,6 +1456,12 @@ export default function PrincessPet({
       return undefined;
     }
 
+    if (!documentVisible) {
+      setFrameIndex(0);
+      setBlinkSrc(null);
+      return undefined;
+    }
+
     if (prefersReducedMotion) {
       setFrameIndex(0);
       setBlinkSrc(null);
@@ -1461,10 +1484,10 @@ export default function PrincessPet({
         intervalRef.current = null;
       }
     };
-  }, [animation.fps, animation.loop, normalFrames.length, prefersReducedMotion, visible]);
+  }, [animation.fps, animation.loop, documentVisible, normalFrames.length, prefersReducedMotion, visible]);
 
   useEffect(() => {
-    if (prefersReducedMotion || !visible || !blinkFrame) return undefined;
+    if (prefersReducedMotion || !visible || !documentVisible || !blinkFrame) return undefined;
 
     const scheduleBlink = () => {
       blinkTimeoutRef.current = window.setTimeout(() => {
@@ -1484,7 +1507,7 @@ export default function PrincessPet({
       clearTimer(blinkResetRef);
       setBlinkSrc(null);
     };
-  }, [blinkFrame, clearTimer, prefersReducedMotion, visible]);
+  }, [blinkFrame, clearTimer, documentVisible, prefersReducedMotion, visible]);
 
   useEffect(() => {
     if (prefersReducedMotion || !visible || !autoBehaviorEnabled || debugBehaviorOverride) return undefined;

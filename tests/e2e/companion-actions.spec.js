@@ -22,6 +22,7 @@ test('Princess exposes a viewport-safe, module-aware action panel across all mod
     await page.getByTestId('princess-interactive').click({ force: true });
     const panel = page.getByTestId('companion-action-panel');
     await expect(panel).toBeVisible();
+    await expect(panel.locator('button').first()).toBeFocused();
     await expect(panel.locator('[data-action-id]')).toHaveCount(3);
     await expect(page.locator('[data-companion-module]')).toHaveAttribute('data-companion-module', moduleKey);
     const box = await panel.boundingBox();

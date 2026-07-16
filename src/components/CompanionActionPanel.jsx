@@ -10,7 +10,10 @@ export default function CompanionActionPanel({ actions, lang, motionLevel, onAct
   useEffect(() => {
     const panel = panelRef.current;
     const focusable = [...(panel?.querySelectorAll('button:not([disabled])') || [])];
-    focusable[0]?.focus();
+    let focusTimer = 0;
+    const focusFrame = window.requestAnimationFrame(() => {
+      focusTimer = window.setTimeout(() => focusable[0]?.focus({ preventScroll: true }), 0);
+    });
 
     const onPointerDown = (event) => {
       if (panel?.contains(event.target) || event.target?.closest?.('[data-testid="princess-interactive"]')) return;
@@ -36,6 +39,8 @@ export default function CompanionActionPanel({ actions, lang, motionLevel, onAct
     window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('keydown', onKeyDown);
     return () => {
+      window.cancelAnimationFrame(focusFrame);
+      if (focusTimer) window.clearTimeout(focusTimer);
       window.removeEventListener('pointerdown', onPointerDown, true);
       window.removeEventListener('keydown', onKeyDown);
     };
