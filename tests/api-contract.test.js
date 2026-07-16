@@ -9,8 +9,8 @@ import {
   rejectUnsupportedMethod,
   SUCCESS_CACHE_CONTROL,
 } from '../api/_response.js';
-import { normalizeAirtableProject } from '../api/action/projects.js';
-import { normalizeAirtableContext } from '../api/collaboration/options.js';
+import { createResponse as createActionResponse, normalizeAirtableProject } from '../api/action/projects.js';
+import { createResponse as createCollaborationResponse, normalizeAirtableContext } from '../api/collaboration/options.js';
 import {
   createFallbackResponse as createDemoFallbackResponse,
   createResponse as createDemoResponse,
@@ -100,7 +100,7 @@ test('createApiResponse returns the stable public contract', () => {
   const items = [{ id: 'safe-id', updatedAt: FIXED_UPDATED_AT }];
   const payload = createApiResponse({ source: 'notion', reason: null, items });
 
-  for (const key of ['source', 'reason', 'count', 'updatedAt', 'items', 'data']) {
+  for (const key of ['source', 'reason', 'count', 'updatedAt', 'items', 'data', 'meta']) {
     assert.ok(Object.hasOwn(payload, key));
   }
 
@@ -108,6 +108,15 @@ test('createApiResponse returns the stable public contract', () => {
   assert.equal(payload.count, items.length);
   assert.deepEqual(payload.items, payload.data);
   assert.equal(payload.updatedAt, FIXED_UPDATED_AT);
+  assert.equal(payload.meta.count, 1);
+  assert.deepEqual(payload.meta.sources, ['notion']);
+  assert.ok(payload.meta.generatedAt);
+});
+
+test('public endpoint metadata uses unified module names without changing legacy DTOs', () => {
+  assert.equal(createDemoResponse('airtable', null, []).meta.module, 'prototype');
+  assert.equal(createActionResponse('airtable', null, []).meta.module, 'action');
+  assert.equal(createCollaborationResponse('airtable', null, []).meta.module, 'identity');
 });
 
 test('reason is restricted to safe enum values', () => {

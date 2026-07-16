@@ -74,5 +74,6 @@ export function createFallbackIdentityProfilesResponse(reason = 'upstream_failed
     source: 'fallback',
     reason,
     items,
+    extra: { meta: { module: 'identity' } },
   });
 }

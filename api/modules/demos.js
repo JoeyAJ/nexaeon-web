@@ -150,6 +150,7 @@ export function createResponse(source, reason, items) {
     source,
     reason,
     items: visibleItems,
+    extra: { meta: { module: 'prototype' } },
   });
 }
 

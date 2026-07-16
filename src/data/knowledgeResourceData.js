@@ -258,7 +258,7 @@ export function createFallbackKnowledgeResponse(reason = 'upstream_failed', meta
     reason,
     items,
     extra: {
-      meta: createFallbackKnowledgeMeta(meta),
+      meta: { ...createFallbackKnowledgeMeta(meta), module: 'knowledge' },
     },
   });
 }

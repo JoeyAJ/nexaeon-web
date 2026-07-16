@@ -158,6 +158,7 @@ export function createResponse(source, reason, items) {
     items: publicItems,
     reason,
     extra: {
+      meta: { module: 'identity' },
       summary: createSummary(publicItems),
     },
   });

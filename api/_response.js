@@ -42,7 +42,7 @@ export function createApiResponse({
   const responseMeta = {
     ...providedMeta,
     count: publicItems.length,
-    module: extra?.moduleKey || providedMeta.module || null,
+    module: providedMeta.module || extra?.moduleKey || null,
     locale: providedMeta.locale || null,
     sources: providedMeta.sources || extra?.sources || [source],
     generatedAt: new Date().toISOString(),

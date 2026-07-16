@@ -180,5 +180,6 @@ export function createFallbackLiteratureResponse(reason = 'upstream_failed') {
     source: 'fallback',
     reason,
     items: data,
+    extra: { meta: { module: 'research' } },
   });
 }

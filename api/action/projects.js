@@ -151,6 +151,7 @@ export function createResponse(source, reason, items) {
     source,
     reason,
     items: publicItems,
+    extra: { meta: { module: 'action' } },
   });
 }
 
