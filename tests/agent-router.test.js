@@ -68,10 +68,42 @@ test('ambiguous request uses Navigator fallback without throwing', () => {
   assert.equal(result.requiresClarification, false);
 });
 
-test('route context alone remains a safe low-confidence fallback', () => {
+test('route context is a low-confidence default after explicit and task intent', () => {
   const result = routeAgentRequest({ query: 'What about this?', currentRoute: '/research/topic' });
-  assert.equal(result.primaryAgent, null);
-  assert.equal(result.reasonCode, 'navigator_fallback');
+  assert.equal(result.primaryAgent, 'research');
+  assert.equal(result.reasonCode, 'module_context');
+  assert.ok(result.confidence < 0.5);
+});
+
+test('preferred Agent handles ambiguous module questions but never overrides task intent', () => {
+  const preferred = routeAgentRequest({
+    query: 'What should I consider next?',
+    currentRoute: '/research/topic',
+    currentModule: 'research',
+    preferredAgent: 'research',
+  });
+  assert.equal(preferred.primaryAgent, 'research');
+  assert.equal(preferred.reasonCode, 'preferred_agent');
+
+  const overridden = routeAgentRequest({
+    query: 'Turn this research into a Dashboard prototype',
+    currentRoute: '/research/topic',
+    currentModule: 'research',
+    preferredAgent: 'research',
+  });
+  assert.equal(overridden.primaryAgent, 'prototype');
+  assert.notEqual(overridden.reasonCode, 'preferred_agent');
+});
+
+test('invalid preferred Agent is ignored and explicit Agent remains highest priority', () => {
+  assert.equal(routeAgentRequest({
+    query: 'What should I consider next?',
+    preferredAgent: 'not-an-agent',
+  }).primaryAgent, null);
+  assert.equal(routeAgentRequest({
+    query: 'Use the Action Agent and give me the next step',
+    preferredAgent: 'research',
+  }).primaryAgent, 'action');
 });
 
 test('recent conversation provides secondary context without overriding explicit intent', () => {
@@ -119,4 +151,3 @@ test('routing scopes contain only selected module sources', () => {
   const routing = routeAgentRequest({ query: '把文獻理論整理成 Notion 分類' });
   assert.deepEqual(getRoutingSourceScopes(routing).sort(), ['knowledge', 'research']);
 });
-

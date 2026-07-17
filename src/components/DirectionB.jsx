@@ -344,7 +344,7 @@ function ModuleGateway({ content, modules, activeModuleId, setActiveModuleId, na
             <div className="module-card-kicker">{module.label}</div>
             <h3>{module.title}</h3>
             <p>{module.summary}</p>
-            <ModuleAgentIndicator moduleId={module.id} lang={lang} />
+            <ModuleAgentIndicator moduleId={module.id} lang={lang} navigate={navigate} />
             <div className="module-card-footer">
               <span className="content-tag">
                 {formatEntryCount(module.items.length, lang)}

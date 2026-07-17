@@ -173,9 +173,12 @@ export default function App() {
       const handoff = createCompanionNavigatorHandoff({
         currentModule: moduleKey,
         currentRoute: `${window.location.pathname}${window.location.hash}`,
+        preferredAgent: moduleKey,
+        sourceRoute: `${window.location.pathname}${window.location.hash}`,
         locale: lang,
         selectedAction: action.id,
         suggestedPromptKey: action.promptKey,
+        focusInput: true,
       });
       navigate(COMPANION_NAVIGATOR_ROUTE, { state: { [COMPANION_NAVIGATOR_HANDOFF_KEY]: handoff } });
       return;

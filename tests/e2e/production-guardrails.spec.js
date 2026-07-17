@@ -191,7 +191,7 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
 
   for (const label of EXPECTED_MODULE_LABELS) {
     const module = getLocalizedSite('en').modules.find((item) => item.label === label);
-    await page.getByTestId(`module-card-${module.id}`).getByRole('button').click();
+    await page.getByTestId(`module-card-${module.id}`).locator('.module-card-footer button').click();
     await expect(page).toHaveURL(new RegExp(`#${module.id}$`));
     await expect(page.getByTestId(`module-entry-${module.items[0].id}`)).toBeVisible();
     await expect(page.getByTestId(`module-agent-section-${module.id}`)).toBeVisible();
@@ -209,25 +209,25 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
     await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Active');
   }
 
-  await page.getByTestId('module-card-identity').getByRole('button').click();
+  await page.getByTestId('module-card-identity').locator('.module-card-footer button').click();
   await expect(page.getByTestId('module-agent-entry-identity')).toContainText('Active');
 
-  await page.getByTestId('module-card-research').getByRole('button').click();
+  await page.getByTestId('module-card-research').locator('.module-card-footer button').click();
   await page.getByTestId('module-agent-entry-research').getByRole('button', { name: 'Open Agent' }).click();
-  await expect(page).toHaveURL(/\/research\/nexaeon-explorer$/);
-  await expect(page.getByTestId('agent-scaffold-explorer')).toBeVisible();
-  await expect(page.locator('#navigator-agent-query')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/identity\/nexaeon-navigator$/);
+  await expect(page.getByTestId('navigator-default-agent')).toContainText('Research Agent');
+  await expect(page.locator('#navigator-agent-query')).toBeFocused();
   expect(chatPostCount).toBe(0);
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Switch to English' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByTestId('module-card-projects').getByRole('button').click();
+  await page.getByTestId('module-card-projects').locator('.module-card-footer button').click();
   await expect(page.getByTestId('module-agent-entry-prototype')).toBeVisible();
   const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(hasHorizontalOverflow).toBe(false);
 
-  await page.getByTestId('module-card-field-lab').getByRole('button').click();
+  await page.getByTestId('module-card-field-lab').locator('.module-card-footer button').click();
   await page.getByTestId('module-entry-action-projects').click();
   await expect(page).toHaveURL(/\/field-lab\/action-projects$/);
   await expect(page.getByRole('heading', { name: 'Field Lab', level: 1 })).toBeVisible();

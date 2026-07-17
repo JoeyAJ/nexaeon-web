@@ -128,7 +128,7 @@ test('Princess keeps one mounted instance and its saved layout across navigation
   expect(storedPosition.position).not.toBeNull();
   expect(Number.isNaN(Date.parse(storedPosition.updatedAt))).toBe(false);
 
-  await page.getByTestId('module-card-research').getByRole('button').click();
+  await page.getByTestId('module-card-research').locator('.module-card-footer button').click();
   await page.getByTestId('module-entry-research-literature-database').click();
   await expect(page).toHaveURL(/\/research\/research-literature-database$/);
   await expect(page.locator(PET_ROOT)).toHaveCount(1);
@@ -320,7 +320,7 @@ test('website events remain low-frequency when direct interaction and auto behav
   await controls.getByRole('switch', { name: '允許互動' }).click();
   await page.keyboard.press('Escape');
 
-  await page.getByTestId('module-card-research').getByRole('button').click();
+  await page.getByTestId('module-card-research').locator('.module-card-footer button').click();
   await expect(root).toHaveAttribute('data-pet-state', 'resting_awake');
   await expect(root).toHaveCount(1);
 

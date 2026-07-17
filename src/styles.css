@@ -2791,14 +2791,25 @@ body {
 }
 
 .module-card-agent-line {
+  appearance: none;
   display: grid;
   gap: 4px;
+  width: 100%;
   margin-top: 16px;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--accent-cyan) 24%, var(--line-1));
   border-radius: 8px;
   background: color-mix(in srgb, var(--bg-2) 46%, transparent);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
   padding: 10px;
+  text-align: left;
+}
+
+.module-card-agent-line:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-cyan) 58%, transparent);
+  outline-offset: 2px;
 }
 
 .module-card-agent-line span,

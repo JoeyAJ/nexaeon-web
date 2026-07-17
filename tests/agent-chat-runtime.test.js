@@ -177,6 +177,9 @@ test('POST validates a normal request body', () => {
     query: 'Which demos are public?',
     lang: 'en',
     moduleFilter: 'projects',
+    currentRoute: '/projects/module-demos',
+    currentModule: 'prototype',
+    preferredAgent: 'prototype',
     history: [{ role: 'user', content: 'Earlier question' }],
   });
 
@@ -184,6 +187,32 @@ test('POST validates a normal request body', () => {
   assert.equal(result.value.query, 'Which demos are public?');
   assert.equal(result.value.lang, 'en');
   assert.equal(result.value.moduleFilter, 'projects');
+  assert.equal(result.value.preferredAgent, 'prototype');
+});
+
+test('POST accepts the Navigator module handoff message and locale fields', () => {
+  const result = validateChatRequestBody({
+    message: 'What should I consider next?',
+    locale: 'ko',
+    currentRoute: '/#research',
+    currentModule: 'research',
+    preferredAgent: 'research',
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.value.query, 'What should I consider next?');
+  assert.equal(result.value.lang, 'ko');
+  assert.equal(result.value.preferredAgent, 'research');
+});
+
+test('invalid preferred Agent is ignored without accepting arbitrary registry data', () => {
+  const result = validateChatRequestBody({
+    query: 'What should I do next?',
+    lang: 'en',
+    currentModule: 'research',
+    preferredAgent: 'admin-agent',
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.value.preferredAgent, '');
 });
 
 test('GET returns 405 without running retrieval or model', async () => {
@@ -347,6 +376,45 @@ test('selected module agent can provide labeled general guidance when public ret
   assert.equal(res.payload.agentId, 'research');
   assert.deepEqual(res.payload.citations, []);
   assert.match(res.payload.answer, /General guidance/);
+});
+
+test('all six module Agents return non-empty answers with the expected agentId through one chat handler', async () => {
+  process.env.NEXAEON_AGENT_ENABLED = 'true';
+  process.env.OPENAI_API_KEY = 'test-key';
+  const cases = [
+    ['identity', '請介紹 Joey 的研究身份與 NexAeon 的定位。'],
+    ['research', '我的 AI tutoring 論文可以採用哪些 TAM 變數？'],
+    ['coaching', '把 AI tutoring 主題設計成 90 分鐘學習教練活動。'],
+    ['knowledge', '把 AI tutoring 文獻整理成知識分類架構。'],
+    ['prototype', '把這套研究資料做成 Dashboard，應該如何設計？'],
+    ['action', '把這個研究專案拆成未來七天的行動順序。'],
+  ];
+
+  for (const [agentId, query] of cases) {
+    const openai = createOpenAIMock({
+      responsePayload: {
+        answer: `已驗證 ${agentId} Agent 回答。[S1]`,
+        citedSourceIds: ['S1'],
+        suggestedQuestions: ['下一步應該怎麼做？'],
+        localizedCitations: [{ sourceId: 'S1', title: '學習 Demo', snippet: '公開證據。' }],
+      },
+    });
+    const res = await callHandler({
+      req: createReq({ body: {
+        message: query,
+        locale: 'zh',
+        currentRoute: `/${agentId}`,
+        currentModule: agentId,
+        preferredAgent: agentId,
+      } }),
+      openai: openai.client,
+    });
+    assert.equal(res.statusCode, 200, agentId);
+    assert.equal(res.payload.mode, 'ai', agentId);
+    assert.equal(res.payload.agentId, agentId);
+    assert.ok(res.payload.answer.trim(), agentId);
+    assert.ok(res.payload.citations.length > 0, agentId);
+  }
 });
 
 test('partial sources can still produce an AI answer', async () => {

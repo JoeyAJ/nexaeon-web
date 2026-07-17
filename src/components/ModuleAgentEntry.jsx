@@ -2,18 +2,42 @@ import {
   getModuleAgentCopy,
   getModuleAgentEntries,
 } from '../data/agentModulePlacement.js';
+import {
+  COMPANION_NAVIGATOR_HANDOFF_KEY,
+  COMPANION_NAVIGATOR_ROUTE,
+  createModuleAgentNavigatorHandoff,
+} from '../lib/companionActionConfig.js';
 
-export function ModuleAgentIndicator({ moduleId, lang }) {
+function openModuleAgent({ agent, moduleId, lang, navigate }) {
+  const sourceRoute = `/#${moduleId}`;
+  const handoff = createModuleAgentNavigatorHandoff({
+    currentModule: agent.id,
+    sourceRoute,
+    locale: lang,
+  });
+  navigate(COMPANION_NAVIGATOR_ROUTE, {
+    state: { [COMPANION_NAVIGATOR_HANDOFF_KEY]: handoff },
+  });
+}
+
+export function ModuleAgentIndicator({ moduleId, lang, navigate }) {
   const copy = getModuleAgentCopy(lang);
   const entries = getModuleAgentEntries(moduleId, lang);
   if (!entries.length) return null;
+  const { agent } = entries[0];
 
   return (
-    <div className="module-card-agent-line" data-testid={`module-agent-indicator-${moduleId}`}>
+    <button
+      className="module-card-agent-line"
+      data-testid={`module-agent-indicator-${moduleId}`}
+      type="button"
+      aria-label={copy.useAgent(agent.name)}
+      onClick={() => openModuleAgent({ agent, moduleId, lang, navigate })}
+    >
       <span>{copy.indicatorLabel}</span>
       <strong>{entries.map(({ agent }) => agent.name).join(' / ')}</strong>
       <em>{entries.map(({ status }) => status.label).join(' · ')}</em>
-    </div>
+    </button>
   );
 }
 
@@ -43,7 +67,11 @@ export default function ModuleAgentEntry({ moduleId, lang, navigate }) {
             <div className="module-agent-entry-meta">
               <span>{localized.moduleLabel}</span>
             </div>
-            <button className="mvp-action-button" type="button" onClick={() => navigate(agent.route)}>
+            <button
+              className="mvp-action-button"
+              type="button"
+              onClick={() => openModuleAgent({ agent, moduleId, lang, navigate })}
+            >
               {status.cta}
             </button>
           </article>

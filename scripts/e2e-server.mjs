@@ -429,8 +429,8 @@ function readRequestBody(req, limit = 20_000) {
 }
 
 function createAgentChatResponse(body) {
-  const query = String(body?.query || '').toLowerCase();
-  const lang = body?.lang || 'en';
+  const query = String(body?.message || body?.query || '').toLowerCase();
+  const lang = body?.locale || body?.lang || 'en';
   const citation = {
     sourceId: 'S1',
     title: lang === 'ko' ? '학습 데모' : lang === 'zh' ? '智慧學習展示' : 'Learning Demo',
@@ -570,11 +570,12 @@ const server = createServer(async (req, res) => {
       }
       const rawBody = await readRequestBody(req);
       const body = rawBody ? JSON.parse(rawBody) : {};
-      if (String(body?.query || '').toLowerCase().includes('rate limit')) {
+      const query = String(body?.message || body?.query || '').toLowerCase();
+      if (query.includes('rate limit')) {
         sendJson(res, { ok: true, mode: 'sources_only', answer: '', citations: [], suggestedQuestions: [], partialSources: false, reason: 'invalid_request' }, 429, { 'Retry-After': '2' });
         return;
       }
-      setTimeout(() => sendJson(res, createAgentChatResponse(body)), String(body?.query || '').toLowerCase().includes('slow') ? 250 : 0);
+      setTimeout(() => sendJson(res, createAgentChatResponse(body)), query.includes('slow') ? 250 : 0);
       return;
     }
 

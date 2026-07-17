@@ -1,5 +1,9 @@
+import { getModuleAgent, getModuleAgents } from '../../lib/agent/moduleAgentRegistry.js';
+
 export const COMPANION_NAVIGATOR_ROUTE = '/identity/nexaeon-navigator';
 export const COMPANION_NAVIGATOR_HANDOFF_KEY = 'companionHandoff';
+export const COMPANION_NAVIGATOR_CONTEXT_KEY = 'navigatorContext';
+export const COMPANION_NAVIGATOR_SOURCE_ROUTE_KEY = 'navigatorSourceRoute';
 export const COMPANION_NAVIGATOR_FOCUS_EVENT = 'nexaeon:navigator-focus-input';
 export const COMPANION_NAVIGATOR_CLEAR_EVENT = 'nexaeon:navigator-clear-prefill';
 
@@ -73,29 +77,104 @@ export function getCompanionSuggestedPrompt(promptKey, lang = 'en') {
 }
 
 function isSafeRoute(value) {
-  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && value.length <= 240;
+  return typeof value === 'string'
+    && value.startsWith('/')
+    && !value.startsWith('//')
+    && !/[<>\\]/u.test(value)
+    && value.length <= 240;
 }
 
-export function createCompanionNavigatorHandoff({ currentModule, currentRoute, locale, selectedAction, suggestedPromptKey }) {
-  const moduleKey = PROMPTS[currentModule] ? currentModule : 'home';
+function resolveModuleAgent(value) {
+  return getModuleAgent(value) || getModuleAgents().find((agent) => agent.module === value) || null;
+}
+
+export function createCompanionNavigatorHandoff({
+  currentModule,
+  currentRoute,
+  preferredAgent,
+  sourceRoute,
+  locale,
+  selectedAction,
+  suggestedPromptKey,
+  focusInput = true,
+  prefillPrompt = true,
+  source = 'princess-companion',
+}) {
+  const moduleAgent = resolveModuleAgent(currentModule);
+  const moduleKey = moduleAgent?.id || (['home', 'navigator'].includes(currentModule) ? currentModule : 'home');
+  const preferred = getModuleAgent(preferredAgent)?.id || moduleAgent?.id || '';
   const safeLocale = ['zh', 'ko', 'en'].includes(locale) ? locale : 'en';
+  const safeCurrentRoute = isSafeRoute(currentRoute) ? currentRoute : '/';
+  const safeSourceRoute = isSafeRoute(sourceRoute) ? sourceRoute : safeCurrentRoute;
   return Object.freeze({
     currentModule: moduleKey,
-    currentRoute: isSafeRoute(currentRoute) ? currentRoute : '/',
+    currentRoute: safeCurrentRoute,
+    preferredAgent: preferred,
+    sourceRoute: safeSourceRoute,
     locale: safeLocale,
     selectedAction: String(selectedAction || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 64),
-    suggestedPromptKey: PROMPTS[suggestedPromptKey] ? suggestedPromptKey : moduleKey,
-    source: 'princess-companion',
+    suggestedPromptKey: prefillPrompt && PROMPTS[suggestedPromptKey] ? suggestedPromptKey : '',
+    focusInput: Boolean(focusInput),
+    source: source === 'module-agent' ? 'module-agent' : 'princess-companion',
+  });
+}
+
+export function createModuleAgentNavigatorHandoff({ currentModule, sourceRoute, locale }) {
+  return createCompanionNavigatorHandoff({
+    currentModule,
+    currentRoute: sourceRoute,
+    preferredAgent: currentModule,
+    sourceRoute,
+    locale,
+    selectedAction: `open-${currentModule}-agent`,
+    focusInput: true,
+    prefillPrompt: false,
+    source: 'module-agent',
   });
 }
 
 export function consumeCompanionNavigatorHandoff(windowTarget = window) {
   const raw = windowTarget.history.state?.[COMPANION_NAVIGATOR_HANDOFF_KEY];
-  if (!raw || raw.source !== 'princess-companion') return null;
-  const handoff = createCompanionNavigatorHandoff(raw);
+  if (!raw || !['princess-companion', 'module-agent'].includes(raw.source)) {
+    const persisted = windowTarget.history.state?.[COMPANION_NAVIGATOR_CONTEXT_KEY];
+    if (!persisted || persisted.source !== 'navigator-context') return null;
+    return {
+      ...createCompanionNavigatorHandoff({
+        ...persisted,
+        prefillPrompt: false,
+        focusInput: false,
+      }),
+      prompt: '',
+    };
+  }
+  const handoff = createCompanionNavigatorHandoff({
+    ...raw,
+    prefillPrompt: Boolean(raw.suggestedPromptKey),
+  });
   windowTarget.history.replaceState({
     ...(windowTarget.history.state || {}),
     [COMPANION_NAVIGATOR_HANDOFF_KEY]: undefined,
+    [COMPANION_NAVIGATOR_CONTEXT_KEY]: {
+      currentModule: handoff.currentModule,
+      currentRoute: handoff.currentRoute,
+      preferredAgent: handoff.preferredAgent,
+      sourceRoute: handoff.sourceRoute,
+      locale: handoff.locale,
+      source: 'navigator-context',
+    },
+    [COMPANION_NAVIGATOR_SOURCE_ROUTE_KEY]: handoff.sourceRoute,
   }, '', `${windowTarget.location.pathname}${windowTarget.location.hash}`);
-  return { ...handoff, prompt: getCompanionSuggestedPrompt(handoff.suggestedPromptKey, handoff.locale) };
+  return {
+    ...handoff,
+    prompt: handoff.suggestedPromptKey
+      ? getCompanionSuggestedPrompt(handoff.suggestedPromptKey, handoff.locale)
+      : '',
+  };
+}
+
+export function getNavigatorSourceRoute(windowTarget = window) {
+  const persisted = windowTarget.history.state?.[COMPANION_NAVIGATOR_SOURCE_ROUTE_KEY];
+  if (isSafeRoute(persisted)) return persisted;
+  const pending = windowTarget.history.state?.[COMPANION_NAVIGATOR_HANDOFF_KEY]?.sourceRoute;
+  return isSafeRoute(pending) ? pending : '/#identity';
 }

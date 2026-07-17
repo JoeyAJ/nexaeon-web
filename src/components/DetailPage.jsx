@@ -25,6 +25,7 @@ import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
 import { toDetailPath } from '../utils/router.js';
 import NexAeonNavigatorPage from './NexAeonNavigatorPage.jsx';
 import { createPrincessModuleActivityAdapter } from '../lib/princessModuleActivity.ts';
+import { getNavigatorSourceRoute } from '../lib/companionActionConfig.js';
 
 const INTRO_SEEN_KEY = 'nexaeon_intro_seen';
 
@@ -2738,7 +2739,7 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
   const parentPath = `/#${type}`;
   const goToParent = () => {
     suppressIntroReplay();
-    navigateBack(parentPath);
+    navigateBack(item?.id === 'nexaeon-navigator' ? getNavigatorSourceRoute(window) : parentPath);
   };
 
   if (!item) {

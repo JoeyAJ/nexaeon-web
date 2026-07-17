@@ -15,6 +15,7 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     active: '已啟用',
     openActive: '進入 Agent',
     indicatorLabel: 'Agent',
+    useAgent: (name) => `使用 ${name}`,
   },
   ko: {
     sectionLabel: '모듈 Agent',
@@ -23,6 +24,7 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     active: '활성화됨',
     openActive: 'Agent 열기',
     indicatorLabel: 'Agent',
+    useAgent: (name) => `${name} 사용하기`,
   },
   en: {
     sectionLabel: 'Module Agent',
@@ -31,6 +33,7 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     active: 'Active',
     openActive: 'Open Agent',
     indicatorLabel: 'Agent',
+    useAgent: (name) => `Use ${name}`,
   },
 });
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { deriveFusionOutcome } from '../lib/nexonFusionPolicy.ts';
 import { AGENT_SOURCES } from '../../lib/agent/sourceRegistry.js';
+import { getModuleAgent } from '../../lib/agent/moduleAgentRegistry.js';
 import { NAVIGATOR_AGENT } from '../data/agentBrands.js';
 import {
   AGENT_LANDING_COPY,
@@ -45,6 +46,9 @@ const ASSISTANT_UI = {
     citationLabel: (sourceId) => `跳到來源 ${sourceId}`,
     userLabel: '你',
     assistantLabel: NAVIGATOR_AGENT.answerLabel,
+    currentModule: '目前模組',
+    defaultAgent: '預設 Agent',
+    responseAgent: '回應 Agent',
   },
   ko: {
     title: NAVIGATOR_AGENT.name,
@@ -73,6 +77,9 @@ const ASSISTANT_UI = {
     citationLabel: (sourceId) => `${sourceId} 출처로 이동`,
     userLabel: '나',
     assistantLabel: NAVIGATOR_AGENT.answerLabel,
+    currentModule: '현재 모듈',
+    defaultAgent: '기본 Agent',
+    responseAgent: '응답 Agent',
   },
   en: {
     title: NAVIGATOR_AGENT.name,
@@ -101,6 +108,9 @@ const ASSISTANT_UI = {
     citationLabel: (sourceId) => `Jump to source ${sourceId}`,
     userLabel: 'You',
     assistantLabel: NAVIGATOR_AGENT.answerLabel,
+    currentModule: 'Current module',
+    defaultAgent: 'Default Agent',
+    responseAgent: 'Response Agent',
   },
 };
 
@@ -328,9 +338,13 @@ function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
   const isSourcesOnly = message.mode === 'sources_only';
   const showFallback = isSourcesOnly && !message.content;
   const showSourcesOnlyNotice = isSourcesOnly && Boolean(message.content) && message.reason !== 'moderated';
+  const responseAgent = getModuleAgent(message.agentId);
+  const responseAgentName = responseAgent?.name?.[lang] || responseAgent?.name?.en || '';
   return (
     <section className="agent-message agent-message-assistant">
-      <div className="agent-message-label">{ui.assistantLabel}</div>
+      <div className="agent-message-label">
+        {ui.assistantLabel}{responseAgentName ? ` · ${ui.responseAgent}: ${responseAgentName}` : ''}
+      </div>
       {message.content ? <AnswerText text={message.content} ui={ui} onCitationOpen={onCitationOpen} /> : null}
       {showFallback ? (
         <p className="agent-state-message" data-state={message.reason || 'sources-only'}>
@@ -374,9 +388,11 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
   const isComposingRef = useRef(false);
   const activeFusionTokenRef = useRef(null);
   const citationFusionSequenceRef = useRef(0);
+  const contextAgent = getModuleAgent(companionHandoff?.currentModule);
+  const preferredAgent = getModuleAgent(companionHandoff?.preferredAgent);
 
   useEffect(() => {
-    if (!companionHandoff?.prompt) return;
+    if (!companionHandoff?.focusInput && !companionHandoff?.prompt) return;
     window.requestAnimationFrame(() => inputRef.current?.focus());
   }, [companionHandoff]);
 
@@ -462,11 +478,12 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
           Accept: 'application/json',
         },
         body: JSON.stringify({
-          query: trimmed,
-          lang,
+          message: trimmed,
+          locale: lang,
           history,
           currentRoute: companionHandoff?.currentRoute || window.location.pathname,
           currentModule: companionHandoff?.currentModule || 'navigator',
+          preferredAgent: companionHandoff?.preferredAgent || '',
         }),
         signal: controller.signal,
       });
@@ -489,6 +506,8 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
         citations: Array.isArray(payload.citations) ? payload.citations : [],
         suggestedQuestions: Array.isArray(payload.suggestedQuestions) ? payload.suggestedQuestions : [],
         partialSources: Boolean(payload.partialSources),
+        agentId: payload.agentId || null,
+        supportingAgentId: payload.supportingAgentId || null,
       };
       setMessages((current) => (requestSequence === requestSequenceRef.current ? [...current, assistantMessage] : current));
       if (response.ok) {
@@ -600,6 +619,16 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
       <div className="detail-badge-row">
         <span className="content-tag">{common.moduleLabel}: {item.category}</span>
         <span className="content-tag">{item.status}</span>
+        {contextAgent ? (
+          <span className="content-tag" data-testid="navigator-current-module">
+            {ui.currentModule}: {contextAgent.moduleName[lang] || contextAgent.moduleName.en}
+          </span>
+        ) : null}
+        {preferredAgent ? (
+          <span className="content-tag" data-testid="navigator-default-agent">
+            {ui.defaultAgent}: {preferredAgent.name[lang] || preferredAgent.name.en}
+          </span>
+        ) : null}
       </div>
 
       <div className="detail-module-label">{item.moduleLabel}</div>

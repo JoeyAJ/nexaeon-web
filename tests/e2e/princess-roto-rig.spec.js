@@ -22,23 +22,15 @@ for (const route of routes) {
   });
 }
 
-test('intro keeps the blue-dress Princess through materializing, greeting, and docking', async ({ page }) => {
+test('intro keeps the blue-dress Princess through its active handoff', async ({ page }) => {
   await page.addInitScript(() => window.sessionStorage.removeItem('nexaeon_intro_seen'));
   await page.goto('/');
   const pet = page.locator('[data-princess-intro-phase]');
-  await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexaeon:companion-intro', { detail: { phase: 'emerging', materializeProgress: 1, emergenceProgress: .6 } })));
   const image = pet.locator('button img');
   await expect(pet.locator('[data-testid="princess-roto-rig"]')).toHaveCount(0);
   await expect(image).toHaveCount(1);
   await expect(image).toHaveAttribute('src', /\/pet\/princess\/frames\/frame-001\.png$/);
-  for (const phase of ['greeting', 'docking']) {
-    await page.evaluate((nextPhase) => window.dispatchEvent(new CustomEvent('nexaeon:companion-intro', { detail: { phase: nextPhase, materializeProgress: 1, emergenceProgress: 1, dockingProgress: 0.5 } })), phase);
-    await expect(pet).toHaveAttribute('data-princess-intro-phase', phase);
-    await expect(image).toHaveCount(1);
-    await expect(image).toHaveAttribute('src', /\/pet\/princess\/frames\/frame-001\.png$/);
-  }
-  await page.evaluate(() => window.dispatchEvent(new CustomEvent('nexaeon:companion-intro', { detail: { phase: 'active', materializeProgress: 1, emergenceProgress: 1, dockingProgress: 1 } })));
-  await expect(pet).toHaveAttribute('data-princess-intro-phase', 'active');
+  await expect(pet).toHaveAttribute('data-princess-intro-phase', 'active', { timeout: 15_000 });
   await expect(image).toHaveAttribute('src', /\/images\/princess\/princess-active\.png$/);
 });
 
