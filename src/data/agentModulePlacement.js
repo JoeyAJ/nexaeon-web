@@ -1,39 +1,27 @@
-import {
-  AGENT_STATUS,
-  getAgentByKey,
-  getAgentLocale,
-} from './agentRegistry.js';
+import { getModuleAgents } from '../../lib/agent/moduleAgentRegistry.js';
+import { getPublicAgents, getAgentLocale } from './agentRegistry.js';
 
-export const MODULE_AGENT_PLACEMENTS = Object.freeze({
-  identity: Object.freeze(['navigator']),
-  research: Object.freeze(['explorer']),
-  teaching: Object.freeze(['xchange']),
-  'knowledge-lab': Object.freeze(['archivist']),
-  projects: Object.freeze(['engineer']),
-  'field-lab': Object.freeze(['orchestrator', 'networker']),
-});
+const moduleAgents = getModuleAgents();
+
+export const MODULE_AGENT_PLACEMENTS = Object.freeze(Object.fromEntries(
+  moduleAgents.map((agent) => [agent.module, Object.freeze([agent.id])]),
+));
 
 export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
   zh: {
     sectionLabel: '模塊 Agent',
     sectionEyebrow: 'Module Agent',
     sectionTitle: '此模塊的 NexAeon Agent',
-    active: 'Active',
-    scaffold: 'Scaffold',
-    comingSoon: 'Coming Soon',
+    active: '已啟用',
     openActive: '進入 Agent',
-    openScaffold: '查看預備頁',
     indicatorLabel: 'Agent',
   },
   ko: {
     sectionLabel: '모듈 Agent',
     sectionEyebrow: 'Module Agent',
     sectionTitle: '이 모듈의 NexAeon Agent',
-    active: 'Active',
-    scaffold: 'Scaffold',
-    comingSoon: 'Coming Soon',
+    active: '활성화됨',
     openActive: 'Agent 열기',
-    openScaffold: '준비 페이지 보기',
     indicatorLabel: 'Agent',
   },
   en: {
@@ -41,10 +29,7 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     sectionEyebrow: 'Module Agent',
     sectionTitle: 'NexAeon Agent for this module',
     active: 'Active',
-    scaffold: 'Scaffold',
-    comingSoon: 'Coming Soon',
     openActive: 'Open Agent',
-    openScaffold: 'View Prep Page',
     indicatorLabel: 'Agent',
   },
 });
@@ -55,33 +40,40 @@ export function getModuleAgentCopy(lang = 'en') {
 
 export function getModuleAgentStatus(agent, lang = 'en') {
   const copy = getModuleAgentCopy(lang);
-  const isActiveNavigator = agent.status === AGENT_STATUS.active && agent.chatEnabled;
-  if (isActiveNavigator) {
-    return {
-      label: copy.active,
-      tone: 'active',
-      cta: copy.openActive,
-    };
-  }
-
   return {
-    label: `${copy.scaffold} / ${copy.comingSoon}`,
-    tone: 'scaffold',
-    cta: copy.openScaffold,
+    label: copy[agent.status] || agent.status,
+    tone: agent.status,
+    cta: copy.openActive,
   };
 }
 
 export function getModuleAgentEntries(moduleId, lang = 'en') {
-  const keys = MODULE_AGENT_PLACEMENTS[moduleId] || [];
-  return keys
-    .map((key) => getAgentByKey(key))
-    .filter(Boolean)
-    .map((agent) => {
-      const localized = getAgentLocale(agent, lang);
+  const locale = ['zh', 'ko', 'en'].includes(lang) ? lang : 'en';
+  const legacyPresentation = getPublicAgents().find((agent) => agent.moduleKey === moduleId);
+
+  return moduleAgents
+    .filter((agent) => agent.module === moduleId)
+    .map((registryAgent) => {
+      const localized = legacyPresentation
+        ? getAgentLocale(legacyPresentation, locale)
+        : {
+            subtitle: registryAgent.name[locale] || registryAgent.name.en,
+            description: registryAgent.description,
+            moduleLabel: registryAgent.moduleName[locale] || registryAgent.moduleName.en,
+            futureUse: [],
+          };
+      const agent = {
+        ...legacyPresentation,
+        id: registryAgent.id,
+        key: registryAgent.id,
+        initial: registryAgent.name.en.charAt(0),
+        name: registryAgent.name[locale] || registryAgent.name.en,
+        status: registryAgent.status,
+      };
       return {
         agent,
         localized,
-        status: getModuleAgentStatus(agent, lang),
+        status: getModuleAgentStatus(agent, locale),
       };
     });
 }

@@ -3,10 +3,9 @@ import test from 'node:test';
 
 import {
   AGENT_LANDING_COPY,
-  AGENT_STATUS,
   SCAFFOLD_PROHIBITED_CAPABILITIES,
-  getAgentByKey,
 } from '../src/data/agentRegistry.js';
+import { MODULE_AGENT_STATUS } from '../lib/agent/moduleAgentRegistry.js';
 import {
   MODULE_AGENT_PLACEMENTS,
   getAllModuleAgentEntries,
@@ -21,44 +20,45 @@ test('agent system map copy identifies the Navigator landing overview as a globa
   }
 });
 
-test('module agent placement maps all seven public agents to their aligned modules', () => {
+test('module agent placement is derived from the six Sprint 3 module agents', () => {
   assert.deepEqual(MODULE_AGENT_PLACEMENTS, {
-    identity: ['navigator'],
-    research: ['explorer'],
-    teaching: ['xchange'],
-    'knowledge-lab': ['archivist'],
-    projects: ['engineer'],
-    'field-lab': ['orchestrator', 'networker'],
+    identity: ['identity'],
+    research: ['research'],
+    teaching: ['coaching'],
+    'knowledge-lab': ['knowledge'],
+    projects: ['prototype'],
+    'field-lab': ['action'],
   });
 
   const entries = getAllModuleAgentEntries('en');
-  assert.equal(entries.length, 7);
+  assert.equal(entries.length, 6);
   assert.deepEqual(entries.map(({ agent }) => agent.name), [
-    'NexAeon Navigator',
-    'NexAeon Explorer',
-    'NexAeon Xchange',
-    'NexAeon Archivist',
-    'NexAeon Engineer',
-    'NexAeon Orchestrator',
-    'NexAeon Networker',
+    'Identity Agent',
+    'Research Agent',
+    'Coaching Agent',
+    'Knowledge Agent',
+    'Prototype Agent',
+    'Action Agent',
   ]);
 });
 
-test('Navigator remains active and every non-Navigator module agent is scaffold only', () => {
-  const entries = getAllModuleAgentEntries('en');
-  const navigator = entries.find(({ agent }) => agent.key === 'navigator');
-  assert.equal(navigator.agent.status, AGENT_STATUS.active);
-  assert.equal(navigator.agent.chatEnabled, true);
-  assert.equal(navigator.status.label, 'Active');
-  assert.equal(navigator.agent.route, '/identity/nexaeon-navigator');
+test('all module cards localize active status without changing agent ids', () => {
+  const expectedNames = {
+    zh: ['身份 Agent', '研究 Agent', '學習教練 Agent', '知識 Agent', '原型 Agent', '行動 Agent'],
+    ko: ['정체성 에이전트', '연구 에이전트', '학습 코칭 에이전트', '지식 에이전트', '프로토타입 에이전트', '실행 에이전트'],
+    en: ['Identity Agent', 'Research Agent', 'Coaching Agent', 'Knowledge Agent', 'Prototype Agent', 'Action Agent'],
+  };
+  const expectedStatus = { zh: '已啟用', ko: '활성화됨', en: 'Active' };
 
-  for (const { agent, status } of entries.filter(({ agent }) => agent.key !== 'navigator')) {
-    assert.equal(agent.status, AGENT_STATUS.scaffold, agent.key);
-    assert.equal(agent.chatEnabled, false, agent.key);
-    assert.equal(agent.enabled, false, agent.key);
-    assert.equal(status.label, 'Scaffold / Coming Soon', agent.key);
-    assert.ok(agent.prohibitedCapabilities.includes('openai_call'), agent.key);
-    assert.ok(agent.prohibitedCapabilities.includes('ai_chat'), agent.key);
+  for (const lang of ['zh', 'ko', 'en']) {
+    const entries = getAllModuleAgentEntries(lang);
+    assert.deepEqual(entries.map(({ agent }) => agent.id), ['identity', 'research', 'coaching', 'knowledge', 'prototype', 'action']);
+    assert.deepEqual(entries.map(({ agent }) => agent.name), expectedNames[lang]);
+    for (const { agent, status } of entries) {
+      assert.equal(agent.status, MODULE_AGENT_STATUS.active);
+      assert.equal(status.label, expectedStatus[lang]);
+      assert.equal(status.tone, 'active');
+    }
   }
 
   assert.ok(SCAFFOLD_PROHIBITED_CAPABILITIES.includes('openai_call'));
@@ -70,14 +70,12 @@ test('module agent entries expose localized labels, module names, routes, and CT
     const copy = getModuleAgentCopy(lang);
     assert.ok(copy.sectionLabel);
     assert.ok(copy.openActive);
-    assert.ok(copy.openScaffold);
 
     for (const moduleId of Object.keys(MODULE_AGENT_PLACEMENTS)) {
       const entries = getModuleAgentEntries(moduleId, lang);
       assert.ok(entries.length > 0, moduleId);
       for (const { agent, localized, status } of entries) {
-        assert.equal(getAgentByKey(agent.key).route, agent.route);
-        assert.ok(agent.name.startsWith('NexAeon '), agent.key);
+        assert.ok(agent.route, agent.key);
         assert.ok(localized.subtitle, agent.key);
         assert.ok(localized.moduleLabel, agent.key);
         assert.ok(localized.description, agent.key);
