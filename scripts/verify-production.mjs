@@ -221,6 +221,39 @@ async function verifyArchivistChat() {
   };
 }
 
+async function verifyEngineerChat() {
+  const response = await postJsonWithTimeout(`${BASE_URL}/api/agent/engineer/chat`, {
+    message: 'Create a planned MVP sprint and acceptance test outline from the public Demos.',
+    locale: 'en',
+  });
+  if (response.status !== 200) throw new Error(`/api/agent/engineer/chat: expected 200, got HTTP ${response.status}`);
+  const payload = await response.json();
+  if (payload?.agentId !== 'engineer' || !Array.isArray(payload?.executedTools) || !Array.isArray(payload?.citations)) {
+    throw new Error('/api/agent/engineer/chat: unsafe or misrouted success contract');
+  }
+  if (!payload?.factClassification || !Array.isArray(payload.factClassification.verified)
+    || !Array.isArray(payload.factClassification.inferred) || !Array.isArray(payload.factClassification.recommended)
+    || !Array.isArray(payload.factClassification.unknown)) {
+    throw new Error('/api/agent/engineer/chat: missing technical fact classification');
+  }
+  if (!payload?.developmentPlan || payload.developmentPlan.verificationStatus !== 'unverified'
+    || !Array.isArray(payload.developmentPlan.tasks)
+    || payload.developmentPlan.tasks.some((task) => task.status !== 'planned')) {
+    throw new Error('/api/agent/engineer/chat: unsafe development-plan status');
+  }
+  const serialized = JSON.stringify(payload);
+  if (/"status":"(?:completed|passed|deployed)"/iu.test(serialized) || /sk-[a-z0-9_-]{8,}/iu.test(serialized)) {
+    throw new Error('/api/agent/engineer/chat: fabricated execution state or sensitive value');
+  }
+  return {
+    path: '/api/agent/engineer/chat', status: response.status, agentId: payload.agentId,
+    mode: payload.mode, executedTools: payload.executedTools, citationCount: payload.citations.length,
+    verifiedCount: payload.factClassification.verified.length,
+    planTaskCount: payload.developmentPlan.tasks.length,
+    verificationStatus: payload.developmentPlan.verificationStatus,
+  };
+}
+
 async function verifyAgentHealth() {
   const head = await fetchHeadWithTimeout(`${BASE_URL}/api/agent/health`);
   if (head.status !== 200) throw new Error(`/api/agent/health HEAD: expected 200, got HTTP ${head.status}`);
@@ -262,6 +295,7 @@ async function main() {
   const explorerRoute = await verifySpaRoute('/research/nexaeon-explorer');
   const xchangeRoute = await verifySpaRoute('/teaching/nexaeon-xchange');
   const archivistRoute = await verifySpaRoute('/knowledge-lab/nexaeon-archivist');
+  const engineerRoute = await verifySpaRoute('/projects/nexaeon-engineer');
   const legacyNavigatorRoute = await verifySpaRoute('/identity/nexon-ai-assistant');
   const demoRuntime = await verifySpaRoute('/projects/module-demos/nexaeon-ai-tutoring-mvp');
   const health = await verifyAgentHealth();
@@ -271,6 +305,7 @@ async function main() {
   }
   const xchangeChat = await verifyXchangeChat();
   const archivistChat = await verifyArchivistChat();
+  const engineerChat = await verifyEngineerChat();
 
   console.log(JSON.stringify({
     ok: true,
@@ -280,12 +315,14 @@ async function main() {
     explorerRoute,
     xchangeRoute,
     archivistRoute,
+    engineerRoute,
     legacyNavigatorRoute,
     demoRuntime,
     health,
     endpoints,
     xchangeChat,
     archivistChat,
+    engineerChat,
   }, null, 2));
 }
 

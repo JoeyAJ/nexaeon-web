@@ -345,6 +345,62 @@ function AgentLandingSection({ lang, navigate }) {
   );
 }
 
+function StructuredFactClassification({ classification, ui }) {
+  if (!classification || !ui.factLabels) return null;
+  const levels = ['verified', 'inferred', 'recommended', 'unknown'];
+  return (
+    <section className="agent-structured-output" data-testid="engineer-fact-classification">
+      <h3>{ui.factTitle}</h3>
+      <div className="agent-structured-grid">
+        {levels.map((level) => {
+          const items = Array.isArray(classification[level]) ? classification[level] : [];
+          return (
+            <article className="agent-structured-card" data-fact-level={level} key={level}>
+              <span className="content-tag">{ui.factLabels[level]}</span>
+              {items.length ? (
+                <ul>{items.map((item, index) => <li key={`${level}-${index}`}>{item?.text || String(item || '')}</li>)}</ul>
+              ) : <p>{ui.factEmpty}</p>}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function planItemText(item) {
+  if (typeof item === 'string') return item;
+  if (!item || typeof item !== 'object') return '';
+  const text = item.title || item.text || item.name || item.sourceId || '';
+  const status = item.status || item.verificationStatus || '';
+  return status ? `${text} — ${status}` : text;
+}
+
+function StructuredDevelopmentPlan({ plan, ui }) {
+  if (!plan || !ui.planLabels) return null;
+  const listKeys = ['scope', 'requirements', 'tasks', 'dependencies', 'risks', 'tests', 'acceptanceCriteria'];
+  return (
+    <section className="agent-structured-output" data-testid="engineer-development-plan">
+      <h3>{ui.planTitle}</h3>
+      <div className="agent-structured-card">
+        <strong>{ui.planLabels.objective}</strong>
+        <p>{plan.objective}</p>
+        {listKeys.map((key) => {
+          const items = Array.isArray(plan[key]) ? plan[key] : [];
+          if (!items.length) return null;
+          return (
+            <div className="agent-plan-section" key={key}>
+              <strong>{ui.planLabels[key]}</strong>
+              <ul>{items.map((item, index) => <li key={`${key}-${index}`}>{planItemText(item)}</li>)}</ul>
+            </div>
+          );
+        })}
+        <p><strong>{ui.planLabels.verificationStatus}:</strong> {plan.verificationStatus}</p>
+      </div>
+    </section>
+  );
+}
+
 function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
   const isSourcesOnly = message.mode === 'sources_only';
   const showFallback = isSourcesOnly && !message.content;
@@ -370,6 +426,8 @@ function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
         </p>
       ) : null}
       {message.partialSources ? <p className="agent-state-message" data-state="partial">{ui.partial}</p> : null}
+      <StructuredFactClassification classification={message.factClassification} ui={ui} />
+      <StructuredDevelopmentPlan plan={message.developmentPlan} ui={ui} />
       <p className="agent-grounding-note">{ui.groundedNote}</p>
       {message.citations?.length ? (
         <div className="agent-result-grid">
@@ -541,6 +599,8 @@ export default function NexAeonNavigatorPage({
         partialSources: Boolean(payload.partialSources),
         agentId: payload.agentId || null,
         supportingAgentId: payload.supportingAgentId || null,
+        factClassification: payload.factClassification || null,
+        developmentPlan: payload.developmentPlan || null,
       };
       setMessages((current) => (requestSequence === requestSequenceRef.current ? [...current, assistantMessage] : current));
       if (response.ok) {

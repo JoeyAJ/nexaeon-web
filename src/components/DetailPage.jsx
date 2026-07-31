@@ -39,6 +39,11 @@ import {
   ARCHIVIST_ASSISTANT_UI,
   getArchivistDetailItem,
 } from '../data/archivistAgent.js';
+import {
+  ENGINEER_AGENT_PAGE,
+  ENGINEER_ASSISTANT_UI,
+  getEngineerDetailItem,
+} from '../data/engineerAgent.js';
 import { createPrincessModuleActivityAdapter } from '../lib/princessModuleActivity.ts';
 import { getNavigatorSourceRoute } from '../lib/companionActionConfig.js';
 
@@ -2751,7 +2756,8 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
   const item = getDetailItem(type, id, lang)
     || (type === 'research' && id === 'nexaeon-explorer' ? getExplorerDetailItem(lang) : null)
     || (type === 'teaching' && id === 'nexaeon-xchange' ? getXchangeDetailItem(lang) : null)
-    || (type === 'knowledge-lab' && id === 'nexaeon-archivist' ? getArchivistDetailItem(lang) : null);
+    || (type === 'knowledge-lab' && id === 'nexaeon-archivist' ? getArchivistDetailItem(lang) : null)
+    || (type === 'projects' && id === 'nexaeon-engineer' ? getEngineerDetailItem(lang) : null);
   const contextId = ({ teaching: 'coaching', projects: 'prototype', action: 'action', research: 'research', knowledge: 'knowledge', 'knowledge-lab': 'knowledge', identity: 'identity' })[type] || 'research';
   const activityAdapter = useMemo(() => createPrincessModuleActivityAdapter(princessEventBridge, contextId), [contextId, princessEventBridge]);
   const parentPath = `/#${type}`;
@@ -2811,6 +2817,16 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             activityAdapter={activityAdapter}
             runtime={ARCHIVIST_AGENT_PAGE}
             assistantUi={ARCHIVIST_ASSISTANT_UI}
+          />
+        ) : item.id === 'nexaeon-engineer' ? (
+          <NexAeonNavigatorPage
+            item={item}
+            common={common}
+            lang={lang}
+            navigate={navigate}
+            activityAdapter={activityAdapter}
+            runtime={ENGINEER_AGENT_PAGE}
+            assistantUi={ENGINEER_ASSISTANT_UI}
           />
         ) : item.id === 'nexaeon-navigator' ? (
           <NexAeonNavigatorPage

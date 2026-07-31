@@ -83,6 +83,30 @@ export const ARCHIVIST_TOOL_ALLOWLIST = Object.freeze([
   'groupKnowledgeByTheme',
 ]);
 
+export const ENGINEER_ALLOWED_CAPABILITIES = Object.freeze([
+  'public_prototype_search',
+  'public_prototype_item_retrieval',
+  'public_prototype_filtering',
+  'public_prototype_topic_listing',
+  'public_prototype_status_listing',
+  'prototype_comparison',
+  'validated_prototype_links',
+  'technical_fact_classification',
+  'planned_development_specification',
+  'citations',
+  'localization',
+]);
+
+export const ENGINEER_TOOL_ALLOWLIST = Object.freeze([
+  'searchPrototypeItems',
+  'getPrototypeItem',
+  'filterPrototypeItems',
+  'listPrototypeTopics',
+  'listPrototypeStatuses',
+  'comparePrototypeItems',
+  'getPrototypeLinks',
+]);
+
 export const SCAFFOLD_ALLOWED_CAPABILITIES = Object.freeze([
   'public_profile_display',
   'route_scaffold',
@@ -348,18 +372,18 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
     key: 'engineer',
     name: 'NexAeon Engineer',
     initial: 'E',
-    roleEn: 'Prototype Builder Agent',
-    roleZh: 'Demo／MVP 原型建造 Agent',
-    roleKo: 'Demo/MVP 프로토타입 설계 Agent',
+    roleEn: 'Prototype Analysis and Technical Planning Agent',
+    roleZh: '原型分析、技術規劃與實作設計 Agent',
+    roleKo: '프로토타입 분석·기술 계획·구현 설계 Agent',
     subtitle: {
-      zh: 'Demo／MVP 原型建造 Agent',
-      ko: 'Demo/MVP 프로토타입 설계 Agent',
-      en: 'Prototype Builder Agent',
+      zh: '原型分析、技術規劃與實作設計 Agent',
+      ko: '프로토타입 분석·기술 계획·구현 설계 Agent',
+      en: 'Prototype Analysis and Technical Planning Agent',
     },
     description: {
-      zh: '未來協助把研究與教學想法整理成 Demo、MVP 與產品驗證路線。',
-      ko: '향후 연구와 교육 아이디어를 Demo, MVP, 제품 검증 경로로 정리합니다.',
-      en: 'Prepared to shape research and teaching ideas into demos, MVPs, and validation paths.',
+      zh: '讀取公開 Demo 與 Prototype 資料，分析現況、技術棧與風險，並產生唯讀的 MVP、Sprint、測試與驗收規劃。',
+      ko: '공개 Demo와 Prototype 데이터를 분석하고 기술 스택과 위험을 정리하여 읽기 전용 MVP, Sprint, 테스트 및 승인 계획을 제공합니다.',
+      en: 'Analyzes public Demo and Prototype data, technology stacks, and risks to produce read-only MVP, sprint, test, and acceptance plans.',
     },
     futureUse: {
       zh: ['Demo 規格整理', 'MVP 任務拆解', '原型驗證路線', '產品假設對齊'],
@@ -372,16 +396,22 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
       ko: 'Demo Showcase / Prototype Lab',
       en: 'Demo Showcase / Prototype Lab',
     },
-    status: AGENT_STATUS.scaffold,
+    status: AGENT_STATUS.active,
     route: '/projects/nexaeon-engineer',
     sourceScope: ['demos'],
-    enabled: false,
+    enabled: true,
     public: true,
-    chatEnabled: false,
-    comingSoon: true,
-    runtimeMode: 'scaffold_static',
-    allowedCapabilities: SCAFFOLD_ALLOWED_CAPABILITIES,
-    prohibitedCapabilities: SCAFFOLD_PROHIBITED_CAPABILITIES,
+    chatEnabled: true,
+    comingSoon: false,
+    runtimeMode: 'engineer_tools',
+    allowedCapabilities: ENGINEER_ALLOWED_CAPABILITIES,
+    toolAllowlist: ENGINEER_TOOL_ALLOWLIST,
+    prohibitedCapabilities: Object.freeze([
+      ...COMMON_PROHIBITED_CAPABILITIES,
+      'code_execution', 'shell_execution', 'environment_access', 'repository_write',
+      'github_write', 'vercel_deploy', 'issue_creation', 'arbitrary_url_fetch',
+    ]),
+    answerLabel: 'ENGINEER',
   },
   {
     key: 'orchestrator',

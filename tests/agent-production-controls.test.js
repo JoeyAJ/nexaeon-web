@@ -10,6 +10,7 @@ import {
 } from '../lib/agent/chatRuntime.js';
 import {
   getArchivistProductionConfig,
+  getEngineerProductionConfig,
   getExplorerProductionConfig,
   getNavigatorProductionConfig,
 } from '../lib/agent/productionConfig.js';
@@ -36,6 +37,8 @@ function restoreEnv() {
     'NEXAEON_AGENT_TIMEOUT_MS',
     'NEXAEON_ARCHIVIST_ENABLED',
     'NEXAEON_ARCHIVIST_FORCE_SOURCES_ONLY',
+    'NEXAEON_ENGINEER_ENABLED',
+    'NEXAEON_ENGINEER_FORCE_SOURCES_ONLY',
   ]) {
     if (ORIGINAL_ENV[key] === undefined) delete process.env[key];
     else process.env[key] = ORIGINAL_ENV[key];
@@ -188,6 +191,13 @@ test('Archivist uses shared production controls with its own kill-switch and for
   assert.equal(getArchivistProductionConfig({ NEXAEON_AGENT_ENABLED: 'true', NEXAEON_ARCHIVIST_ENABLED: 'false' }).enabled, false);
   assert.equal(getArchivistProductionConfig({ NEXAEON_AGENT_ENABLED: 'false', NEXAEON_ARCHIVIST_ENABLED: 'true' }).enabled, false);
   assert.equal(getArchivistProductionConfig({ NEXAEON_AGENT_ENABLED: 'true', NEXAEON_ARCHIVIST_FORCE_SOURCES_ONLY: 'true' }).forceSourcesOnly, true);
+});
+
+test('Engineer uses shared production controls with its own kill-switch and force-source override', () => {
+  assert.equal(getEngineerProductionConfig({ NEXAEON_AGENT_ENABLED: 'true' }).enabled, true);
+  assert.equal(getEngineerProductionConfig({ NEXAEON_AGENT_ENABLED: 'true', NEXAEON_ENGINEER_ENABLED: 'false' }).enabled, false);
+  assert.equal(getEngineerProductionConfig({ NEXAEON_AGENT_ENABLED: 'false', NEXAEON_ENGINEER_ENABLED: 'true' }).enabled, false);
+  assert.equal(getEngineerProductionConfig({ NEXAEON_AGENT_ENABLED: 'true', NEXAEON_ENGINEER_FORCE_SOURCES_ONLY: 'true' }).forceSourcesOnly, true);
 });
 
 test('client cannot override production config values', () => {

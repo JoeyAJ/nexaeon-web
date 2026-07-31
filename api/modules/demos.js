@@ -183,33 +183,33 @@ export function sendDemoJsonResponse(req, res, payload, status = 200) {
   res.status(status).json(payload);
 }
 
-export default async function handler(req, res) {
-  if (rejectUnsupportedMethod(req, res)) return;
+export async function getModuleDemos({
+  env = process.env,
+  getAirtableRecordsImpl = getAirtableRecords,
+} = {}) {
+  const baseId = env.AIRTABLE_BASE_ID?.trim();
+  const tableId = env.AIRTABLE_MVP_TABLE_ID?.trim();
 
-  const baseId = process.env.AIRTABLE_BASE_ID?.trim();
-  const tableId = process.env.AIRTABLE_MVP_TABLE_ID?.trim();
-
-  if (!process.env.AIRTABLE_API_KEY || !baseId || !tableId) {
-    sendDemoJsonResponse(req, res, createFallbackResponse('missing_env'));
-    return;
+  if (!env.AIRTABLE_API_KEY || !baseId || !tableId) {
+    return createFallbackResponse('missing_env');
   }
 
   try {
-    const records = await getAirtableRecords({
-      baseId,
-      tableId,
-    });
-
+    const records = await getAirtableRecordsImpl({ baseId, tableId });
     const { excluded, publishable } = getPublishableDemoRecords(records);
     excluded.forEach(({ report }) => logDemoPublishingExclusion(report));
     const airtableItems = publishable.map(({ record, report }) => normalizeAirtableDemo(record, report));
-
-    sendDemoJsonResponse(req, res, createResponse('airtable', null, airtableItems));
+    return createResponse('airtable', null, airtableItems);
   } catch (error) {
     const reason = getUpstreamFailureReason(error);
     logSafeApiError('/api/modules/demos', reason, 'airtable');
-    sendDemoJsonResponse(req, res, createFallbackResponse(reason));
+    return createFallbackResponse(reason);
   }
+}
+
+export default async function handler(req, res) {
+  if (rejectUnsupportedMethod(req, res)) return;
+  sendDemoJsonResponse(req, res, await getModuleDemos());
 }
 
 export { DEMO_FIELD_NAMES };

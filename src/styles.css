@@ -4337,6 +4337,58 @@ body {
   padding-top: 10px;
 }
 
+.agent-structured-output {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--line-1);
+  padding-top: 12px;
+}
+
+.agent-structured-output h3 {
+  margin: 0;
+  color: var(--fg-1);
+  font-size: 15px;
+}
+
+.agent-structured-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agent-structured-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line-1);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-1) 44%, transparent);
+  padding: 12px;
+}
+
+.agent-structured-card p,
+.agent-structured-card ul {
+  margin: 0;
+  color: var(--fg-2);
+  line-height: 1.55;
+}
+
+.agent-structured-card ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 1.2rem;
+}
+
+.agent-plan-section {
+  display: grid;
+  gap: 6px;
+}
+
+@media (max-width: 700px) {
+  .agent-structured-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .agent-result-card {
   border: 1px solid var(--line-1);
   border-radius: 8px;

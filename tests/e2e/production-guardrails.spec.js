@@ -17,7 +17,7 @@ const EXPECTED_MODULE_AGENTS = {
   research: ['NexAeon Explorer'],
   teaching: ['NexAeon Xchange'],
   'knowledge-lab': ['NexAeon Archivist'],
-  projects: ['Prototype Agent'],
+  projects: ['NexAeon Engineer'],
   'field-lab': ['Action Agent'],
 };
 
@@ -203,7 +203,7 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
       research: 'explorer',
       teaching: 'xchange',
       'knowledge-lab': 'archivist',
-      projects: 'prototype',
+      projects: 'engineer',
       'field-lab': 'action',
     }[module.id];
     if (module.id === 'research') {
@@ -215,6 +215,9 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
     } else if (module.id === 'knowledge-lab') {
       await expect(page.getByTestId('module-agent-entry-archivist')).toContainText('Archivist Active');
       await expect(page.getByTestId('module-agent-entry-archivist')).toContainText('read-only Knowledge Tools');
+    } else if (module.id === 'projects') {
+      await expect(page.getByTestId('module-agent-entry-engineer')).toContainText('Engineer Active');
+      await expect(page.getByTestId('module-agent-entry-engineer')).toContainText('read-only Prototype Tools');
     } else {
       await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Connected to Navigator');
       await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Its dedicated Agent is still under development.');
@@ -251,10 +254,15 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
   await page.getByRole('button', { name: 'Switch to English' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByTestId('module-card-projects').locator('.module-card-footer button').click();
-  await expect(page.getByTestId('module-agent-entry-prototype')).toBeVisible();
+  await expect(page.getByTestId('module-agent-entry-engineer')).toBeVisible();
+  await page.getByTestId('module-agent-entry-engineer').getByRole('button', { name: 'Use Engineer' }).click();
+  await expect(page).toHaveURL(/\/projects\/nexaeon-engineer$/);
+  await expect(page.getByTestId('engineer-agent-page')).toBeVisible();
   const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(hasHorizontalOverflow).toBe(false);
 
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Switch to English' }).click();
   await page.getByTestId('module-card-field-lab').locator('.module-card-footer button').click();
   await page.getByTestId('module-entry-action-projects').click();
   await expect(page).toHaveURL(/\/field-lab\/action-projects$/);
@@ -465,11 +473,13 @@ test('navigator searches public knowledge with grounded source cards', async ({ 
   const explorerCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Explorer' });
   const xchangeCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Xchange' });
   const archivistCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Archivist' });
+  const engineerCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Engineer' });
   await expect(navigatorCard).toContainText('Active');
   await expect(explorerCard).toContainText('Active');
   await expect(xchangeCard).toContainText('Active');
   await expect(archivistCard).toContainText('Active');
-  for (const agentName of EXPECTED_AGENT_SYSTEM_MAP_AGENTS.slice(4)) {
+  await expect(engineerCard).toContainText('Active');
+  for (const agentName of EXPECTED_AGENT_SYSTEM_MAP_AGENTS.slice(5)) {
     await expect(page.locator('.agent-landing-card').filter({ hasText: agentName })).toContainText('Coming Soon');
   }
   await expect(page.locator('body')).not.toContainText(new RegExp('Nex\\u014dn'));

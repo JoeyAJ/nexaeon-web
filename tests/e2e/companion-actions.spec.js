@@ -73,10 +73,9 @@ test('Navigator handoff prefills a localized prompt without submitting it', asyn
   expect(chatRequests).toBe(0);
 });
 
-test('the three Navigator-backed module Agent regions hand off validated context and preserve actual response agent', async ({ page }) => {
+test('the two Navigator-backed module Agent regions hand off validated context and preserve actual response agent', async ({ page }) => {
   const cases = [
     { moduleId: 'identity', agentId: 'identity', moduleName: 'Identity' },
-    { moduleId: 'projects', agentId: 'prototype', moduleName: 'Prototype Lab' },
     { moduleId: 'field-lab', agentId: 'action', moduleName: 'Action Center' },
   ];
   const requests = [];

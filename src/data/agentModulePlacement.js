@@ -29,6 +29,9 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     openArchivist: '使用 Archivist',
     archivistIndicatorDescription: '由 NexAeon Archivist 提供獨立知識整理與關聯分析',
     archivistDescription: 'NexAeon Archivist 目前使用唯讀 Knowledge Tools 搜尋、分類並連結公開知識資料。',
+    engineerActive: 'Engineer 已啟用', openEngineer: '使用 Engineer',
+    engineerIndicatorDescription: '由 NexAeon Engineer 提供獨立原型分析與技術規劃',
+    engineerDescription: 'NexAeon Engineer 目前使用唯讀 Prototype Tools 分析公開 Demo，並提供 planned／unverified 的 MVP、Sprint、測試與驗收規劃。',
   },
   ko: {
     sectionLabel: '모듈 Agent',
@@ -51,6 +54,9 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     openArchivist: 'Archivist 사용',
     archivistIndicatorDescription: 'NexAeon Archivist가 독립적인 지식 정리와 관계 분석을 제공합니다',
     archivistDescription: 'NexAeon Archivist는 읽기 전용 Knowledge Tools로 공개 지식 데이터를 검색, 분류하고 연결합니다.',
+    engineerActive: 'Engineer 활성화됨', openEngineer: 'Engineer 사용',
+    engineerIndicatorDescription: 'NexAeon Engineer가 독립적인 프로토타입 분석과 기술 계획을 제공합니다',
+    engineerDescription: 'NexAeon Engineer는 읽기 전용 Prototype Tools로 공개 Demo를 분석하고 planned/unverified 상태의 MVP, Sprint, 테스트 및 승인 계획을 제공합니다.',
   },
   en: {
     sectionLabel: 'Module Agent',
@@ -73,6 +79,9 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     openArchivist: 'Use Archivist',
     archivistIndicatorDescription: 'NexAeon Archivist provides independent knowledge curation and relation analysis',
     archivistDescription: 'NexAeon Archivist uses read-only Knowledge Tools to search, classify, and connect public knowledge data.',
+    engineerActive: 'Engineer Active', openEngineer: 'Use Engineer',
+    engineerIndicatorDescription: 'NexAeon Engineer provides independent prototype analysis and technical planning',
+    engineerDescription: 'NexAeon Engineer uses read-only Prototype Tools to analyze public Demos and provide planned/unverified MVP, sprint, test, and acceptance plans.',
   },
 });
 
@@ -109,6 +118,9 @@ export function getModuleAgentStatus(agent, lang = 'en') {
       description: copy.archivistDescription,
     };
   }
+  if (agent.key === 'engineer' && agent.chatEnabled) {
+    return { label: copy.engineerActive, tone: 'active', cta: copy.openEngineer, indicatorDescription: copy.engineerIndicatorDescription, description: copy.engineerDescription };
+  }
   return {
     label: copy[agent.status] || agent.status,
     tone: agent.status,
@@ -126,7 +138,9 @@ export function getModuleAgentEntries(moduleId, lang = 'en') {
       ? getAgentByKey('xchange')
       : moduleId === 'knowledge-lab'
         ? getAgentByKey('archivist')
-        : null;
+        : moduleId === 'projects'
+          ? getAgentByKey('engineer')
+          : null;
   const legacyPresentation = independentAgent || getPublicAgents().find((agent) => agent.moduleKey === moduleId);
 
   return moduleAgents
