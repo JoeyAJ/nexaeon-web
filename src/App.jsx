@@ -1,12 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import './styles.css';
 import DirectionB from './components/DirectionB.jsx';
-import DemoRuntimePage from './components/DemoRuntimePage.jsx';
-import DetailPage from './components/DetailPage.jsx';
-import RoleDetailPage from './components/RoleDetailPage.jsx';
 import AppErrorBoundary, { getGuardrailCopy, GuardrailStatePage } from './components/AppErrorBoundary.jsx';
-import AgentScaffoldPage from './components/AgentScaffoldPage.jsx';
-import AdminAuditPage from './components/AdminAuditPage.jsx';
 import { Companion } from './components/Companion/index.js';
 import PrincessCompanionControls from './components/PrincessCompanionControls.jsx';
 import { getAgentByKey } from './data/agentRegistry.js';
@@ -32,6 +27,12 @@ import {
 } from './lib/companionActionConfig.js';
 import { goBack, markInitialHistoryEntry, navigateTo, parseRoute, replaceCurrentRoute } from './utils/router.js';
 
+const AdminAuditPage = lazy(() => import('./components/AdminAuditPage.jsx'));
+const AgentScaffoldPage = lazy(() => import('./components/AgentScaffoldPage.jsx'));
+const DemoRuntimePage = lazy(() => import('./components/DemoRuntimePage.jsx'));
+const DetailPage = lazy(() => import('./components/DetailPage.jsx'));
+const RoleDetailPage = lazy(() => import('./components/RoleDetailPage.jsx'));
+
 const BACK_TO_TOP_TEXT = {
   zh: '回到頂部',
   en: 'Back to top',
@@ -39,6 +40,8 @@ const BACK_TO_TOP_TEXT = {
 };
 
 const INTRO_SEEN_KEY = 'nexaeon_intro_seen';
+
+const ROUTE_LOADING_TEXT = { zh: '正在載入頁面…', ko: '페이지를 불러오는 중…', en: 'Loading page…' };
 
 function suppressIntroReplay() {
   try {
@@ -343,7 +346,7 @@ export default function App() {
         setTheme={setTheme}
         navigate={navigate}
       >
-        {route.kind === 'demoRuntime' ? (
+        <Suspense fallback={<main className="route-loading" aria-live="polite">{ROUTE_LOADING_TEXT[lang] || ROUTE_LOADING_TEXT.en}</main>}>{route.kind === 'demoRuntime' ? (
           <DemoRuntimePage
             slug={route.slug}
             navigate={navigate}
@@ -404,7 +407,7 @@ export default function App() {
             playIntro={companionIntroActive}
             onIntroComplete={() => setCompanionIntroActive(false)}
           />
-        )}
+        )}</Suspense>
       </AppErrorBoundary>
       <Companion
         lang={lang}

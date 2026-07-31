@@ -7,6 +7,7 @@ import { handleNetworkerChatRequest } from '../../lib/agent/networkerRuntime.js'
 import { cancelOperation, createOperationPreview, executeConfirmedOperation } from '../../lib/agent/toolExecutionRuntime.js';
 import { clearAdminSessionCookie, createAdminSession, readAdminSession, requireAdminCsrf } from '../../lib/agent/adminSession.js';
 import { getProductionAuditRepository } from '../../lib/agent/auditRepository.js';
+import { executeActionAuditRepair, executeLegacyMigration, getMigrationStatus, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../../lib/agent/legacyMigrationRuntime.js';
 
 const adminLoginAttempts = new Map();
 const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -28,7 +29,11 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   AUDIT_TABLE_NOT_CONFIGURED: 503, AUDIT_TABLE_SCHEMA_INVALID: 503, ACTION_SCHEMA_INVALID: 503,
   ACTION_FIELD_NOT_ALLOWED: 400, ACTION_STATUS_NOT_ALLOWED: 400, AUDIT_LINK_FAILED: 502,
   LEGACY_RECORD_DETECTED: 409, MIGRATION_DUPLICATE_SKIPPED: 409, MIGRATION_FAILED: 500,
-  FORMAL_SCHEMA_REQUIRED: 409,
+  FORMAL_SCHEMA_REQUIRED: 409, MIGRATION_PREVIEW_REQUIRED: 403, MIGRATION_TOKEN_INVALID: 403,
+  MIGRATION_TOKEN_EXPIRED: 410, MIGRATION_ALREADY_COMPLETED: 409, MIGRATION_PARTIAL_FAILURE: 500,
+  LEGACY_AUDIT_INVALID: 409, LEGACY_DRAFT_INVALID: 409, ACTION_AUDIT_LINK_MISMATCH: 409,
+  ACTION_AUDIT_ORPHAN: 409, ACTION_AUDIT_DUPLICATE: 409, REPAIR_NOT_SAFE: 409,
+  REPAIR_AMBIGUOUS: 409, REPAIR_CONFIRMATION_REQUIRED: 403,
 });
 
 function isAllowedWriteOrigin(req) {
@@ -130,6 +135,40 @@ async function handleAdminRequest(req, res) {
         limit: Math.min(200, Number(req.query.limit) || 100),
       });
       return res.status(200).json({ ok: true, actorId: session.actorId, role: session.role, count: records.length, records });
+    }
+    if (req.query.admin === 'migration-preview') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+      if (!isAllowedWriteOrigin(req)) return res.status(403).json({ ok: false, errorCode: 'ORIGIN_NOT_ALLOWED' });
+      const actor = requireAdminCsrf(req, readAdminSession(req));
+      return res.status(200).json(await previewLegacyMigration({ actor, req }));
+    }
+    if (req.query.admin === 'migration-execute') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+      if (!isAllowedWriteOrigin(req)) return res.status(403).json({ ok: false, errorCode: 'ORIGIN_NOT_ALLOWED' });
+      const actor = requireAdminCsrf(req, readAdminSession(req));
+      return res.status(200).json(await executeLegacyMigration({ body: req.body, actor, req }));
+    }
+    if (req.query.admin === 'migration-status' || req.query.admin === 'migration-verify') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+      readAdminSession(req);
+      const migrationBatchId = String(req.query.migrationBatchId || '').slice(0, 140);
+      if (!migrationBatchId) return res.status(400).json({ ok: false, errorCode: 'INVALID_INPUT' });
+      const payload = req.query.admin === 'migration-status' ? await getMigrationStatus({ migrationBatchId }) : await verifyMigrationBatch({ migrationBatchId });
+      return res.status(200).json({ ok: true, ...payload });
+    }
+    if (req.query.admin === 'consistency') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+      const session = readAdminSession(req);
+      return res.status(200).json({ ok: true, actorId: session.actorId, ...(await runConsistencyCheck()) });
+    }
+    if (req.query.admin === 'repair-preview' || req.query.admin === 'repair-execute') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+      if (!isAllowedWriteOrigin(req)) return res.status(403).json({ ok: false, errorCode: 'ORIGIN_NOT_ALLOWED' });
+      const actor = requireAdminCsrf(req, readAdminSession(req));
+      const payload = req.query.admin === 'repair-preview'
+        ? await previewActionAuditRepair({ issue: req.body?.issue, actor, req })
+        : await executeActionAuditRepair({ body: req.body, actor, req });
+      return res.status(200).json(payload);
     }
     return res.status(404).json({ ok: false, errorCode: 'ADMIN_ROUTE_NOT_FOUND' });
   } catch (error) {

@@ -13,6 +13,34 @@
       "destination": "/api/agent/chat?admin=audit"
     },
     {
+      "source": "/api/admin/migration/preview",
+      "destination": "/api/agent/chat?admin=migration-preview"
+    },
+    {
+      "source": "/api/admin/migration/execute",
+      "destination": "/api/agent/chat?admin=migration-execute"
+    },
+    {
+      "source": "/api/admin/migration/status",
+      "destination": "/api/agent/chat?admin=migration-status"
+    },
+    {
+      "source": "/api/admin/migration/verify",
+      "destination": "/api/agent/chat?admin=migration-verify"
+    },
+    {
+      "source": "/api/admin/consistency",
+      "destination": "/api/agent/chat?admin=consistency"
+    },
+    {
+      "source": "/api/admin/repair/preview",
+      "destination": "/api/agent/chat?admin=repair-preview"
+    },
+    {
+      "source": "/api/admin/repair/execute",
+      "destination": "/api/agent/chat?admin=repair-execute"
+    },
+    {
       "source": "/api/agent/orchestrator/actions/preview",
       "destination": "/api/agent/chat?agent=orchestrator&operation=preview"
     },

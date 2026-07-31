@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import AdminMigrationPanel from './AdminMigrationPanel.jsx';
 
 const COPY = {
   zh: { title: '管理員稽核紀錄', subtitle: '僅限已授權管理員。紀錄為 append-only，敏感資訊已在伺服器端移除。', actor: '管理員 ID', code: '存取碼', login: '驗證管理員', logout: '登出', refresh: '重新整理', from: '起始日期', to: '結束日期', agent: 'Agent', tool: '工具', status: '狀態', recordType: 'Schema 類型', operation: 'Operation ID', externalRecord: '外部紀錄 ID', all: '全部', formal: '正式', legacy: '舊版', empty: '沒有符合條件的稽核紀錄。', failed: '無法載入', back: '返回首頁' },
@@ -84,6 +85,7 @@ export default function AdminAuditPage({ lang, setLang, navigate }) {
           {errorCode ? <p className="agent-state-message" data-state="failed">{copy.failed}: {errorCode}</p> : null}
           {!loading && !errorCode && records.length === 0 ? <p>{copy.empty}</p> : null}
           <div className="admin-audit-list">{records.map((record) => <article key={record.auditId}><div><strong>{record.executionStatus}</strong><time>{record.timestamp}</time></div><dl><div><dt>operation</dt><dd>{record.operationId}</dd></div><div><dt>idempotency</dt><dd>{record.idempotencyKey || '—'}</dd></div><div><dt>actor</dt><dd>{record.actorId} · {record.actorRole}</dd></div><div><dt>agent / tool</dt><dd>{record.agentId} / {record.toolId}</dd></div><div><dt>confirmation</dt><dd>{record.confirmationStatus || '—'}</dd></div><div><dt>target</dt><dd>{record.targetDataSource}</dd></div><div><dt>record</dt><dd>{record.externalRecordId || '—'}</dd></div><div><dt>audit record</dt><dd>{record.auditRecordId || record.auditId}</dd></div><div><dt>schema</dt><dd>{record.schemaVersion || 'legacy'} · {record.recordType || 'legacy'}</dd></div><div><dt>error</dt><dd>{record.errorCode || '—'}</dd></div><div><dt>duration</dt><dd>{record.duration} ms</dd></div></dl></article>)}</div>
+          <AdminMigrationPanel lang={lang} csrfToken={auth.csrfToken} />
         </>
       )}
     </main>

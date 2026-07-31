@@ -14,6 +14,7 @@
     "eval:navigator": "node scripts/eval-navigator.mjs",
     "check:navigator": "npm run lint && npm test && npm run eval:navigator && npm run build",
     "verify": "npm run lint && npm test && npm run eval:navigator && npm run build && npm run test:e2e",
+    "inspect:migration:production": "node --env-file=.env.production.local scripts/inspect-production-migration.mjs",
     "check:demos": "node scripts/check-demo-publishing.mjs"
   },
   "dependencies": {

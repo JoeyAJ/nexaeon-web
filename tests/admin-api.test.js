@@ -46,3 +46,17 @@ test('shared API keeps admin session and audit data private while authorized pre
   await handler(request({ method: 'POST', query: { admin: 'logout' }, cookie, csrf: 'wrong' }), badCsrf);
   assert.equal(badCsrf.statusCode, 403); assert.equal(badCsrf.body.errorCode, 'CSRF_INVALID');
 });
+
+test('migration, consistency, and repair admin routes reject visitors before data access', async () => {
+  Object.assign(process.env, {
+    AIRTABLE_API_KEY: 'api-test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'tbl-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit',
+    NEXAEON_TOOL_EXECUTION_SECRET: 'tool-test-secret', NEXAEON_ADMIN_ACTOR_ID: 'api-admin',
+    NEXAEON_ADMIN_ACCESS_SECRET: 'api-access-secret', NEXAEON_ADMIN_SESSION_SECRET: 'api-session-secret',
+  });
+  for (const admin of ['migration-preview', 'migration-execute', 'repair-preview', 'repair-execute']) {
+    const res = response(); await handler(request({ method: 'POST', query: { admin } }), res);
+    assert.equal(res.statusCode, 401); assert.equal(res.body.errorCode, 'AUTH_REQUIRED');
+  }
+  const consistency = response(); await handler(request({ method: 'GET', query: { admin: 'consistency' } }), consistency);
+  assert.equal(consistency.statusCode, 401); assert.equal(consistency.body.errorCode, 'AUTH_REQUIRED');
+});
