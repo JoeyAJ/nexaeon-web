@@ -96,6 +96,30 @@ test('confirmed success returns a real record ID and repeated confirmation does 
   assert.equal(second.externalRecordId, 'rec-real-123'); assert.equal(second.replayed, true); assert.equal(writes, 1);
 });
 
+test('successful execution logs at info while failures retain the error logger', async () => {
+  const successPreview = await createOperationPreview({ payload, req, actor, env, operationId: 'operation-log-success' });
+  const infoLines = [];
+  const errorLines = [];
+  await executeConfirmedOperation({
+    body: executionBody(successPreview), req, actor, env,
+    createDraft: async () => ({ externalRecordId: 'rec-log-success', replayed: false }),
+    linkDraft: async () => ({ ok: true }),
+    logger: (line) => errorLines.push(line),
+    successLogger: (line) => infoLines.push(line),
+  });
+  assert.equal(infoLines.length, 1);
+  assert.equal(errorLines.length, 0);
+
+  const failedPreview = await createOperationPreview({ payload: { title: 'Failure log', description: 'Must remain an error.' }, req, actor, env, operationId: 'operation-log-failure' });
+  await assert.rejects(executeConfirmedOperation({
+    body: executionBody(failedPreview), req, actor, env,
+    createDraft: async () => { throw Object.assign(new Error('no'), { code: 'DATA_SOURCE_REJECTED' }); },
+    logger: (line) => errorLines.push(line),
+    successLogger: (line) => infoLines.push(line),
+  }), { code: 'DATA_SOURCE_REJECTED' });
+  assert.ok(errorLines.length >= 1);
+});
+
 test('tool output schema rejects fabricated success without a real Airtable record ID', () => {
   assert.throws(() => validateActionDraftOutput({ ok: true, executionStatus: 'succeeded', targetDataSource: ACTION_DRAFT_DATA_SOURCE, externalRecordId: '', replayed: false }), { code: 'INVALID_TOOL_OUTPUT' });
 });
