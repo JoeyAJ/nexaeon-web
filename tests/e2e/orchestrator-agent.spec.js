@@ -15,7 +15,7 @@ test('Orchestrator runs independently with classifications, proposed plan, sourc
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
       operationId, agentId: 'orchestrator', toolId: 'createActionDraft', permissionLevel: 'WRITE_CONFIRM',
       targetDataSource: 'airtable-action-projects', actionType: 'create', payload: route.request().postDataJSON().payload,
-      fieldsToWrite: { 'Project Name': 'Coordinate public work', 'Public Summary': 'Draft plan\n\n[NexAeon draft idempotency:test]', Visibility: 'Draft' },
+      fieldsToWrite: { 'Project Name': '[Draft idempotency] Coordinate public work', 'Public Summary': 'Draft plan\n\n[NexAeon draft idempotency:test]' },
       warnings: [], expiresAt: '2026-08-01T01:05:00.000Z', confirmationRequired: true,
       previewHash: 'preview-hash', idempotencyKey: `idempotency-${previewCount}`, executionStatus: 'previewed',
       rollbackSupport: false, confirmationToken: `confirmation-${previewCount}`,
@@ -67,7 +67,6 @@ test('Orchestrator runs independently with classifications, proposed plan, sourc
   await expect(page.getByTestId('orchestrator-execution-plan')).toContainText('Cross-module proposed plan');
   await expect(page.getByTestId('orchestrator-execution-plan')).toContainText('unverified');
   await page.getByRole('button', { name: 'Create task draft' }).click();
-  await expect(page.getByTestId('orchestrator-action-preview')).toContainText('Visibility');
   await expect(page.getByTestId('orchestrator-action-preview')).toContainText('Draft');
   await page.getByRole('button', { name: 'Cancel without creating draft' }).click();
   await expect(page.getByText('Cancelled. No draft was created.')).toBeVisible();

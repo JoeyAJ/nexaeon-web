@@ -54,12 +54,12 @@ test('only Orchestrator may access createActionDraft and arbitrary tool or data 
   assert.throws(() => assertToolAccess({ toolId: ACTION_DRAFT_TOOL_ID, agentId: 'orchestrator', targetDataSource: 'notion' }), { code: 'DATA_SOURCE_NOT_ALLOWED' });
 });
 
-test('server preview includes fixed Draft fields, bounded schema, hash, token, and expiry', () => {
+test('server preview includes fixed hidden-Draft fields, bounded schema, hash, token, and expiry', () => {
   const now = Date.UTC(2026, 7, 1);
   const preview = createOperationPreview({ payload, req, env, now, operationId: 'operation-1' });
   assert.equal(preview.executionStatus, 'previewed'); assert.equal(preview.permissionLevel, 'WRITE_CONFIRM');
-  assert.deepEqual(Object.keys(preview.fieldsToWrite).sort(), ['Project Name', 'Public Summary', 'Visibility']);
-  assert.equal(preview.fieldsToWrite.Visibility, 'Draft'); assert.match(preview.fieldsToWrite['Public Summary'], /idempotency:/);
+  assert.deepEqual(Object.keys(preview.fieldsToWrite).sort(), ['Project Name', 'Public Summary']);
+  assert.match(preview.fieldsToWrite['Project Name'], /^\[Draft [a-f0-9]{12}\]/); assert.match(preview.fieldsToWrite['Public Summary'], /idempotency:/);
   assert.equal(new Date(preview.expiresAt).getTime(), now + CONFIRMATION_TTL_MS);
   assert.match(preview.previewHash, /^[a-f0-9]{64}$/); assert.ok(preview.confirmationToken);
   assert.equal(JSON.stringify(preview).includes(env.AIRTABLE_API_KEY), false);
@@ -127,8 +127,8 @@ test('Airtable adapter creates only fixed fields and maps rejection and timeout 
   const result = await createAirtableActionDraft({ payload, idempotencyKey: 'new-key', env, fetchImpl });
   const body = JSON.parse(calls[1].body);
   assert.equal(result.externalRecordId, 'rec-created'); assert.equal(calls[1].method, 'PATCH');
-  assert.deepEqual(Object.keys(body.records[0].fields).sort(), ['Project Name', 'Public Summary', 'Visibility']);
-  assert.equal(body.records[0].fields.Visibility, 'Draft'); assert.equal(body.typecast, false);
+  assert.deepEqual(Object.keys(body.records[0].fields).sort(), ['Project Name', 'Public Summary']);
+  assert.deepEqual(body.performUpsert.fieldsToMergeOn, ['Project Name']); assert.equal(body.typecast, false);
   await assert.rejects(createAirtableActionDraft({ payload, idempotencyKey: 'reject', env, fetchImpl: async () => ({ ok: false, status: 422 }) }), { code: 'DATA_SOURCE_REJECTED' });
   await assert.rejects(createAirtableActionDraft({ payload, idempotencyKey: 'timeout', env, fetchImpl: async () => { throw Object.assign(new Error('timeout'), { name: 'TimeoutError' }); } }), { code: 'DATA_SOURCE_TIMEOUT' });
 });
