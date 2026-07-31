@@ -73,10 +73,9 @@ test('Navigator handoff prefills a localized prompt without submitting it', asyn
   expect(chatRequests).toBe(0);
 });
 
-test('the five Navigator-backed module Agent regions hand off validated context and preserve actual response agent', async ({ page }) => {
+test('the four Navigator-backed module Agent regions hand off validated context and preserve actual response agent', async ({ page }) => {
   const cases = [
     { moduleId: 'identity', agentId: 'identity', moduleName: 'Identity' },
-    { moduleId: 'teaching', agentId: 'coaching', moduleName: 'Coaching & Curriculum' },
     { moduleId: 'knowledge-lab', agentId: 'knowledge', moduleName: 'Knowledge Lab' },
     { moduleId: 'projects', agentId: 'prototype', moduleName: 'Prototype Lab' },
     { moduleId: 'field-lab', agentId: 'action', moduleName: 'Action Center' },
@@ -111,7 +110,7 @@ test('the five Navigator-backed module Agent regions hand off validated context 
     await page.keyboard.press(index % 2 === 0 ? 'Enter' : 'Space');
     await expect(page).toHaveURL(/\/identity\/nexaeon-navigator$/);
     await expect(page.getByTestId('navigator-current-module')).toContainText(item.moduleName);
-    await expect(page.getByTestId('navigator-default-agent')).toContainText(item.agentId === 'coaching' ? 'Coaching Agent' : new RegExp(item.agentId, 'i'));
+    await expect(page.getByTestId('navigator-default-agent')).toContainText(new RegExp(item.agentId, 'i'));
     const input = page.locator('#navigator-agent-query');
     await expect(input).toBeFocused();
     await expect(input).toHaveValue('');

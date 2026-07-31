@@ -21,6 +21,10 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     openExplorer: '使用 Explorer',
     explorerIndicatorDescription: '由 NexAeon Explorer 提供獨立研究探索',
     explorerDescription: 'NexAeon Explorer 目前使用唯讀 Research Tools 搜尋、篩選與分析公開研究資料。',
+    xchangeActive: 'Xchange 已啟用',
+    openXchange: '使用 Xchange',
+    xchangeIndicatorDescription: '由 NexAeon Xchange 提供獨立學習教練與課程設計',
+    xchangeDescription: 'NexAeon Xchange 目前使用唯讀 Learning Tools 搜尋公開教學素材並協助設計課程、活動、任務與反思流程。',
   },
   ko: {
     sectionLabel: '모듈 Agent',
@@ -35,6 +39,10 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     openExplorer: 'Explorer 사용',
     explorerIndicatorDescription: 'NexAeon Explorer가 독립적인 연구 탐색을 제공합니다',
     explorerDescription: 'NexAeon Explorer는 읽기 전용 Research Tools로 공개 연구 데이터를 검색, 필터링하고 분석합니다.',
+    xchangeActive: 'Xchange 활성화됨',
+    openXchange: 'Xchange 사용',
+    xchangeIndicatorDescription: 'NexAeon Xchange가 독립적인 학습 코칭과 수업 설계를 제공합니다',
+    xchangeDescription: 'NexAeon Xchange는 읽기 전용 Learning Tools로 공개 교육 자료를 검색하고 수업, 활동, 과제와 성찰 흐름 설계를 지원합니다.',
   },
   en: {
     sectionLabel: 'Module Agent',
@@ -49,6 +57,10 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     openExplorer: 'Use Explorer',
     explorerIndicatorDescription: 'NexAeon Explorer provides independent research exploration',
     explorerDescription: 'NexAeon Explorer uses read-only Research Tools to search, filter, and analyze public research data.',
+    xchangeActive: 'Xchange Active',
+    openXchange: 'Use Xchange',
+    xchangeIndicatorDescription: 'NexAeon Xchange provides independent learning coaching and course design',
+    xchangeDescription: 'NexAeon Xchange uses read-only Learning Tools to search public teaching materials and support course, activity, task, and reflection design.',
   },
 });
 
@@ -67,6 +79,15 @@ export function getModuleAgentStatus(agent, lang = 'en') {
       description: copy.explorerDescription,
     };
   }
+  if (agent.key === 'xchange' && agent.chatEnabled) {
+    return {
+      label: copy.xchangeActive,
+      tone: 'active',
+      cta: copy.openXchange,
+      indicatorDescription: copy.xchangeIndicatorDescription,
+      description: copy.xchangeDescription,
+    };
+  }
   return {
     label: copy[agent.status] || agent.status,
     tone: agent.status,
@@ -78,7 +99,11 @@ export function getModuleAgentStatus(agent, lang = 'en') {
 
 export function getModuleAgentEntries(moduleId, lang = 'en') {
   const locale = ['zh', 'ko', 'en'].includes(lang) ? lang : 'en';
-  const independentAgent = moduleId === 'research' ? getAgentByKey('explorer') : null;
+  const independentAgent = moduleId === 'research'
+    ? getAgentByKey('explorer')
+    : moduleId === 'teaching'
+      ? getAgentByKey('xchange')
+      : null;
   const legacyPresentation = independentAgent || getPublicAgents().find((agent) => agent.moduleKey === moduleId);
 
   return moduleAgents

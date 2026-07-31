@@ -15,7 +15,7 @@ const EXPECTED_MODULE_LABELS = [
 const EXPECTED_MODULE_AGENTS = {
   identity: ['Identity Agent'],
   research: ['NexAeon Explorer'],
-  teaching: ['Coaching Agent'],
+  teaching: ['NexAeon Xchange'],
   'knowledge-lab': ['Knowledge Agent'],
   projects: ['Prototype Agent'],
   'field-lab': ['Action Agent'],
@@ -201,7 +201,7 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
     const agentId = {
       identity: 'identity',
       research: 'explorer',
-      teaching: 'coaching',
+      teaching: 'xchange',
       'knowledge-lab': 'knowledge',
       projects: 'prototype',
       'field-lab': 'action',
@@ -209,6 +209,9 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
     if (module.id === 'research') {
       await expect(page.getByTestId('module-agent-entry-explorer')).toContainText('Explorer Active');
       await expect(page.getByTestId('module-agent-entry-explorer')).toContainText('read-only Research Tools');
+    } else if (module.id === 'teaching') {
+      await expect(page.getByTestId('module-agent-entry-xchange')).toContainText('Xchange Active');
+      await expect(page.getByTestId('module-agent-entry-xchange')).toContainText('read-only Learning Tools');
     } else {
       await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Connected to Navigator');
       await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Its dedicated Agent is still under development.');
@@ -224,6 +227,14 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
   await expect(page.getByTestId('explorer-agent-page')).toBeVisible();
   await expect(page.locator('#explorer-agent-query')).toBeEnabled();
   expect(chatPostCount).toBe(0);
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await page.getByTestId('module-card-teaching').locator('.module-card-footer button').click();
+  await page.getByTestId('module-agent-entry-xchange').getByRole('button', { name: 'Use Xchange' }).click();
+  await expect(page).toHaveURL(/\/teaching\/nexaeon-xchange$/);
+  await expect(page.getByTestId('xchange-agent-page')).toBeVisible();
+  await expect(page.locator('#xchange-agent-query')).toBeEnabled();
 
   await page.goto('/');
   await page.getByRole('button', { name: 'Switch to English' }).click();
@@ -441,9 +452,11 @@ test('navigator searches public knowledge with grounded source cards', async ({ 
   }
   const navigatorCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Navigator' });
   const explorerCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Explorer' });
+  const xchangeCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Xchange' });
   await expect(navigatorCard).toContainText('Active');
   await expect(explorerCard).toContainText('Active');
-  for (const agentName of EXPECTED_AGENT_SYSTEM_MAP_AGENTS.slice(2)) {
+  await expect(xchangeCard).toContainText('Active');
+  for (const agentName of EXPECTED_AGENT_SYSTEM_MAP_AGENTS.slice(3)) {
     await expect(page.locator('.agent-landing-card').filter({ hasText: agentName })).toContainText('Coming Soon');
   }
   await expect(page.locator('body')).not.toContainText(new RegExp('Nex\\u014dn'));

@@ -42,6 +42,26 @@ export const EXPLORER_TOOL_ALLOWLIST = Object.freeze([
   'listResearchTopics',
 ]);
 
+export const XCHANGE_ALLOWED_CAPABILITIES = Object.freeze([
+  'public_learning_material_search',
+  'public_learning_material_retrieval',
+  'public_learning_material_filtering',
+  'public_learning_topic_listing',
+  'public_course_structure_listing',
+  'course_and_activity_design',
+  'personalized_learning_coaching',
+  'citations',
+  'localization',
+]);
+
+export const XCHANGE_TOOL_ALLOWLIST = Object.freeze([
+  'searchLearningMaterials',
+  'getLearningMaterial',
+  'filterLearningMaterials',
+  'listLearningTopics',
+  'listCourseStructures',
+]);
+
 export const SCAFFOLD_ALLOWED_CAPABILITIES = Object.freeze([
   'public_profile_display',
   'route_scaffold',
@@ -234,9 +254,9 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
       en: 'Learning Coaching Agent',
     },
     description: {
-      zh: '未來協助課程設計、Prompt 練習、AI 素養與學生反思路徑。',
-      ko: '향후 커리큘럼 설계, 프롬프트 연습, AI 리터러시, 학습 성찰 경로를 지원합니다.',
-      en: 'Prepared for curriculum design, prompt practice, AI literacy, and student reflection pathways.',
+      zh: '根據目前公開教學素材，協助設計課程、學習目標、活動、任務、反思流程與個人化學習建議。',
+      ko: '현재 공개된 교육 자료를 바탕으로 수업, 학습 목표, 활동, 과제, 성찰 흐름과 개인화 학습 조언을 설계합니다.',
+      en: 'Uses currently public teaching materials to design courses, objectives, activities, tasks, reflection flows, and personalized learning guidance.',
     },
     futureUse: {
       zh: ['學習目標拆解', 'Prompt 練習引導', '課程活動設計', '反思與回饋整理'],
@@ -249,16 +269,18 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
       ko: 'Learning Coaching｜학습 코칭',
       en: 'Learning Coaching',
     },
-    status: AGENT_STATUS.scaffold,
+    status: AGENT_STATUS.active,
     route: '/teaching/nexaeon-xchange',
     sourceScope: ['teaching'],
-    enabled: false,
+    enabled: true,
     public: true,
-    chatEnabled: false,
-    comingSoon: true,
-    runtimeMode: 'scaffold_static',
-    allowedCapabilities: SCAFFOLD_ALLOWED_CAPABILITIES,
-    prohibitedCapabilities: SCAFFOLD_PROHIBITED_CAPABILITIES,
+    chatEnabled: true,
+    comingSoon: false,
+    runtimeMode: 'xchange_tools',
+    allowedCapabilities: XCHANGE_ALLOWED_CAPABILITIES,
+    toolAllowlist: XCHANGE_TOOL_ALLOWLIST,
+    prohibitedCapabilities: COMMON_PROHIBITED_CAPABILITIES,
+    answerLabel: 'XCHANGE',
   },
   {
     key: 'archivist',

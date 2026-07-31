@@ -179,6 +179,16 @@ async function verifyAgentChatGetGuardrail() {
   };
 }
 
+async function verifyXchangeChatGetGuardrail() {
+  const response = await fetchWithTimeout(`${BASE_URL}/api/agent/xchange/chat`);
+  if (response.status !== 405) throw new Error(`/api/agent/xchange/chat: expected 405, got HTTP ${response.status}`);
+  const payload = await response.json();
+  if (payload?.agentId !== 'xchange' || payload?.mode !== 'sources_only' || payload?.reason !== 'invalid_request') {
+    throw new Error('/api/agent/xchange/chat: unsafe or misrouted 405 contract');
+  }
+  return { path: '/api/agent/xchange/chat', status: response.status, agentId: payload.agentId };
+}
+
 async function verifyAgentHealth() {
   const head = await fetchHeadWithTimeout(`${BASE_URL}/api/agent/health`);
   if (head.status !== 200) throw new Error(`/api/agent/health HEAD: expected 200, got HTTP ${head.status}`);
@@ -217,6 +227,8 @@ async function verifyAgentHealth() {
 async function main() {
   const home = await verifyHome();
   const navigatorRoute = await verifySpaRoute('/identity/nexaeon-navigator');
+  const explorerRoute = await verifySpaRoute('/research/nexaeon-explorer');
+  const xchangeRoute = await verifySpaRoute('/teaching/nexaeon-xchange');
   const legacyNavigatorRoute = await verifySpaRoute('/identity/nexon-ai-assistant');
   const demoRuntime = await verifySpaRoute('/projects/module-demos/nexaeon-ai-tutoring-mvp');
   const health = await verifyAgentHealth();
@@ -225,17 +237,21 @@ async function main() {
     endpoints.push(await verifyEndpoint(endpoint));
   }
   const agentChat = await verifyAgentChatGetGuardrail();
+  const xchangeChat = await verifyXchangeChatGetGuardrail();
 
   console.log(JSON.stringify({
     ok: true,
     baseUrl: BASE_URL,
     home,
     navigatorRoute,
+    explorerRoute,
+    xchangeRoute,
     legacyNavigatorRoute,
     demoRuntime,
     health,
     endpoints,
     agentChat,
+    xchangeChat,
   }, null, 2));
 }
 
