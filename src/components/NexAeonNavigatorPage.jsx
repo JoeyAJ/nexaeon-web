@@ -420,16 +420,53 @@ function actionDraftPayload(plan) {
 function ActionDraftFlow({ plan, ui }) {
   const copy = ui.actionDraft;
   const [state, setState] = useState({ phase: 'idle', preview: null, result: null, errorCode: '' });
+  const [auth, setAuth] = useState({ phase: 'loading', actorId: '', role: '', csrfToken: '', errorCode: '' });
+  const [credentials, setCredentials] = useState({ actorId: '', accessSecret: '' });
+  useEffect(() => {
+    let active = true;
+    fetch('/api/admin/session', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+      .then(async (response) => ({ response, payload: await response.json() }))
+      .then(({ response, payload }) => {
+        if (!active) return;
+        setAuth(response.ok ? { phase: 'authenticated', actorId: payload.actorId, role: payload.role, csrfToken: payload.csrfToken, errorCode: '' } : { phase: 'anonymous', actorId: '', role: '', csrfToken: '', errorCode: payload.errorCode || '' });
+      })
+      .catch(() => { if (active) setAuth({ phase: 'anonymous', actorId: '', role: '', csrfToken: '', errorCode: 'AUTH_UNAVAILABLE' }); });
+    return () => { active = false; };
+  }, []);
   if (!copy || !plan) return null;
 
   async function request(endpoint, body) {
     const response = await fetch(endpoint, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-NexAeon-CSRF': auth.csrfToken },
       body: JSON.stringify(body),
     });
     const payload = await response.json();
     if (!response.ok) throw Object.assign(new Error(payload.errorCode || 'EXECUTION_FAILED'), { code: payload.errorCode || 'EXECUTION_FAILED' });
     return payload;
+  }
+
+  async function login(event) {
+    event.preventDefault();
+    setAuth((current) => ({ ...current, phase: 'authenticating', errorCode: '' }));
+    try {
+      const response = await fetch('/api/admin/session', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(credentials) });
+      const payload = await response.json();
+      if (!response.ok) throw Object.assign(new Error(payload.errorCode), { code: payload.errorCode });
+      setCredentials((current) => ({ ...current, accessSecret: '' }));
+      setAuth({ phase: 'authenticated', actorId: payload.actorId, role: payload.role, csrfToken: payload.csrfToken, errorCode: '' });
+    } catch (error) {
+      setAuth({ phase: 'anonymous', actorId: '', role: '', csrfToken: '', errorCode: error.code || 'AUTH_FAILED' });
+    }
+  }
+
+  async function logout() {
+    try {
+      await request('/api/admin/logout', {});
+      setAuth({ phase: 'anonymous', actorId: '', role: '', csrfToken: '', errorCode: '' });
+      setState({ phase: 'idle', preview: null, result: null, errorCode: '' });
+    } catch (error) {
+      setAuth((current) => ({ ...current, errorCode: error.code || 'LOGOUT_FAILED' }));
+    }
   }
 
   async function createPreview() {
@@ -470,8 +507,19 @@ function ActionDraftFlow({ plan, ui }) {
     <section className="agent-action-draft-flow" data-testid="orchestrator-action-draft-flow" data-phase={state.phase}>
       <h3>{copy.title}</h3>
       <p>{copy.notice}</p>
+      {auth.phase !== 'authenticated' ? (
+        <form className="agent-admin-auth" onSubmit={login} data-testid="orchestrator-admin-login">
+          <strong>{copy.adminRequired || 'Admin authorization required'}</strong>
+          <label>{copy.actorId || 'Admin ID'}<input value={credentials.actorId} onChange={(event) => setCredentials((current) => ({ ...current, actorId: event.target.value }))} autoComplete="username" required /></label>
+          <label>{copy.accessCode || 'Access code'}<input type="password" value={credentials.accessSecret} onChange={(event) => setCredentials((current) => ({ ...current, accessSecret: event.target.value }))} autoComplete="current-password" required /></label>
+          <button className="mvp-action-button" type="submit" disabled={auth.phase === 'loading' || auth.phase === 'authenticating'}>{copy.signIn || 'Verify admin'}</button>
+          {auth.errorCode ? <p className="agent-state-message" data-state="failed">{copy.authFailed || 'Authorization failed'}: {auth.errorCode}</p> : null}
+        </form>
+      ) : (
+        <><div className="agent-admin-session"><span>{copy.adminSession || 'Admin session'}: {auth.actorId}</span><button type="button" onClick={logout}>{copy.signOut || 'Sign out'}</button></div>{auth.errorCode ? <p className="agent-state-message" data-state="failed">{auth.errorCode}</p> : null}</>
+      )}
       {state.phase === 'idle' || state.phase === 'failed' || state.phase === 'cancelled' ? (
-        <button className="mvp-action-button" type="button" onClick={createPreview}>{copy.createPreview}</button>
+        <button className="mvp-action-button" type="button" onClick={createPreview} disabled={auth.phase !== 'authenticated'}>{copy.createPreview}</button>
       ) : null}
       {state.preview && ['previewed', 'executing', 'succeeded', 'failed'].includes(state.phase) ? (
         <div className="agent-action-preview" data-testid="orchestrator-action-preview">
@@ -496,7 +544,7 @@ function ActionDraftFlow({ plan, ui }) {
       {state.phase === 'cancelled' ? <p className="agent-state-message">{copy.cancelled}</p> : null}
       {state.phase === 'succeeded' ? (
         <p className="agent-state-message" data-state="succeeded" data-testid="orchestrator-action-success">
-          {copy.succeeded}: {state.result.externalRecordId}{state.result.replayed ? ` · ${copy.replayed}` : ''}
+          {copy.succeeded}: {state.result.externalRecordId}{state.result.replayed ? ` · ${copy.replayed}` : ''} · audit: {state.result.auditRecordId || state.result.auditPersistenceStatus}
         </p>
       ) : null}
       {state.phase === 'failed' ? (

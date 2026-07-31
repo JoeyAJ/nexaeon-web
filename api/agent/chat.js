@@ -5,6 +5,12 @@ import { handleEngineerChatRequest } from '../../lib/agent/engineerRuntime.js';
 import { handleOrchestratorChatRequest } from '../../lib/agent/orchestratorRuntime.js';
 import { handleNetworkerChatRequest } from '../../lib/agent/networkerRuntime.js';
 import { cancelOperation, createOperationPreview, executeConfirmedOperation } from '../../lib/agent/toolExecutionRuntime.js';
+import { clearAdminSessionCookie, createAdminSession, readAdminSession, requireAdminCsrf } from '../../lib/agent/adminSession.js';
+import { getProductionAuditRepository } from '../../lib/agent/auditRepository.js';
+
+const adminLoginAttempts = new Map();
+const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const ADMIN_LOGIN_MAX_ATTEMPTS = 5;
 
 const OPERATION_ERROR_STATUS = Object.freeze({
   INVALID_INPUT: 400, MASS_ASSIGNMENT_REJECTED: 400, PAYLOAD_TOO_LARGE: 413,
@@ -14,6 +20,11 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   OPERATION_ALREADY_SUCCEEDED: 409, DATA_SOURCE_CONFIGURATION_MISSING: 503,
   DATA_SOURCE_TIMEOUT: 504, DATA_SOURCE_REQUEST_FAILED: 502, DATA_SOURCE_REJECTED: 502,
   DATA_SOURCE_INVALID_RESPONSE: 502, INVALID_TOOL_OUTPUT: 502,
+  AUTH_CONFIGURATION_MISSING: 503, AUTH_INVALID_CREDENTIALS: 401, AUTH_REQUIRED: 401,
+  AUTH_ROLE_FORBIDDEN: 403, AUTH_SESSION_EXPIRED: 401, CSRF_INVALID: 403,
+  AUTH_RATE_LIMITED: 429,
+  ACTOR_SESSION_MISMATCH: 409, AUDIT_CONFIGURATION_MISSING: 503, AUDIT_TIMEOUT: 504,
+  AUDIT_REQUEST_FAILED: 502, AUDIT_REQUEST_REJECTED: 502, AUDIT_INVALID_RESPONSE: 502,
 });
 
 function isAllowedWriteOrigin(req) {
@@ -39,10 +50,12 @@ async function handleOrchestratorOperationRequest(req, res) {
   }
   if (!isAllowedWriteOrigin(req)) return res.status(403).json({ ok: false, errorCode: 'ORIGIN_NOT_ALLOWED' });
   try {
+    const actor = requireAdminCsrf(req, readAdminSession(req));
+    const auditRepository = getProductionAuditRepository();
     let payload;
-    if (req.query.operation === 'preview') payload = createOperationPreview({ payload: req.body?.payload, req });
-    else if (req.query.operation === 'execute') payload = await executeConfirmedOperation({ body: req.body, req });
-    else if (req.query.operation === 'cancel') payload = cancelOperation({ body: req.body });
+    if (req.query.operation === 'preview') payload = await createOperationPreview({ payload: req.body?.payload, req, actor, auditRepository });
+    else if (req.query.operation === 'execute') payload = await executeConfirmedOperation({ body: req.body, req, actor, auditRepository });
+    else if (req.query.operation === 'cancel') payload = await cancelOperation({ body: req.body, actor, auditRepository });
     else return res.status(404).json({ ok: false, errorCode: 'OPERATION_NOT_FOUND' });
     return res.status(200).json(payload);
   } catch (error) {
@@ -51,7 +64,79 @@ async function handleOrchestratorOperationRequest(req, res) {
   }
 }
 
+function privateJson(res) {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('CDN-Cache-Control', 'private, no-store');
+  res.setHeader('Vercel-CDN-Cache-Control', 'private, no-store');
+}
+
+function adminLoginKey(req) {
+  return String(req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim().slice(0, 100);
+}
+
+function createRateLimitedAdminSession(req) {
+  const key = adminLoginKey(req);
+  const now = Date.now();
+  const current = adminLoginAttempts.get(key);
+  const attempt = !current || current.expiresAt <= now ? { count: 0, expiresAt: now + ADMIN_LOGIN_WINDOW_MS } : current;
+  if (attempt.count >= ADMIN_LOGIN_MAX_ATTEMPTS) throw Object.assign(new Error('auth_rate_limited'), { code: 'AUTH_RATE_LIMITED' });
+  try {
+    const session = createAdminSession({ actorId: req.body?.actorId, accessSecret: req.body?.accessSecret });
+    adminLoginAttempts.delete(key);
+    return session;
+  } catch (error) {
+    if (error?.code === 'AUTH_INVALID_CREDENTIALS') adminLoginAttempts.set(key, { ...attempt, count: attempt.count + 1 });
+    throw error;
+  }
+}
+
+async function handleAdminRequest(req, res) {
+  privateJson(res);
+  try {
+    if (req.query.admin === 'session') {
+      if (req.method === 'GET') {
+        const session = readAdminSession(req);
+        return res.status(200).json({ ok: true, authenticated: true, actorId: session.actorId, role: session.role, expiresAt: new Date(session.expiresAt).toISOString(), csrfToken: session.csrfToken });
+      }
+      if (req.method === 'POST') {
+        if (!isAllowedWriteOrigin(req)) return res.status(403).json({ ok: false, errorCode: 'ORIGIN_NOT_ALLOWED' });
+        const session = createRateLimitedAdminSession(req);
+        res.setHeader('Set-Cookie', session.cookie);
+        return res.status(200).json({ ok: true, authenticated: true, actorId: session.claims.actorId, role: session.claims.role, expiresAt: new Date(session.claims.expiresAt).toISOString(), csrfToken: session.claims.csrfToken });
+      }
+      res.setHeader('Allow', 'GET, POST');
+      return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+    }
+    if (req.query.admin === 'logout') {
+      if (req.method !== 'POST') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+      if (!isAllowedWriteOrigin(req)) return res.status(403).json({ ok: false, errorCode: 'ORIGIN_NOT_ALLOWED' });
+      requireAdminCsrf(req, readAdminSession(req));
+      res.setHeader('Set-Cookie', clearAdminSessionCookie());
+      return res.status(200).json({ ok: true });
+    }
+    if (req.query.admin === 'audit') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+      const session = readAdminSession(req);
+      const records = await getProductionAuditRepository().listAuditRecords({
+        dateFrom: String(req.query.dateFrom || '').slice(0, 40), dateTo: String(req.query.dateTo || '').slice(0, 40),
+        agentId: String(req.query.agentId || '').slice(0, 40), toolId: String(req.query.toolId || '').slice(0, 80),
+        executionStatus: String(req.query.executionStatus || '').slice(0, 40), limit: Math.min(200, Number(req.query.limit) || 100),
+      });
+      return res.status(200).json({ ok: true, actorId: session.actorId, role: session.role, count: records.length, records });
+    }
+    return res.status(404).json({ ok: false, errorCode: 'ADMIN_ROUTE_NOT_FOUND' });
+  } catch (error) {
+    const errorCode = error?.code || 'ADMIN_REQUEST_FAILED';
+    return res.status(OPERATION_ERROR_STATUS[errorCode] || 500).json({ ok: false, errorCode });
+  }
+}
+
 export default async function handler(req, res) {
+  if (req.query?.admin) {
+    await handleAdminRequest(req, res);
+    return;
+  }
   if (req.query?.agent === 'networker') {
     await handleNetworkerChatRequest(req, res);
     return;

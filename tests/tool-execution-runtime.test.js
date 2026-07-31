@@ -25,6 +25,7 @@ import {
 const env = { AIRTABLE_API_KEY: 'server-only-test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'tbl-test' };
 const req = { headers: { origin: 'https://nexaeon-web.vercel.app', 'user-agent': 'tool-runtime-test', 'x-forwarded-for': '203.0.113.8' } };
 const payload = { title: 'Ship Stage 5-3A', description: 'Create a controlled task draft.' };
+const actor = { actorId: 'test-admin', role: 'admin', sessionId: 'session-test' };
 
 function executionBody(preview, overrides = {}) {
   return {
@@ -54,9 +55,9 @@ test('only Orchestrator may access createActionDraft and arbitrary tool or data 
   assert.throws(() => assertToolAccess({ toolId: ACTION_DRAFT_TOOL_ID, agentId: 'orchestrator', targetDataSource: 'notion' }), { code: 'DATA_SOURCE_NOT_ALLOWED' });
 });
 
-test('server preview includes fixed hidden-Draft fields, bounded schema, hash, token, and expiry', () => {
+test('server preview includes fixed hidden-Draft fields, bounded schema, hash, token, and expiry', async () => {
   const now = Date.UTC(2026, 7, 1);
-  const preview = createOperationPreview({ payload, req, env, now, operationId: 'operation-1' });
+  const preview = await createOperationPreview({ payload, req, actor, env, now, operationId: 'operation-1' });
   assert.equal(preview.executionStatus, 'previewed'); assert.equal(preview.permissionLevel, 'WRITE_CONFIRM');
   assert.deepEqual(Object.keys(preview.fieldsToWrite).sort(), ['Project Name', 'Public Summary']);
   assert.match(preview.fieldsToWrite['Project Name'], /^\[Draft [a-f0-9]{12}\]/); assert.match(preview.fieldsToWrite['Public Summary'], /idempotency:/);
@@ -75,21 +76,21 @@ test('empty fields, status injection, mass assignment, and oversized payload fai
 
 test('confirmation is required, payload mutation invalidates token, and expired tokens cannot write', async () => {
   const now = Date.UTC(2026, 7, 1);
-  const preview = createOperationPreview({ payload, req, env, now, operationId: 'operation-2' });
+  const preview = await createOperationPreview({ payload, req, actor, env, now, operationId: 'operation-2' });
   let writes = 0;
   const createDraft = async () => { writes += 1; return { externalRecordId: 'rec-test', replayed: false }; };
-  await assert.rejects(executeConfirmedOperation({ body: executionBody(preview, { confirmationToken: '' }), req, env, now, createDraft }), { code: 'CONFIRMATION_INVALID' });
-  await assert.rejects(executeConfirmedOperation({ body: executionBody(preview, { payload: { ...preview.payload, description: 'modified' } }), req, env, now, createDraft }), { code: 'CONFIRMATION_MISMATCH' });
-  await assert.rejects(executeConfirmedOperation({ body: executionBody(preview), req, env, now: now + CONFIRMATION_TTL_MS + 1, createDraft }), { code: 'CONFIRMATION_EXPIRED' });
+  await assert.rejects(executeConfirmedOperation({ body: executionBody(preview, { confirmationToken: '' }), req, actor, env, now, createDraft }), { code: 'CONFIRMATION_INVALID' });
+  await assert.rejects(executeConfirmedOperation({ body: executionBody(preview, { payload: { ...preview.payload, description: 'modified' } }), req, actor, env, now, createDraft }), { code: 'CONFIRMATION_MISMATCH' });
+  await assert.rejects(executeConfirmedOperation({ body: executionBody(preview), req, actor, env, now: now + CONFIRMATION_TTL_MS + 1, createDraft }), { code: 'CONFIRMATION_EXPIRED' });
   assert.equal(writes, 0);
 });
 
 test('confirmed success returns a real record ID and repeated confirmation does not call create twice', async () => {
-  const preview = createOperationPreview({ payload, req, env, operationId: 'operation-3' });
+  const preview = await createOperationPreview({ payload, req, actor, env, operationId: 'operation-3' });
   let writes = 0;
   const createDraft = async () => { writes += 1; return { externalRecordId: 'rec-real-123', replayed: false }; };
-  const first = await executeConfirmedOperation({ body: executionBody(preview), req, env, createDraft, logger: () => {} });
-  const second = await executeConfirmedOperation({ body: executionBody(preview), req, env, createDraft, logger: () => {} });
+  const first = await executeConfirmedOperation({ body: executionBody(preview), req, actor, env, createDraft, logger: () => {} });
+  const second = await executeConfirmedOperation({ body: executionBody(preview), req, actor, env, createDraft, logger: () => {} });
   assert.equal(first.externalRecordId, 'rec-real-123'); assert.equal(first.replayed, false);
   assert.equal(second.externalRecordId, 'rec-real-123'); assert.equal(second.replayed, true); assert.equal(writes, 1);
 });
@@ -99,11 +100,11 @@ test('tool output schema rejects fabricated success without a real Airtable reco
 });
 
 test('cancel prevents later execution and an external error is returned as failure', async () => {
-  const cancelled = createOperationPreview({ payload, req, env, operationId: 'operation-4' });
-  assert.equal(cancelOperation({ body: { operationId: cancelled.operationId }, logger: () => {} }).executionStatus, 'cancelled');
-  await assert.rejects(executeConfirmedOperation({ body: executionBody(cancelled), req, env, createDraft: async () => ({ externalRecordId: 'rec-no' }), logger: () => {} }), { code: 'OPERATION_CANCELLED' });
-  const failed = createOperationPreview({ payload: { title: 'Failure', description: 'External failure' }, req, env, operationId: 'operation-5' });
-  await assert.rejects(executeConfirmedOperation({ body: executionBody(failed), req, env, createDraft: async () => { throw Object.assign(new Error('no'), { code: 'DATA_SOURCE_REJECTED' }); }, logger: () => {} }), { code: 'DATA_SOURCE_REJECTED' });
+  const cancelled = await createOperationPreview({ payload, req, actor, env, operationId: 'operation-4' });
+  assert.equal((await cancelOperation({ body: { operationId: cancelled.operationId }, actor, logger: () => {} })).executionStatus, 'cancelled');
+  await assert.rejects(executeConfirmedOperation({ body: executionBody(cancelled), req, actor, env, createDraft: async () => ({ externalRecordId: 'rec-no' }), logger: () => {} }), { code: 'OPERATION_CANCELLED' });
+  const failed = await createOperationPreview({ payload: { title: 'Failure', description: 'External failure' }, req, actor, env, operationId: 'operation-5' });
+  await assert.rejects(executeConfirmedOperation({ body: executionBody(failed), req, actor, env, createDraft: async () => { throw Object.assign(new Error('no'), { code: 'DATA_SOURCE_REJECTED' }); }, logger: () => {} }), { code: 'DATA_SOURCE_REJECTED' });
 });
 
 test('Airtable adapter recovers existing idempotency result without creating another record', async () => {

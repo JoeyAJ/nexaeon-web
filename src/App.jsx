@@ -6,6 +6,7 @@ import DetailPage from './components/DetailPage.jsx';
 import RoleDetailPage from './components/RoleDetailPage.jsx';
 import AppErrorBoundary, { getGuardrailCopy, GuardrailStatePage } from './components/AppErrorBoundary.jsx';
 import AgentScaffoldPage from './components/AgentScaffoldPage.jsx';
+import AdminAuditPage from './components/AdminAuditPage.jsx';
 import { Companion } from './components/Companion/index.js';
 import PrincessCompanionControls from './components/PrincessCompanionControls.jsx';
 import { getAgentByKey } from './data/agentRegistry.js';
@@ -351,6 +352,8 @@ export default function App() {
             theme={theme}
             setTheme={setTheme}
           />
+        ) : route.kind === 'adminAudit' ? (
+          <AdminAuditPage lang={lang} setLang={setLang} navigate={navigate} />
         ) : route.kind === 'detail' ? (
           <DetailPage
             type={route.type}

@@ -9,6 +9,9 @@ test('Orchestrator runs independently with classifications, proposed plan, sourc
   let previewCount = 0;
   let executeCount = 0;
   let cancelCount = 0;
+  await page.route('**/api/admin/session', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, authenticated: true, actorId: 'e2e-admin', role: 'admin', csrfToken: 'csrf-e2e', expiresAt: '2026-08-01T01:15:00.000Z' }) });
+  });
   await page.route('**/api/agent/orchestrator/actions/preview', async (route) => {
     previewCount += 1;
     const operationId = `operation-${previewCount}`;
@@ -28,7 +31,7 @@ test('Orchestrator runs independently with classifications, proposed plan, sourc
   await page.route('**/api/agent/orchestrator/actions/execute', async (route) => {
     executeCount += 1;
     const body = route.request().postDataJSON();
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, operationId: body.operationId, executionStatus: 'succeeded', targetDataSource: body.targetDataSource, externalRecordId: 'rec-action-draft-real', idempotencyKey: body.idempotencyKey, replayed: false }) });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, operationId: body.operationId, executionStatus: 'succeeded', targetDataSource: body.targetDataSource, externalRecordId: 'rec-action-draft-real', idempotencyKey: body.idempotencyKey, replayed: false, auditRecordId: 'rec-audit-real', auditPersistenceStatus: 'airtable-shared-hidden' }) });
   });
   await page.route('**/api/agent/orchestrator/chat', async (route) => {
     requests.push(route.request().postDataJSON());

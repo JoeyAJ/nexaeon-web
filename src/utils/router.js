@@ -11,6 +11,8 @@ export function parseRoute(pathname) {
     return { kind: 'home' };
   }
 
+  if (normalizedPath === '/admin/audit') return { kind: 'adminAudit' };
+
   if (NAVIGATOR_AGENT.legacyRoutes.includes(normalizedPath)) {
     return {
       kind: 'redirect',

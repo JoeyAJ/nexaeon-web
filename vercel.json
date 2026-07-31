@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/api/admin/session",
+      "destination": "/api/agent/chat?admin=session"
+    },
+    {
+      "source": "/api/admin/logout",
+      "destination": "/api/agent/chat?admin=logout"
+    },
+    {
+      "source": "/api/admin/audit",
+      "destination": "/api/agent/chat?admin=audit"
+    },
+    {
       "source": "/api/agent/orchestrator/actions/preview",
       "destination": "/api/agent/chat?agent=orchestrator&operation=preview"
     },
