@@ -15,6 +15,7 @@ import {
   normalizeIdentityToolProfile,
   searchIdentityProfiles,
 } from '../lib/agent/networkerIdentityTools.js';
+import { normalizeIdentityProfile } from '../lib/identityProfiles.js';
 
 const rawProfiles = [
   {
@@ -62,6 +63,26 @@ test('normalization fails closed and excludes private contact, notes, secrets, a
   assert.equal(item.profileUrl, '');
   assert.doesNotMatch(JSON.stringify(item), /private@example|secret-value|1234 5678|Private address|internalNotes/);
   for (const key of ['email', 'phone', 'address', 'internalNotes', 'publicStatus']) assert.equal(key in item, false);
+});
+
+test('missing optional Notion fields never borrow unrelated select or rich-text values', () => {
+  const item = normalizeIdentityProfile({
+    properties: {
+      Name: { type: 'title', title: [{ plain_text: 'Exact-only Profile' }] },
+      Status: { type: 'select', select: { name: 'Published' } },
+      Description: { type: 'rich_text', rich_text: [{ plain_text: 'Public profile summary, not a contact channel.' }] },
+      Featured: { type: 'checkbox', checkbox: false },
+      Order: { type: 'number', number: 3 },
+    },
+    created_time: '2026-07-31T00:00:00.000Z',
+    last_edited_time: '2026-07-31T00:00:00.000Z',
+  });
+
+  assert.deepEqual(item.organizations, []);
+  assert.equal(item.region, '');
+  assert.deepEqual(item.publicContact, []);
+  assert.equal(item.profileUrl, '');
+  assert.equal(item.shortPositioning, 'Public profile summary, not a contact channel.');
 });
 
 test('loader reuses public Identity Profiles and returns only normalized public fields', async () => {
