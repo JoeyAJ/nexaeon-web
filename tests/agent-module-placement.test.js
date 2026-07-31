@@ -4,7 +4,6 @@ import test from 'node:test';
 import {
   AGENT_LANDING_COPY,
   AGENT_STATUS,
-  SCAFFOLD_PROHIBITED_CAPABILITIES,
   getPublicAgents,
 } from '../src/data/agentRegistry.js';
 import { MODULE_AGENT_STATUS } from '../lib/agent/moduleAgentRegistry.js';
@@ -22,7 +21,7 @@ test('agent system map copy identifies the Navigator landing overview as a globa
   }
 });
 
-test('agent system map keeps six agents active while Networker remains coming soon', () => {
+test('agent system map keeps Navigator and all six module agents active', () => {
   const agents = getPublicAgents();
   const navigator = agents.find((agent) => agent.key === 'navigator');
   const explorer = agents.find((agent) => agent.key === 'explorer');
@@ -30,7 +29,7 @@ test('agent system map keeps six agents active while Networker remains coming so
   const archivist = agents.find((agent) => agent.key === 'archivist');
   const engineer = agents.find((agent) => agent.key === 'engineer');
   const orchestrator = agents.find((agent) => agent.key === 'orchestrator');
-  const scaffoldAgents = agents.filter((agent) => !['navigator', 'explorer', 'xchange', 'archivist', 'engineer', 'orchestrator'].includes(agent.key));
+  const networker = agents.find((agent) => agent.key === 'networker');
 
   assert.equal(navigator.status, AGENT_STATUS.active);
   assert.equal(navigator.chatEnabled, true);
@@ -50,14 +49,9 @@ test('agent system map keeps six agents active while Networker remains coming so
   assert.equal(orchestrator.status, AGENT_STATUS.active);
   assert.equal(orchestrator.chatEnabled, true);
   assert.equal(orchestrator.comingSoon, false);
-  assert.deepEqual(scaffoldAgents.map((agent) => agent.name), [
-    'NexAeon Networker',
-  ]);
-  for (const agent of scaffoldAgents) {
-    assert.equal(agent.status, AGENT_STATUS.scaffold, agent.name);
-    assert.equal(agent.chatEnabled, false, agent.name);
-    assert.equal(agent.comingSoon, true, agent.name);
-  }
+  assert.equal(networker.status, AGENT_STATUS.active);
+  assert.equal(networker.chatEnabled, true);
+  assert.equal(networker.comingSoon, false);
 });
 
 test('module agent placement is derived from the six Sprint 3 module agents', () => {
@@ -73,7 +67,7 @@ test('module agent placement is derived from the six Sprint 3 module agents', ()
   const entries = getAllModuleAgentEntries('en');
   assert.equal(entries.length, 6);
   assert.deepEqual(entries.map(({ agent }) => agent.name), [
-    'Identity Agent',
+    'NexAeon Networker',
     'NexAeon Explorer',
     'NexAeon Xchange',
     'NexAeon Archivist',
@@ -82,11 +76,11 @@ test('module agent placement is derived from the six Sprint 3 module agents', ()
   ]);
 });
 
-test('Research, Teaching, Knowledge Lab, Prototype Lab, and Action Center use their independent agents', () => {
+test('all six modules use their independent agents', () => {
   const expectedNames = {
-    zh: ['身份 Agent', 'NexAeon Explorer', 'NexAeon Xchange', 'NexAeon Archivist', 'NexAeon Engineer', 'NexAeon Orchestrator'],
-    ko: ['정체성 에이전트', 'NexAeon Explorer', 'NexAeon Xchange', 'NexAeon Archivist', 'NexAeon Engineer', 'NexAeon Orchestrator'],
-    en: ['Identity Agent', 'NexAeon Explorer', 'NexAeon Xchange', 'NexAeon Archivist', 'NexAeon Engineer', 'NexAeon Orchestrator'],
+    zh: ['NexAeon Networker', 'NexAeon Explorer', 'NexAeon Xchange', 'NexAeon Archivist', 'NexAeon Engineer', 'NexAeon Orchestrator'],
+    ko: ['NexAeon Networker', 'NexAeon Explorer', 'NexAeon Xchange', 'NexAeon Archivist', 'NexAeon Engineer', 'NexAeon Orchestrator'],
+    en: ['NexAeon Networker', 'NexAeon Explorer', 'NexAeon Xchange', 'NexAeon Archivist', 'NexAeon Engineer', 'NexAeon Orchestrator'],
   };
   const expectedStatus = {
     zh: '已接入 Navigator',
@@ -96,11 +90,12 @@ test('Research, Teaching, Knowledge Lab, Prototype Lab, and Action Center use th
 
   for (const lang of ['zh', 'ko', 'en']) {
     const entries = getAllModuleAgentEntries(lang);
-    assert.deepEqual(entries.map(({ agent }) => agent.id), ['identity', 'explorer', 'xchange', 'archivist', 'engineer', 'orchestrator']);
+    assert.deepEqual(entries.map(({ agent }) => agent.id), ['networker', 'explorer', 'xchange', 'archivist', 'engineer', 'orchestrator']);
     assert.deepEqual(entries.map(({ agent }) => agent.name), expectedNames[lang]);
     for (const { agent, status } of entries) {
       assert.equal(agent.status, MODULE_AGENT_STATUS.active);
       const independentStatus = {
+        networker: { zh: 'Networker 已啟用', ko: 'Networker 활성화됨', en: 'Networker Active' },
         explorer: { zh: 'Explorer 已啟用', ko: 'Explorer 활성화됨', en: 'Explorer Active' },
         xchange: { zh: 'Xchange 已啟用', ko: 'Xchange 활성화됨', en: 'Xchange Active' },
         archivist: { zh: 'Archivist 已啟用', ko: 'Archivist 활성화됨', en: 'Archivist Active' },
@@ -112,8 +107,6 @@ test('Research, Teaching, Knowledge Lab, Prototype Lab, and Action Center use th
     }
   }
 
-  assert.ok(SCAFFOLD_PROHIBITED_CAPABILITIES.includes('openai_call'));
-  assert.ok(SCAFFOLD_PROHIBITED_CAPABILITIES.includes('ai_chat'));
 });
 
 test('module agent entries expose localized labels, module names, routes, and CTA text', () => {
@@ -148,6 +141,7 @@ test('module agent entries expose localized labels, module names, routes, and CT
         assert.ok(localized.moduleLabel, agent.key);
         assert.ok(localized.description, agent.key);
         const independentCta = {
+          networker: { zh: '使用 Networker', ko: 'Networker 사용', en: 'Use Networker' },
           explorer: { zh: '使用 Explorer', ko: 'Explorer 사용', en: 'Use Explorer' },
           xchange: { zh: '使用 Xchange', ko: 'Xchange 사용', en: 'Use Xchange' },
           archivist: { zh: '使用 Archivist', ko: 'Archivist 사용', en: 'Use Archivist' },

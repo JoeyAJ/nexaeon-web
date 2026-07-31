@@ -13,6 +13,7 @@ import {
   getEngineerProductionConfig,
   getExplorerProductionConfig,
   getNavigatorProductionConfig,
+  getNetworkerProductionConfig,
   getOrchestratorProductionConfig,
 } from '../lib/agent/productionConfig.js';
 import {
@@ -42,6 +43,8 @@ function restoreEnv() {
     'NEXAEON_ENGINEER_FORCE_SOURCES_ONLY',
     'NEXAEON_ORCHESTRATOR_ENABLED',
     'NEXAEON_ORCHESTRATOR_FORCE_SOURCES_ONLY',
+    'NEXAEON_NETWORKER_ENABLED',
+    'NEXAEON_NETWORKER_FORCE_SOURCES_ONLY',
   ]) {
     if (ORIGINAL_ENV[key] === undefined) delete process.env[key];
     else process.env[key] = ORIGINAL_ENV[key];
@@ -208,6 +211,13 @@ test('Orchestrator uses shared production controls with its own kill-switch and 
   assert.equal(getOrchestratorProductionConfig({ NEXAEON_AGENT_ENABLED: 'true', NEXAEON_ORCHESTRATOR_ENABLED: 'false' }).enabled, false);
   assert.equal(getOrchestratorProductionConfig({ NEXAEON_AGENT_ENABLED: 'false', NEXAEON_ORCHESTRATOR_ENABLED: 'true' }).enabled, false);
   assert.equal(getOrchestratorProductionConfig({ NEXAEON_AGENT_ENABLED: 'true', NEXAEON_ORCHESTRATOR_FORCE_SOURCES_ONLY: 'true' }).forceSourcesOnly, true);
+});
+
+test('Networker uses shared production controls with its own kill-switch and force-source override', () => {
+  assert.equal(getNetworkerProductionConfig({ NEXAEON_AGENT_ENABLED: 'true' }).enabled, true);
+  assert.equal(getNetworkerProductionConfig({ NEXAEON_AGENT_ENABLED: 'true', NEXAEON_NETWORKER_ENABLED: 'false' }).enabled, false);
+  assert.equal(getNetworkerProductionConfig({ NEXAEON_AGENT_ENABLED: 'false', NEXAEON_NETWORKER_ENABLED: 'true' }).enabled, false);
+  assert.equal(getNetworkerProductionConfig({ NEXAEON_AGENT_ENABLED: 'true', NEXAEON_NETWORKER_FORCE_SOURCES_ONLY: 'true' }).forceSourcesOnly, true);
 });
 
 test('client cannot override production config values', () => {

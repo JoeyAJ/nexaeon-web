@@ -3,8 +3,13 @@ import { handleXchangeChatRequest } from '../../lib/agent/xchangeRuntime.js';
 import { handleArchivistChatRequest } from '../../lib/agent/archivistRuntime.js';
 import { handleEngineerChatRequest } from '../../lib/agent/engineerRuntime.js';
 import { handleOrchestratorChatRequest } from '../../lib/agent/orchestratorRuntime.js';
+import { handleNetworkerChatRequest } from '../../lib/agent/networkerRuntime.js';
 
 export default async function handler(req, res) {
+  if (req.query?.agent === 'networker') {
+    await handleNetworkerChatRequest(req, res);
+    return;
+  }
   if (req.query?.agent === 'orchestrator') {
     await handleOrchestratorChatRequest(req, res);
     return;

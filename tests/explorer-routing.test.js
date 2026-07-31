@@ -4,7 +4,7 @@ import test from 'node:test';
 import { parseRoute } from '../src/utils/router.js';
 import { getAgentByKey } from '../src/data/agentRegistry.js';
 
-test('Explorer, Xchange, Archivist, Engineer, and Orchestrator have independent active routes while Networker stays scaffold', () => {
+test('all six module agents have independent active routes', () => {
   assert.deepEqual(parseRoute('/research/nexaeon-explorer'), {
     kind: 'detail',
     type: 'research',
@@ -35,8 +35,10 @@ test('Explorer, Xchange, Archivist, Engineer, and Orchestrator have independent 
     id: 'nexaeon-orchestrator',
   });
 
-  for (const key of ['networker']) {
-    const agent = getAgentByKey(key);
-    assert.deepEqual(parseRoute(agent.route), { kind: 'agentScaffold', key });
-  }
+  const networker = getAgentByKey('networker');
+  assert.deepEqual(parseRoute(networker.route), {
+    kind: 'detail',
+    type: 'identity',
+    id: 'nexaeon-networker',
+  });
 });

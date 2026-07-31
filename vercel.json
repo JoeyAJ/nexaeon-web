@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/agent/networker/chat",
+      "destination": "/api/agent/chat?agent=networker"
+    },
+    {
       "source": "/api/agent/orchestrator/chat",
       "destination": "/api/agent/chat?agent=orchestrator"
     },

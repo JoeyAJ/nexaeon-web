@@ -13,7 +13,7 @@ const EXPECTED_MODULE_LABELS = [
 ];
 
 const EXPECTED_MODULE_AGENTS = {
-  identity: ['Identity Agent'],
+  identity: ['NexAeon Networker'],
   research: ['NexAeon Explorer'],
   teaching: ['NexAeon Xchange'],
   'knowledge-lab': ['NexAeon Archivist'],
@@ -199,14 +199,17 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
       await expect(page.getByTestId(`module-agent-section-${module.id}`).getByText(agentName, { exact: true })).toBeVisible();
     }
     const agentId = {
-      identity: 'identity',
+      identity: 'networker',
       research: 'explorer',
       teaching: 'xchange',
       'knowledge-lab': 'archivist',
       projects: 'engineer',
       'field-lab': 'orchestrator',
     }[module.id];
-    if (module.id === 'research') {
+    if (module.id === 'identity') {
+      await expect(page.getByTestId('module-agent-entry-networker')).toContainText('Networker Active');
+      await expect(page.getByTestId('module-agent-entry-networker')).toContainText('read-only Identity Tools');
+    } else if (module.id === 'research') {
       await expect(page.getByTestId('module-agent-entry-explorer')).toContainText('Explorer Active');
       await expect(page.getByTestId('module-agent-entry-explorer')).toContainText('read-only Research Tools');
     } else if (module.id === 'teaching') {
@@ -228,8 +231,14 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
   }
 
   await page.getByTestId('module-card-identity').locator('.module-card-footer button').click();
-  await expect(page.getByTestId('module-agent-entry-identity')).toContainText('Connected to Navigator');
+  await page.getByTestId('module-agent-entry-networker').getByRole('button', { name: 'Use Networker' }).click();
+  await expect(page).toHaveURL(/\/identity\/nexaeon-networker$/);
+  await expect(page.getByTestId('networker-agent-page')).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL(/\/identity\/nexaeon-networker$/);
 
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Switch to English' }).click();
   await page.getByTestId('module-card-research').locator('.module-card-footer button').click();
   await page.getByTestId('module-agent-entry-explorer').getByRole('button', { name: 'Use Explorer' }).click();
   await expect(page).toHaveURL(/\/research\/nexaeon-explorer$/);
@@ -478,15 +487,14 @@ test('navigator searches public knowledge with grounded source cards', async ({ 
   const archivistCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Archivist' });
   const engineerCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Engineer' });
   const orchestratorCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Orchestrator' });
+  const networkerCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Networker' });
   await expect(navigatorCard).toContainText('Active');
   await expect(explorerCard).toContainText('Active');
   await expect(xchangeCard).toContainText('Active');
   await expect(archivistCard).toContainText('Active');
   await expect(engineerCard).toContainText('Active');
   await expect(orchestratorCard).toContainText('Active');
-  for (const agentName of EXPECTED_AGENT_SYSTEM_MAP_AGENTS.slice(6)) {
-    await expect(page.locator('.agent-landing-card').filter({ hasText: agentName })).toContainText('Coming Soon');
-  }
+  await expect(networkerCard).toContainText('Active');
   await expect(page.locator('body')).not.toContainText(new RegExp('Nex\\u014dn'));
 
   await page.getByRole('button', { name: 'Which demos are currently public?' }).click();
@@ -691,6 +699,7 @@ test('direct routes and refresh stay on the same URL', async ({ page }) => {
     '/students',
     '/research/ai-in-education',
     '/identity/identity-profiles',
+    '/identity/nexaeon-networker',
   ];
 
   for (const route of directRoutes) {

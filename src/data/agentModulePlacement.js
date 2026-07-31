@@ -35,6 +35,9 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     orchestratorActive: 'Orchestrator 已啟用', openOrchestrator: '使用 Orchestrator',
     orchestratorIndicatorDescription: '由 NexAeon Orchestrator 提供獨立行動規劃與任務編排',
     orchestratorDescription: 'NexAeon Orchestrator 目前使用唯讀 Action Tools 整理公開任務，並提供 proposed／planned 的執行與跨模組協調計畫。',
+    networkerActive: 'Networker 已啟用', openNetworker: '使用 Networker',
+    networkerIndicatorDescription: '由 NexAeon Networker 提供獨立身份連結與合作分析',
+    networkerDescription: 'NexAeon Networker 目前使用唯讀 Identity Tools 搜尋、比較公開 Profiles，並提供 inferred／recommended 的合作關係地圖。',
   },
   ko: {
     sectionLabel: '모듈 Agent',
@@ -63,6 +66,9 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     orchestratorActive: 'Orchestrator 활성화됨', openOrchestrator: 'Orchestrator 사용',
     orchestratorIndicatorDescription: 'NexAeon Orchestrator가 독립적인 행동 계획과 작업 편성을 제공합니다',
     orchestratorDescription: 'NexAeon Orchestrator는 읽기 전용 Action Tools로 공개 작업을 정리하고 proposed/planned 실행 및 모듈 간 조율 계획을 제공합니다.',
+    networkerActive: 'Networker 활성화됨', openNetworker: 'Networker 사용',
+    networkerIndicatorDescription: 'NexAeon Networker가 독립적인 정체성 연결 및 협업 분석을 제공합니다',
+    networkerDescription: 'NexAeon Networker는 읽기 전용 Identity Tools로 공개 Profile을 검색·비교하고 inferred/recommended 협업 관계 지도를 제공합니다.',
   },
   en: {
     sectionLabel: 'Module Agent',
@@ -91,6 +97,9 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     orchestratorActive: 'Orchestrator Active', openOrchestrator: 'Use Orchestrator',
     orchestratorIndicatorDescription: 'NexAeon Orchestrator provides independent action planning and task orchestration',
     orchestratorDescription: 'NexAeon Orchestrator uses read-only Action Tools to organize public tasks and provide proposed/planned execution and cross-module coordination plans.',
+    networkerActive: 'Networker Active', openNetworker: 'Use Networker',
+    networkerIndicatorDescription: 'NexAeon Networker provides independent identity connection and collaboration analysis',
+    networkerDescription: 'NexAeon Networker uses read-only Identity Tools to search and compare public profiles and provide inferred/recommended collaboration maps.',
   },
 });
 
@@ -133,6 +142,9 @@ export function getModuleAgentStatus(agent, lang = 'en') {
   if (agent.key === 'orchestrator' && agent.chatEnabled) {
     return { label: copy.orchestratorActive, tone: 'active', cta: copy.openOrchestrator, indicatorDescription: copy.orchestratorIndicatorDescription, description: copy.orchestratorDescription };
   }
+  if (agent.key === 'networker' && agent.chatEnabled) {
+    return { label: copy.networkerActive, tone: 'active', cta: copy.openNetworker, indicatorDescription: copy.networkerIndicatorDescription, description: copy.networkerDescription };
+  }
   return {
     label: copy[agent.status] || agent.status,
     tone: agent.status,
@@ -144,7 +156,9 @@ export function getModuleAgentStatus(agent, lang = 'en') {
 
 export function getModuleAgentEntries(moduleId, lang = 'en') {
   const locale = ['zh', 'ko', 'en'].includes(lang) ? lang : 'en';
-  const independentAgent = moduleId === 'research'
+  const independentAgent = moduleId === 'identity'
+    ? getAgentByKey('networker')
+    : moduleId === 'research'
     ? getAgentByKey('explorer')
     : moduleId === 'teaching'
       ? getAgentByKey('xchange')

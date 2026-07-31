@@ -371,7 +371,7 @@ function StructuredFactClassification({ classification, ui }) {
 function planItemText(item) {
   if (typeof item === 'string') return item;
   if (!item || typeof item !== 'object') return '';
-  const baseText = item.title || item.text || item.name || item.dependency || item.sourceId || '';
+  const baseText = item.title || item.text || item.name || item.label || item.profileId || item.dependency || item.sourceId || item.id || '';
   const text = item.module && baseText ? `${item.module}: ${baseText}` : baseText;
   const status = item.status || item.verificationStatus || '';
   const priority = item.priority && !String(text).includes(item.priority) ? ` · ${item.priority}` : '';
@@ -429,7 +429,7 @@ function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
       ) : null}
       {message.partialSources ? <p className="agent-state-message" data-state="partial">{ui.partial}</p> : null}
       <StructuredFactClassification classification={message.factClassification} ui={ui} />
-      <StructuredDevelopmentPlan plan={message.executionPlan || message.developmentPlan} ui={ui} />
+      <StructuredDevelopmentPlan plan={message.collaborationMap || message.executionPlan || message.developmentPlan} ui={ui} />
       <p className="agent-grounding-note">{ui.groundedNote}</p>
       {message.citations?.length ? (
         <div className="agent-result-grid">
@@ -602,6 +602,7 @@ export default function NexAeonNavigatorPage({
         agentId: payload.agentId || null,
         supportingAgentId: payload.supportingAgentId || null,
         factClassification: payload.factClassification || null,
+        collaborationMap: payload.collaborationMap || null,
         developmentPlan: payload.developmentPlan || null,
         executionPlan: payload.executionPlan || null,
       };

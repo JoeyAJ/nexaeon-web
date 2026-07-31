@@ -292,6 +292,45 @@ async function verifyOrchestratorChat() {
   };
 }
 
+async function verifyNetworkerChat() {
+  const response = await postJsonWithTimeout(`${BASE_URL}/api/agent/networker/chat`, {
+    message: 'Build a read-only collaboration map from all currently public Identity Profiles. Compare shared interests and complementary capabilities, and keep every possible relation inferred or recommended.',
+    locale: 'en',
+  });
+  if (response.status !== 200) throw new Error(`/api/agent/networker/chat: expected 200, got HTTP ${response.status}`);
+  const payload = await response.json();
+  if (payload?.agentId !== 'networker' || !Array.isArray(payload?.executedTools) || !Array.isArray(payload?.citations)) {
+    throw new Error('/api/agent/networker/chat: unsafe or misrouted success contract');
+  }
+  if (!payload?.factClassification || !Array.isArray(payload.factClassification.verified)
+    || !Array.isArray(payload.factClassification.inferred) || !Array.isArray(payload.factClassification.recommended)
+    || !Array.isArray(payload.factClassification.unknown)) {
+    throw new Error('/api/agent/networker/chat: missing relationship fact classification');
+  }
+  if (!payload?.collaborationMap || payload.collaborationMap.verificationStatus !== 'unverified'
+    || !Array.isArray(payload.collaborationMap.nodes)
+    || !Array.isArray(payload.collaborationMap.proposedRelations)
+    || payload.collaborationMap.proposedRelations.some((relation) => !['inferred', 'recommended'].includes(relation.status))) {
+    throw new Error('/api/agent/networker/chat: unsafe collaboration-map contract');
+  }
+  const serialized = JSON.stringify(payload);
+  const keys = collectObjectKeys(payload).map(normalizePublicKeyForSecurity);
+  if (keys.some((key) => ['email', 'phone', 'address', 'internalnotes', 'privatenotes'].includes(key))
+    || /sk-[a-z0-9_-]{8,}/iu.test(serialized)
+    || /"(?:willing|contacted|introduced|matched|consented)":true/iu.test(serialized)
+    || /(?:sendEmail|createContact|createCalendarEvent|scrapeProfile)/u.test(serialized)) {
+    throw new Error('/api/agent/networker/chat: private data, fabricated relationship, or prohibited operation');
+  }
+  return {
+    path: '/api/agent/networker/chat', status: response.status, agentId: payload.agentId,
+    mode: payload.mode, executedTools: payload.executedTools, citationCount: payload.citations.length,
+    verifiedCount: payload.factClassification.verified.length,
+    nodeCount: payload.collaborationMap.nodes.length,
+    proposedRelationCount: payload.collaborationMap.proposedRelations.length,
+    verificationStatus: payload.collaborationMap.verificationStatus,
+  };
+}
+
 async function verifyAgentHealth() {
   const head = await fetchHeadWithTimeout(`${BASE_URL}/api/agent/health`);
   if (head.status !== 200) throw new Error(`/api/agent/health HEAD: expected 200, got HTTP ${head.status}`);
@@ -335,6 +374,7 @@ async function main() {
   const archivistRoute = await verifySpaRoute('/knowledge-lab/nexaeon-archivist');
   const engineerRoute = await verifySpaRoute('/projects/nexaeon-engineer');
   const orchestratorRoute = await verifySpaRoute('/field-lab/nexaeon-orchestrator');
+  const networkerRoute = await verifySpaRoute('/identity/nexaeon-networker');
   const legacyNavigatorRoute = await verifySpaRoute('/identity/nexon-ai-assistant');
   const demoRuntime = await verifySpaRoute('/projects/module-demos/nexaeon-ai-tutoring-mvp');
   const health = await verifyAgentHealth();
@@ -346,6 +386,7 @@ async function main() {
   const archivistChat = await verifyArchivistChat();
   const engineerChat = await verifyEngineerChat();
   const orchestratorChat = await verifyOrchestratorChat();
+  const networkerChat = await verifyNetworkerChat();
 
   console.log(JSON.stringify({
     ok: true,
@@ -357,6 +398,7 @@ async function main() {
     archivistRoute,
     engineerRoute,
     orchestratorRoute,
+    networkerRoute,
     legacyNavigatorRoute,
     demoRuntime,
     health,
@@ -365,6 +407,7 @@ async function main() {
     archivistChat,
     engineerChat,
     orchestratorChat,
+    networkerChat,
   }, null, 2));
 }
 
