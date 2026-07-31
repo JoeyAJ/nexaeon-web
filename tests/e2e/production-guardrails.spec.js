@@ -223,7 +223,7 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
       await expect(page.getByTestId('module-agent-entry-engineer')).toContainText('read-only Prototype Tools');
     } else if (module.id === 'field-lab') {
       await expect(page.getByTestId('module-agent-entry-orchestrator')).toContainText('Orchestrator Active');
-      await expect(page.getByTestId('module-agent-entry-orchestrator')).toContainText('read-only Action Tools');
+      await expect(page.getByTestId('module-agent-entry-orchestrator')).toContainText('explicit server-verified confirmation');
     } else {
       await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Connected to Navigator');
       await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Its dedicated Agent is still under development.');

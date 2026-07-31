@@ -118,6 +118,7 @@ export const ORCHESTRATOR_ALLOWED_CAPABILITIES = Object.freeze([
   'proposed_execution_planning',
   'proposed_cross_module_coordination',
   'task_fact_classification',
+  'confirmed_action_draft_creation',
   'citations',
   'localization',
 ]);
@@ -131,6 +132,7 @@ export const ORCHESTRATOR_TOOL_ALLOWLIST = Object.freeze([
   'findBlockedActions',
   'groupActionsByProject',
   'buildExecutionPlan',
+  'createActionDraft',
 ]);
 
 export const NETWORKER_ALLOWED_CAPABILITIES = Object.freeze([
@@ -477,9 +479,9 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
       en: 'Workflow Planning and Execution Coordination Agent',
     },
     description: {
-      zh: '讀取公開 Action Center 資料，整理優先級、依賴與阻塞，並產生唯讀的 proposed 執行與跨模組協調計畫。',
-      ko: '공개 Action Center 데이터를 읽고 우선순위, 의존성과 차단 요소를 정리하여 읽기 전용 proposed 실행 및 모듈 간 조율 계획을 제공합니다.',
-      en: 'Reads public Action Center data to organize priorities, dependencies, and blockers into read-only proposed execution and cross-module plans.',
+      zh: '讀取公開 Action Center 資料並產生 proposed 計畫；使用者可透過獨立確認流程建立一筆受控任務草稿。',
+      ko: '공개 Action Center 데이터를 읽고 proposed 계획을 만들며, 사용자는 별도 확인 절차를 통해 하나의 통제된 작업 초안을 생성할 수 있습니다.',
+      en: 'Reads public Action Center data and produces proposed plans; a user may create one controlled task draft through a separate confirmation flow.',
     },
     futureUse: {
       zh: ['專案階段盤點', '任務優先順序', '下一步行動整理', '跨模組協調'],
@@ -505,7 +507,7 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
     prohibitedCapabilities: Object.freeze([
       ...COMMON_PROHIBITED_CAPABILITIES,
       'code_execution', 'shell_execution', 'environment_access', 'repository_write',
-      'task_write', 'task_delete', 'task_assignment', 'email_send', 'message_send',
+      'task_update', 'task_delete', 'task_assignment', 'email_send', 'message_send',
       'calendar_write', 'github_issue_write', 'vercel_deploy', 'workflow_execution',
       'agent_to_agent_execution', 'arbitrary_url_fetch',
     ]),

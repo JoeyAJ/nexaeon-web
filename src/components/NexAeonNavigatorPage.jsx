@@ -403,7 +403,110 @@ function StructuredDevelopmentPlan({ plan, ui }) {
   );
 }
 
-function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
+function actionDraftPayload(plan) {
+  const lines = [];
+  for (const key of ['tasks', 'dependencies', 'blockers', 'milestones', 'acceptanceCriteria', 'nextActions']) {
+    const items = Array.isArray(plan?.[key]) ? plan[key] : [];
+    if (!items.length) continue;
+    lines.push(`${key}:`);
+    lines.push(...items.map((item) => `- ${planItemText(item)}`));
+  }
+  return {
+    title: String(plan?.objective || 'Proposed Action Center task').slice(0, 160),
+    description: (lines.join('\n') || 'Draft generated from an Orchestrator proposed execution plan.').slice(0, 4000),
+  };
+}
+
+function ActionDraftFlow({ plan, ui }) {
+  const copy = ui.actionDraft;
+  const [state, setState] = useState({ phase: 'idle', preview: null, result: null, errorCode: '' });
+  if (!copy || !plan) return null;
+
+  async function request(endpoint, body) {
+    const response = await fetch(endpoint, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw Object.assign(new Error(payload.errorCode || 'EXECUTION_FAILED'), { code: payload.errorCode || 'EXECUTION_FAILED' });
+    return payload;
+  }
+
+  async function createPreview() {
+    if (state.phase !== 'idle' && state.phase !== 'failed' && state.phase !== 'cancelled') return;
+    setState({ phase: 'previewing', preview: null, result: null, errorCode: '' });
+    try {
+      const preview = await request('/api/agent/orchestrator/actions/preview', { payload: actionDraftPayload(plan) });
+      setState({ phase: 'previewed', preview, result: null, errorCode: '' });
+    } catch (error) {
+      setState({ phase: 'failed', preview: null, result: null, errorCode: error.code || 'EXECUTION_FAILED' });
+    }
+  }
+
+  async function confirmPreview() {
+    if (state.phase !== 'previewed' || !state.preview) return;
+    setState((current) => ({ ...current, phase: 'executing', errorCode: '' }));
+    try {
+      const preview = state.preview;
+      const result = await request('/api/agent/orchestrator/actions/execute', {
+        operationId: preview.operationId, agentId: preview.agentId, toolId: preview.toolId,
+        targetDataSource: preview.targetDataSource, payload: preview.payload,
+        idempotencyKey: preview.idempotencyKey, confirmationToken: preview.confirmationToken,
+      });
+      setState({ phase: 'succeeded', preview, result, errorCode: '' });
+    } catch (error) {
+      setState((current) => ({ ...current, phase: 'failed', errorCode: error.code || 'EXECUTION_FAILED' }));
+    }
+  }
+
+  async function cancelPreview() {
+    const operationId = state.preview?.operationId;
+    setState((current) => ({ ...current, phase: 'cancelled', errorCode: '' }));
+    if (!operationId) return;
+    try { await request('/api/agent/orchestrator/actions/cancel', { operationId }); } catch { /* Cancellation remains fail-closed: no execute request is sent. */ }
+  }
+
+  return (
+    <section className="agent-action-draft-flow" data-testid="orchestrator-action-draft-flow" data-phase={state.phase}>
+      <h3>{copy.title}</h3>
+      <p>{copy.notice}</p>
+      {state.phase === 'idle' || state.phase === 'failed' || state.phase === 'cancelled' ? (
+        <button className="mvp-action-button" type="button" onClick={createPreview}>{copy.createPreview}</button>
+      ) : null}
+      {state.preview && ['previewed', 'executing', 'succeeded', 'failed'].includes(state.phase) ? (
+        <div className="agent-action-preview" data-testid="orchestrator-action-preview">
+          <strong>{copy.previewTitle}</strong>
+          <dl>
+            {Object.entries(state.preview.fieldsToWrite || {}).map(([field, value]) => (
+              <div key={field}><dt>{field}</dt><dd>{String(value)}</dd></div>
+            ))}
+          </dl>
+          <p>{copy.expiresAt}: {state.preview.expiresAt}</p>
+          <p>{copy.rollback}: {state.preview.rollbackSupport ? copy.yes : copy.no}</p>
+        </div>
+      ) : null}
+      {state.phase === 'previewed' ? (
+        <div className="mvp-actions">
+          <button className="mvp-action-button" type="button" onClick={confirmPreview}>{copy.confirm}</button>
+          <button className="mvp-action-button" type="button" onClick={cancelPreview}>{copy.cancel}</button>
+        </div>
+      ) : null}
+      {state.phase === 'previewing' ? <p className="agent-state-message">{copy.previewing}</p> : null}
+      {state.phase === 'executing' ? <p className="agent-state-message">{copy.executing}</p> : null}
+      {state.phase === 'cancelled' ? <p className="agent-state-message">{copy.cancelled}</p> : null}
+      {state.phase === 'succeeded' ? (
+        <p className="agent-state-message" data-state="succeeded" data-testid="orchestrator-action-success">
+          {copy.succeeded}: {state.result.externalRecordId}{state.result.replayed ? ` · ${copy.replayed}` : ''}
+        </p>
+      ) : null}
+      {state.phase === 'failed' ? (
+        <p className="agent-state-message" data-state="failed" data-testid="orchestrator-action-failure">{copy.failed}: {state.errorCode}</p>
+      ) : null}
+    </section>
+  );
+}
+
+function AssistantMessage({ message, lang, ui, runtime, onNavigate, onCitationOpen }) {
   const isSourcesOnly = message.mode === 'sources_only';
   const showFallback = isSourcesOnly && !message.content;
   const showSourcesOnlyNotice = isSourcesOnly && Boolean(message.content) && message.reason !== 'moderated';
@@ -430,6 +533,7 @@ function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
       {message.partialSources ? <p className="agent-state-message" data-state="partial">{ui.partial}</p> : null}
       <StructuredFactClassification classification={message.factClassification} ui={ui} />
       <StructuredDevelopmentPlan plan={message.collaborationMap || message.executionPlan || message.developmentPlan} ui={ui} />
+      {runtime.id === 'orchestrator' ? <ActionDraftFlow plan={message.executionPlan} ui={ui} /> : null}
       <p className="agent-grounding-note">{ui.groundedNote}</p>
       {message.citations?.length ? (
         <div className="agent-result-grid">
@@ -746,7 +850,7 @@ export default function NexAeonNavigatorPage({
               <p>{message.content}</p>
             </section>
           ) : (
-            <AssistantMessage key={message.id} message={message} lang={lang} ui={ui} onNavigate={navigateFromResponse} onCitationOpen={openCitation} />
+            <AssistantMessage key={message.id} message={message} lang={lang} ui={ui} runtime={runtime} onNavigate={navigateFromResponse} onCitationOpen={openCitation} />
           )
         ))}
         {isGenerating ? <p className="agent-state-message" data-state="generating">{ui.generating}</p> : null}

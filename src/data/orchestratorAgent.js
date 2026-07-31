@@ -27,6 +27,7 @@ export const ORCHESTRATOR_ASSISTANT_UI = Object.freeze({
     factTitle: '任務事實分級', factLabels: { verified: '已確認', inferred: '推論', recommended: '建議', unknown: '未知' }, factEmpty: '無', factTestId: 'orchestrator-fact-classification',
     planTitle: '結構化執行計畫', planListKeys, planTestId: 'orchestrator-execution-plan',
     planLabels: { objective: '目標', currentState: '現況', tasks: '任務', priority: '優先順序', dependencies: '依賴', blockers: '阻塞', milestones: '里程碑', risks: '風險', acceptanceCriteria: '驗收條件', nextActions: '下一步', crossModulePlan: '跨模組 proposed plan', verificationStatus: '驗證狀態' },
+    actionDraft: { title: 'Action Center 任務草稿', notice: '此操作會寫入外部 Action Center 草稿；不會啟動任務、通知任何人或執行後續工作。', createPreview: '建立任務草稿', previewTitle: '寫入預覽', previewing: '正在由伺服器產生寫入預覽……', confirm: '確認建立任務草稿', cancel: '取消，不建立草稿', executing: '正在建立 Action Center 草稿……', succeeded: '任務草稿建立成功，record ID', failed: '任務草稿建立失敗', cancelled: '已取消，未建立草稿。', expiresAt: '確認期限', rollback: '支援回滾', yes: '是', no: '否', replayed: '已回傳先前成功結果，未重複建立' },
   },
   ko: {
     title: orchestrator.name, intro: '공개 Action Center 데이터를 기준으로 작업, 우선순위, 의존성과 차단 요소를 정리하고 읽기 전용 proposed 실행 계획을 만듭니다.',
@@ -43,6 +44,7 @@ export const ORCHESTRATOR_ASSISTANT_UI = Object.freeze({
     factTitle: '작업 사실 분류', factLabels: { verified: '확인됨', inferred: '추론', recommended: '권장', unknown: '알 수 없음' }, factEmpty: '없음', factTestId: 'orchestrator-fact-classification',
     planTitle: '구조화된 실행 계획', planListKeys, planTestId: 'orchestrator-execution-plan',
     planLabels: { objective: '목표', currentState: '현재 상태', tasks: '작업', priority: '우선순위', dependencies: '의존성', blockers: '차단 요소', milestones: '마일스톤', risks: '위험', acceptanceCriteria: '승인 기준', nextActions: '다음 행동', crossModulePlan: '모듈 간 proposed plan', verificationStatus: '검증 상태' },
+    actionDraft: { title: 'Action Center 작업 초안', notice: '이 작업은 외부 Action Center에 초안을 작성합니다. 작업을 시작하거나 누구에게도 알리지 않으며 후속 작업을 실행하지 않습니다.', createPreview: '작업 초안 만들기', previewTitle: '쓰기 미리보기', previewing: '서버에서 쓰기 미리보기를 생성하고 있습니다…', confirm: '작업 초안 생성 확인', cancel: '취소하고 초안 만들지 않기', executing: 'Action Center 초안을 만들고 있습니다…', succeeded: '작업 초안 생성 성공, record ID', failed: '작업 초안 생성 실패', cancelled: '취소되었습니다. 초안이 생성되지 않았습니다.', expiresAt: '확인 만료', rollback: '롤백 지원', yes: '예', no: '아니요', replayed: '이전 성공 결과를 반환했으며 중복 생성하지 않았습니다' },
   },
   en: {
     title: orchestrator.name, intro: 'Organize tasks, priorities, dependencies, and blockers from public Action Center data into read-only proposed execution plans.',
@@ -59,6 +61,7 @@ export const ORCHESTRATOR_ASSISTANT_UI = Object.freeze({
     factTitle: 'Task fact classification', factLabels: { verified: 'Verified', inferred: 'Inferred', recommended: 'Recommended', unknown: 'Unknown' }, factEmpty: 'None', factTestId: 'orchestrator-fact-classification',
     planTitle: 'Structured execution plan', planListKeys, planTestId: 'orchestrator-execution-plan',
     planLabels: { objective: 'Objective', currentState: 'Current state', tasks: 'Tasks', priority: 'Priority', dependencies: 'Dependencies', blockers: 'Blockers', milestones: 'Milestones', risks: 'Risks', acceptanceCriteria: 'Acceptance criteria', nextActions: 'Next actions', crossModulePlan: 'Cross-module proposed plan', verificationStatus: 'Verification status' },
+    actionDraft: { title: 'Action Center task draft', notice: 'This writes one external Action Center draft. It will not start work, notify anyone, or execute follow-up actions.', createPreview: 'Create task draft', previewTitle: 'Write preview', previewing: 'The server is preparing the write preview…', confirm: 'Confirm action draft creation', cancel: 'Cancel without creating draft', executing: 'Creating the Action Center draft…', succeeded: 'Task draft created, record ID', failed: 'Task draft creation failed', cancelled: 'Cancelled. No draft was created.', expiresAt: 'Confirmation expires', rollback: 'Rollback supported', yes: 'Yes', no: 'No', replayed: 'Prior successful result returned; no duplicate created' },
   },
 });
 

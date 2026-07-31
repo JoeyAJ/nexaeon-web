@@ -6823,3 +6823,8 @@ body {
     bottom: 16px;
   }
 }
+.agent-action-draft-flow{margin-top:20px;padding:18px;border:1px solid rgba(91,228,255,.25);border-radius:16px;background:rgba(13,25,42,.42)}
+.agent-action-draft-flow>h3{margin:0 0 8px}.agent-action-draft-flow>p{margin:0 0 14px}
+.agent-action-preview{margin:14px 0;padding:14px;border-radius:12px;background:rgba(255,255,255,.045)}
+.agent-action-preview dl{display:grid;gap:10px;margin:12px 0}.agent-action-preview dl>div{display:grid;grid-template-columns:minmax(120px,.35fr) 1fr;gap:12px}
+.agent-action-preview dt{font-weight:700;color:var(--accent,#5be4ff)}.agent-action-preview dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}

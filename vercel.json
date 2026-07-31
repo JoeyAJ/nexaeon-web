@@ -1,6 +1,18 @@
 {
   "rewrites": [
     {
+      "source": "/api/agent/orchestrator/actions/preview",
+      "destination": "/api/agent/chat?agent=orchestrator&operation=preview"
+    },
+    {
+      "source": "/api/agent/orchestrator/actions/execute",
+      "destination": "/api/agent/chat?agent=orchestrator&operation=execute"
+    },
+    {
+      "source": "/api/agent/orchestrator/actions/cancel",
+      "destination": "/api/agent/chat?agent=orchestrator&operation=cancel"
+    },
+    {
       "source": "/api/agent/networker/chat",
       "destination": "/api/agent/chat?agent=networker"
     },

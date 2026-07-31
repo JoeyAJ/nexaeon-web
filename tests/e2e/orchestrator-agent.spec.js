@@ -6,6 +6,30 @@ test.beforeEach(async ({ page }) => {
 
 test('Orchestrator runs independently with classifications, proposed plan, sources, refresh, and locales', async ({ page }) => {
   const requests = [];
+  let previewCount = 0;
+  let executeCount = 0;
+  let cancelCount = 0;
+  await page.route('**/api/agent/orchestrator/actions/preview', async (route) => {
+    previewCount += 1;
+    const operationId = `operation-${previewCount}`;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      operationId, agentId: 'orchestrator', toolId: 'createActionDraft', permissionLevel: 'WRITE_CONFIRM',
+      targetDataSource: 'airtable-action-projects', actionType: 'create', payload: route.request().postDataJSON().payload,
+      fieldsToWrite: { 'Project Name': 'Coordinate public work', 'Public Summary': 'Draft plan\n\n[NexAeon draft idempotency:test]', Visibility: 'Draft' },
+      warnings: [], expiresAt: '2026-08-01T01:05:00.000Z', confirmationRequired: true,
+      previewHash: 'preview-hash', idempotencyKey: `idempotency-${previewCount}`, executionStatus: 'previewed',
+      rollbackSupport: false, confirmationToken: `confirmation-${previewCount}`,
+    }) });
+  });
+  await page.route('**/api/agent/orchestrator/actions/cancel', async (route) => {
+    cancelCount += 1;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, operationId: route.request().postDataJSON().operationId, executionStatus: 'cancelled' }) });
+  });
+  await page.route('**/api/agent/orchestrator/actions/execute', async (route) => {
+    executeCount += 1;
+    const body = route.request().postDataJSON();
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, operationId: body.operationId, executionStatus: 'succeeded', targetDataSource: body.targetDataSource, externalRecordId: 'rec-action-draft-real', idempotencyKey: body.idempotencyKey, replayed: false }) });
+  });
   await page.route('**/api/agent/orchestrator/chat', async (route) => {
     requests.push(route.request().postDataJSON());
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -42,6 +66,16 @@ test('Orchestrator runs independently with classifications, proposed plan, sourc
   await expect(page.getByTestId('orchestrator-fact-classification')).toContainText('Unknown');
   await expect(page.getByTestId('orchestrator-execution-plan')).toContainText('Cross-module proposed plan');
   await expect(page.getByTestId('orchestrator-execution-plan')).toContainText('unverified');
+  await page.getByRole('button', { name: 'Create task draft' }).click();
+  await expect(page.getByTestId('orchestrator-action-preview')).toContainText('Visibility');
+  await expect(page.getByTestId('orchestrator-action-preview')).toContainText('Draft');
+  await page.getByRole('button', { name: 'Cancel without creating draft' }).click();
+  await expect(page.getByText('Cancelled. No draft was created.')).toBeVisible();
+  expect(cancelCount).toBe(1); expect(executeCount).toBe(0);
+  await page.getByRole('button', { name: 'Create task draft' }).click();
+  await page.getByRole('button', { name: 'Confirm action draft creation' }).dblclick();
+  await expect(page.getByTestId('orchestrator-action-success')).toContainText('rec-action-draft-real');
+  expect(executeCount).toBe(1);
   await expect(page.locator('.agent-result-card').filter({ hasText: 'Public action' })).toBeVisible();
   expect(requests).toHaveLength(1); expect(requests[0]).toEqual({ message: 'Create a cross-module proposed execution plan', locale: 'en', history: [] });
   await page.getByRole('button', { name: 'Clear chat' }).click(); await expect(page.locator('.agent-message')).toHaveCount(0);
