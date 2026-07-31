@@ -72,6 +72,26 @@ async function fetchHeadWithTimeout(url) {
   }
 }
 
+async function postJsonWithTimeout(url, body) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'nexaeon-production-verifier',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 function collectObjectKeys(value, keys = []) {
   if (!value || typeof value !== 'object') return keys;
   if (Array.isArray(value)) {
@@ -161,32 +181,24 @@ async function verifyEndpoint(endpoint) {
   };
 }
 
-async function verifyAgentChatGetGuardrail() {
-  const response = await fetchWithTimeout(`${BASE_URL}/api/agent/chat`);
-  if (response.status !== 405) throw new Error(`/api/agent/chat: expected 405, got HTTP ${response.status}`);
-
-  const contentType = response.headers.get('content-type') || '';
-  if (!contentType.includes('application/json')) throw new Error('/api/agent/chat: response is not JSON');
+async function verifyXchangeChat() {
+  const response = await postJsonWithTimeout(`${BASE_URL}/api/agent/xchange/chat`, {
+    message: 'Summarize the public learning material named test.',
+    locale: 'en',
+  });
+  if (response.status !== 200) throw new Error(`/api/agent/xchange/chat: expected 200, got HTTP ${response.status}`);
   const payload = await response.json();
-  if (payload?.ok !== true || payload?.mode !== 'sources_only' || payload?.reason !== 'invalid_request') {
-    throw new Error('/api/agent/chat: unsafe 405 contract');
+  if (payload?.agentId !== 'xchange' || !Array.isArray(payload?.executedTools) || !Array.isArray(payload?.citations)) {
+    throw new Error('/api/agent/xchange/chat: unsafe or misrouted success contract');
   }
-
   return {
-    path: '/api/agent/chat',
+    path: '/api/agent/xchange/chat',
     status: response.status,
-    method: 'GET',
+    agentId: payload.agentId,
+    mode: payload.mode,
+    executedTools: payload.executedTools,
+    citationCount: payload.citations.length,
   };
-}
-
-async function verifyXchangeChatGetGuardrail() {
-  const response = await fetchWithTimeout(`${BASE_URL}/api/agent/xchange/chat`);
-  if (response.status !== 405) throw new Error(`/api/agent/xchange/chat: expected 405, got HTTP ${response.status}`);
-  const payload = await response.json();
-  if (payload?.agentId !== 'xchange' || payload?.mode !== 'sources_only' || payload?.reason !== 'invalid_request') {
-    throw new Error('/api/agent/xchange/chat: unsafe or misrouted 405 contract');
-  }
-  return { path: '/api/agent/xchange/chat', status: response.status, agentId: payload.agentId };
 }
 
 async function verifyAgentHealth() {
@@ -236,8 +248,7 @@ async function main() {
   for (const endpoint of ENDPOINTS) {
     endpoints.push(await verifyEndpoint(endpoint));
   }
-  const agentChat = await verifyAgentChatGetGuardrail();
-  const xchangeChat = await verifyXchangeChatGetGuardrail();
+  const xchangeChat = await verifyXchangeChat();
 
   console.log(JSON.stringify({
     ok: true,
@@ -250,7 +261,6 @@ async function main() {
     demoRuntime,
     health,
     endpoints,
-    agentChat,
     xchangeChat,
   }, null, 2));
 }
