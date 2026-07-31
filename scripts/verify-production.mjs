@@ -1,6 +1,7 @@
 const DEFAULT_BASE_URL = 'https://nexaeon-web.vercel.app';
 const BASE_URL = normalizeBaseUrl(process.argv[2] || process.env.NEXAEON_PRODUCTION_URL || DEFAULT_BASE_URL);
 const TIMEOUT_MS = 12000;
+const AGENT_TIMEOUT_MS = 30000;
 
 const ENDPOINTS = [
   '/api/identity/profiles',
@@ -74,7 +75,7 @@ async function fetchHeadWithTimeout(url) {
 
 async function postJsonWithTimeout(url, body) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(new Error('agent timeout')), AGENT_TIMEOUT_MS);
 
   try {
     return await fetch(url, {
