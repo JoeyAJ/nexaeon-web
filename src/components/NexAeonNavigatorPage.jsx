@@ -349,7 +349,7 @@ function StructuredFactClassification({ classification, ui }) {
   if (!classification || !ui.factLabels) return null;
   const levels = ['verified', 'inferred', 'recommended', 'unknown'];
   return (
-    <section className="agent-structured-output" data-testid="engineer-fact-classification">
+    <section className="agent-structured-output" data-testid={ui.factTestId || 'engineer-fact-classification'}>
       <h3>{ui.factTitle}</h3>
       <div className="agent-structured-grid">
         {levels.map((level) => {
@@ -371,16 +371,18 @@ function StructuredFactClassification({ classification, ui }) {
 function planItemText(item) {
   if (typeof item === 'string') return item;
   if (!item || typeof item !== 'object') return '';
-  const text = item.title || item.text || item.name || item.sourceId || '';
+  const baseText = item.title || item.text || item.name || item.dependency || item.sourceId || '';
+  const text = item.module && baseText ? `${item.module}: ${baseText}` : baseText;
   const status = item.status || item.verificationStatus || '';
-  return status ? `${text} — ${status}` : text;
+  const priority = item.priority && !String(text).includes(item.priority) ? ` · ${item.priority}` : '';
+  return status ? `${text}${priority} — ${status}` : `${text}${priority}`;
 }
 
 function StructuredDevelopmentPlan({ plan, ui }) {
   if (!plan || !ui.planLabels) return null;
-  const listKeys = ['scope', 'requirements', 'tasks', 'dependencies', 'risks', 'tests', 'acceptanceCriteria'];
+  const listKeys = ui.planListKeys || ['scope', 'requirements', 'tasks', 'dependencies', 'risks', 'tests', 'acceptanceCriteria'];
   return (
-    <section className="agent-structured-output" data-testid="engineer-development-plan">
+    <section className="agent-structured-output" data-testid={ui.planTestId || 'engineer-development-plan'}>
       <h3>{ui.planTitle}</h3>
       <div className="agent-structured-card">
         <strong>{ui.planLabels.objective}</strong>
@@ -427,7 +429,7 @@ function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
       ) : null}
       {message.partialSources ? <p className="agent-state-message" data-state="partial">{ui.partial}</p> : null}
       <StructuredFactClassification classification={message.factClassification} ui={ui} />
-      <StructuredDevelopmentPlan plan={message.developmentPlan} ui={ui} />
+      <StructuredDevelopmentPlan plan={message.executionPlan || message.developmentPlan} ui={ui} />
       <p className="agent-grounding-note">{ui.groundedNote}</p>
       {message.citations?.length ? (
         <div className="agent-result-grid">
@@ -601,6 +603,7 @@ export default function NexAeonNavigatorPage({
         supportingAgentId: payload.supportingAgentId || null,
         factClassification: payload.factClassification || null,
         developmentPlan: payload.developmentPlan || null,
+        executionPlan: payload.executionPlan || null,
       };
       setMessages((current) => (requestSequence === requestSequenceRef.current ? [...current, assistantMessage] : current));
       if (response.ok) {

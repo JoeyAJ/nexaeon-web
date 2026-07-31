@@ -155,7 +155,7 @@ export function createResponse(source, reason, items) {
   });
 }
 
-function createFallbackResponse(reason) {
+export function createFallbackResponse(reason) {
   const fallbackItems = getModuleData(MODULE_KEY).map(normalizeFallbackProject);
 
   return {
@@ -165,19 +165,17 @@ function createFallbackResponse(reason) {
   };
 }
 
-export default async function handler(req, res) {
-  if (rejectUnsupportedMethod(req, res)) return;
+export async function getActionProjects({
+  env = process.env,
+  getAirtableRecordsImpl = getAirtableRecords,
+} = {}) {
+  const baseId = env.AIRTABLE_BASE_ID?.trim();
+  const tableId = env.AIRTABLE_PROJECTS_TABLE_ID?.trim();
 
-  const baseId = process.env.AIRTABLE_BASE_ID?.trim();
-  const tableId = process.env.AIRTABLE_PROJECTS_TABLE_ID?.trim();
-
-  if (!process.env.AIRTABLE_API_KEY || !baseId || !tableId) {
-    sendJsonResponse(req, res, createFallbackResponse('missing_env'));
-    return;
-  }
+  if (!env.AIRTABLE_API_KEY || !baseId || !tableId) return createFallbackResponse('missing_env');
 
   try {
-    const records = await getAirtableRecords({
+    const records = await getAirtableRecordsImpl({
       baseId,
       tableId,
     });
@@ -186,10 +184,15 @@ export default async function handler(req, res) {
       .filter(isPublicRecord)
       .map(normalizeAirtableProject);
 
-    sendJsonResponse(req, res, createResponse('airtable', null, airtableItems));
+    return createResponse('airtable', null, airtableItems);
   } catch (error) {
     const reason = getUpstreamFailureReason(error);
     logSafeApiError('/api/action/projects', reason, 'airtable');
-    sendJsonResponse(req, res, createFallbackResponse(reason));
+    return createFallbackResponse(reason);
   }
+}
+
+export default async function handler(req, res) {
+  if (rejectUnsupportedMethod(req, res)) return;
+  sendJsonResponse(req, res, await getActionProjects());
 }

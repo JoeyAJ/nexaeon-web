@@ -18,7 +18,7 @@ const EXPECTED_MODULE_AGENTS = {
   teaching: ['NexAeon Xchange'],
   'knowledge-lab': ['NexAeon Archivist'],
   projects: ['NexAeon Engineer'],
-  'field-lab': ['Action Agent'],
+  'field-lab': ['NexAeon Orchestrator'],
 };
 
 const EXPECTED_AGENT_SYSTEM_MAP_AGENTS = [
@@ -204,7 +204,7 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
       teaching: 'xchange',
       'knowledge-lab': 'archivist',
       projects: 'engineer',
-      'field-lab': 'action',
+      'field-lab': 'orchestrator',
     }[module.id];
     if (module.id === 'research') {
       await expect(page.getByTestId('module-agent-entry-explorer')).toContainText('Explorer Active');
@@ -218,6 +218,9 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
     } else if (module.id === 'projects') {
       await expect(page.getByTestId('module-agent-entry-engineer')).toContainText('Engineer Active');
       await expect(page.getByTestId('module-agent-entry-engineer')).toContainText('read-only Prototype Tools');
+    } else if (module.id === 'field-lab') {
+      await expect(page.getByTestId('module-agent-entry-orchestrator')).toContainText('Orchestrator Active');
+      await expect(page.getByTestId('module-agent-entry-orchestrator')).toContainText('read-only Action Tools');
     } else {
       await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Connected to Navigator');
       await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Its dedicated Agent is still under development.');
@@ -264,12 +267,12 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
   await page.goto('/');
   await page.getByRole('button', { name: 'Switch to English' }).click();
   await page.getByTestId('module-card-field-lab').locator('.module-card-footer button').click();
-  await page.getByTestId('module-entry-action-projects').click();
-  await expect(page).toHaveURL(/\/field-lab\/action-projects$/);
-  await expect(page.getByRole('heading', { name: 'Field Lab', level: 1 })).toBeVisible();
+  await page.getByTestId('module-agent-entry-orchestrator').getByRole('button', { name: 'Use Orchestrator' }).click();
+  await expect(page).toHaveURL(/\/field-lab\/nexaeon-orchestrator$/);
+  await expect(page.getByTestId('orchestrator-agent-page')).toBeVisible();
   await page.reload();
-  await expect(page).toHaveURL(/\/field-lab\/action-projects$/);
-  await expect(page.getByRole('heading', { name: 'Field Lab', level: 1 })).toBeVisible();
+  await expect(page).toHaveURL(/\/field-lab\/nexaeon-orchestrator$/);
+  await expect(page.getByRole('heading', { name: 'NexAeon Orchestrator', level: 1 })).toBeVisible();
 
   await page.goBack();
   await expect(page).not.toHaveURL(/\/field-lab\/action-projects$/);
@@ -474,12 +477,14 @@ test('navigator searches public knowledge with grounded source cards', async ({ 
   const xchangeCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Xchange' });
   const archivistCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Archivist' });
   const engineerCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Engineer' });
+  const orchestratorCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Orchestrator' });
   await expect(navigatorCard).toContainText('Active');
   await expect(explorerCard).toContainText('Active');
   await expect(xchangeCard).toContainText('Active');
   await expect(archivistCard).toContainText('Active');
   await expect(engineerCard).toContainText('Active');
-  for (const agentName of EXPECTED_AGENT_SYSTEM_MAP_AGENTS.slice(5)) {
+  await expect(orchestratorCard).toContainText('Active');
+  for (const agentName of EXPECTED_AGENT_SYSTEM_MAP_AGENTS.slice(6)) {
     await expect(page.locator('.agent-landing-card').filter({ hasText: agentName })).toContainText('Coming Soon');
   }
   await expect(page.locator('body')).not.toContainText(new RegExp('Nex\\u014dn'));

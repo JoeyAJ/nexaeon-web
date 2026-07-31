@@ -32,6 +32,9 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     engineerActive: 'Engineer 已啟用', openEngineer: '使用 Engineer',
     engineerIndicatorDescription: '由 NexAeon Engineer 提供獨立原型分析與技術規劃',
     engineerDescription: 'NexAeon Engineer 目前使用唯讀 Prototype Tools 分析公開 Demo，並提供 planned／unverified 的 MVP、Sprint、測試與驗收規劃。',
+    orchestratorActive: 'Orchestrator 已啟用', openOrchestrator: '使用 Orchestrator',
+    orchestratorIndicatorDescription: '由 NexAeon Orchestrator 提供獨立行動規劃與任務編排',
+    orchestratorDescription: 'NexAeon Orchestrator 目前使用唯讀 Action Tools 整理公開任務，並提供 proposed／planned 的執行與跨模組協調計畫。',
   },
   ko: {
     sectionLabel: '모듈 Agent',
@@ -57,6 +60,9 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     engineerActive: 'Engineer 활성화됨', openEngineer: 'Engineer 사용',
     engineerIndicatorDescription: 'NexAeon Engineer가 독립적인 프로토타입 분석과 기술 계획을 제공합니다',
     engineerDescription: 'NexAeon Engineer는 읽기 전용 Prototype Tools로 공개 Demo를 분석하고 planned/unverified 상태의 MVP, Sprint, 테스트 및 승인 계획을 제공합니다.',
+    orchestratorActive: 'Orchestrator 활성화됨', openOrchestrator: 'Orchestrator 사용',
+    orchestratorIndicatorDescription: 'NexAeon Orchestrator가 독립적인 행동 계획과 작업 편성을 제공합니다',
+    orchestratorDescription: 'NexAeon Orchestrator는 읽기 전용 Action Tools로 공개 작업을 정리하고 proposed/planned 실행 및 모듈 간 조율 계획을 제공합니다.',
   },
   en: {
     sectionLabel: 'Module Agent',
@@ -82,6 +88,9 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     engineerActive: 'Engineer Active', openEngineer: 'Use Engineer',
     engineerIndicatorDescription: 'NexAeon Engineer provides independent prototype analysis and technical planning',
     engineerDescription: 'NexAeon Engineer uses read-only Prototype Tools to analyze public Demos and provide planned/unverified MVP, sprint, test, and acceptance plans.',
+    orchestratorActive: 'Orchestrator Active', openOrchestrator: 'Use Orchestrator',
+    orchestratorIndicatorDescription: 'NexAeon Orchestrator provides independent action planning and task orchestration',
+    orchestratorDescription: 'NexAeon Orchestrator uses read-only Action Tools to organize public tasks and provide proposed/planned execution and cross-module coordination plans.',
   },
 });
 
@@ -121,6 +130,9 @@ export function getModuleAgentStatus(agent, lang = 'en') {
   if (agent.key === 'engineer' && agent.chatEnabled) {
     return { label: copy.engineerActive, tone: 'active', cta: copy.openEngineer, indicatorDescription: copy.engineerIndicatorDescription, description: copy.engineerDescription };
   }
+  if (agent.key === 'orchestrator' && agent.chatEnabled) {
+    return { label: copy.orchestratorActive, tone: 'active', cta: copy.openOrchestrator, indicatorDescription: copy.orchestratorIndicatorDescription, description: copy.orchestratorDescription };
+  }
   return {
     label: copy[agent.status] || agent.status,
     tone: agent.status,
@@ -140,6 +152,8 @@ export function getModuleAgentEntries(moduleId, lang = 'en') {
         ? getAgentByKey('archivist')
         : moduleId === 'projects'
           ? getAgentByKey('engineer')
+          : moduleId === 'field-lab'
+            ? getAgentByKey('orchestrator')
           : null;
   const legacyPresentation = independentAgent || getPublicAgents().find((agent) => agent.moduleKey === moduleId);
 

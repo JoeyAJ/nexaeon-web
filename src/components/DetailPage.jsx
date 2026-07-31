@@ -44,6 +44,11 @@ import {
   ENGINEER_ASSISTANT_UI,
   getEngineerDetailItem,
 } from '../data/engineerAgent.js';
+import {
+  ORCHESTRATOR_AGENT_PAGE,
+  ORCHESTRATOR_ASSISTANT_UI,
+  getOrchestratorDetailItem,
+} from '../data/orchestratorAgent.js';
 import { createPrincessModuleActivityAdapter } from '../lib/princessModuleActivity.ts';
 import { getNavigatorSourceRoute } from '../lib/companionActionConfig.js';
 
@@ -2757,7 +2762,8 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
     || (type === 'research' && id === 'nexaeon-explorer' ? getExplorerDetailItem(lang) : null)
     || (type === 'teaching' && id === 'nexaeon-xchange' ? getXchangeDetailItem(lang) : null)
     || (type === 'knowledge-lab' && id === 'nexaeon-archivist' ? getArchivistDetailItem(lang) : null)
-    || (type === 'projects' && id === 'nexaeon-engineer' ? getEngineerDetailItem(lang) : null);
+    || (type === 'projects' && id === 'nexaeon-engineer' ? getEngineerDetailItem(lang) : null)
+    || (type === 'field-lab' && id === 'nexaeon-orchestrator' ? getOrchestratorDetailItem(lang) : null);
   const contextId = ({ teaching: 'coaching', projects: 'prototype', action: 'action', research: 'research', knowledge: 'knowledge', 'knowledge-lab': 'knowledge', identity: 'identity' })[type] || 'research';
   const activityAdapter = useMemo(() => createPrincessModuleActivityAdapter(princessEventBridge, contextId), [contextId, princessEventBridge]);
   const parentPath = `/#${type}`;
@@ -2827,6 +2833,16 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             activityAdapter={activityAdapter}
             runtime={ENGINEER_AGENT_PAGE}
             assistantUi={ENGINEER_ASSISTANT_UI}
+          />
+        ) : item.id === 'nexaeon-orchestrator' ? (
+          <NexAeonNavigatorPage
+            item={item}
+            common={common}
+            lang={lang}
+            navigate={navigate}
+            activityAdapter={activityAdapter}
+            runtime={ORCHESTRATOR_AGENT_PAGE}
+            assistantUi={ORCHESTRATOR_ASSISTANT_UI}
           />
         ) : item.id === 'nexaeon-navigator' ? (
           <NexAeonNavigatorPage
