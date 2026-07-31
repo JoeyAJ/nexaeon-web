@@ -31,12 +31,12 @@ export function ModuleAgentIndicator({ moduleId, lang, navigate }) {
       className="module-card-agent-line"
       data-testid={`module-agent-indicator-${moduleId}`}
       type="button"
-      aria-label={copy.useAgent(agent.name)}
+      aria-label={copy.openActive}
       onClick={() => openModuleAgent({ agent, moduleId, lang, navigate })}
     >
       <span>{copy.indicatorLabel}</span>
       <strong>{entries.map(({ agent }) => agent.name).join(' / ')}</strong>
-      <em>{entries.map(({ status }) => status.label).join(' · ')}</em>
+      <em>{copy.indicatorDescription} · {copy.openActive}</em>
     </button>
   );
 }
@@ -63,7 +63,7 @@ export default function ModuleAgentEntry({ moduleId, lang, navigate }) {
               <h5>{agent.name}</h5>
               <p className="module-agent-entry-role">{localized.subtitle}</p>
             </div>
-            <p>{localized.description}</p>
+            <p>{copy.moduleDescription}</p>
             <div className="module-agent-entry-meta">
               <span>{localized.moduleLabel}</span>
             </div>

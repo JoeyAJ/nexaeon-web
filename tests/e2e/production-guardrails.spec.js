@@ -206,14 +206,15 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
       projects: 'prototype',
       'field-lab': 'action',
     }[module.id];
-    await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Active');
+    await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Connected to Navigator');
+    await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Its dedicated Agent is still under development.');
   }
 
   await page.getByTestId('module-card-identity').locator('.module-card-footer button').click();
-  await expect(page.getByTestId('module-agent-entry-identity')).toContainText('Active');
+  await expect(page.getByTestId('module-agent-entry-identity')).toContainText('Connected to Navigator');
 
   await page.getByTestId('module-card-research').locator('.module-card-footer button').click();
-  await page.getByTestId('module-agent-entry-research').getByRole('button', { name: 'Open Agent' }).click();
+  await page.getByTestId('module-agent-entry-research').getByRole('button', { name: 'Use Navigator' }).click();
   await expect(page).toHaveURL(/\/identity\/nexaeon-navigator$/);
   await expect(page.getByTestId('navigator-default-agent')).toContainText('Research Agent');
   await expect(page.locator('#navigator-agent-query')).toBeFocused();

@@ -3,7 +3,9 @@ import test from 'node:test';
 
 import {
   AGENT_LANDING_COPY,
+  AGENT_STATUS,
   SCAFFOLD_PROHIBITED_CAPABILITIES,
+  getPublicAgents,
 } from '../src/data/agentRegistry.js';
 import { MODULE_AGENT_STATUS } from '../lib/agent/moduleAgentRegistry.js';
 import {
@@ -17,6 +19,29 @@ test('agent system map copy identifies the Navigator landing overview as a globa
   for (const lang of ['zh', 'ko', 'en']) {
     assert.equal(AGENT_LANDING_COPY[lang].title, 'NexAeon Agent System Map');
     assert.ok(AGENT_LANDING_COPY[lang].intro);
+  }
+});
+
+test('agent system map keeps Navigator active and all six dedicated agents coming soon', () => {
+  const agents = getPublicAgents();
+  const navigator = agents.find((agent) => agent.key === 'navigator');
+  const dedicatedAgents = agents.filter((agent) => agent.key !== 'navigator');
+
+  assert.equal(navigator.status, AGENT_STATUS.active);
+  assert.equal(navigator.chatEnabled, true);
+  assert.equal(navigator.comingSoon, false);
+  assert.deepEqual(dedicatedAgents.map((agent) => agent.name), [
+    'NexAeon Explorer',
+    'NexAeon Xchange',
+    'NexAeon Archivist',
+    'NexAeon Engineer',
+    'NexAeon Orchestrator',
+    'NexAeon Networker',
+  ]);
+  for (const agent of dedicatedAgents) {
+    assert.equal(agent.status, AGENT_STATUS.scaffold, agent.name);
+    assert.equal(agent.chatEnabled, false, agent.name);
+    assert.equal(agent.comingSoon, true, agent.name);
   }
 });
 
@@ -42,13 +67,17 @@ test('module agent placement is derived from the six Sprint 3 module agents', ()
   ]);
 });
 
-test('all module cards localize active status without changing agent ids', () => {
+test('all module cards localize Navigator connection status without changing agent ids', () => {
   const expectedNames = {
     zh: ['身份 Agent', '研究 Agent', '學習教練 Agent', '知識 Agent', '原型 Agent', '行動 Agent'],
     ko: ['정체성 에이전트', '연구 에이전트', '학습 코칭 에이전트', '지식 에이전트', '프로토타입 에이전트', '실행 에이전트'],
     en: ['Identity Agent', 'Research Agent', 'Coaching Agent', 'Knowledge Agent', 'Prototype Agent', 'Action Agent'],
   };
-  const expectedStatus = { zh: '已啟用', ko: '활성화됨', en: 'Active' };
+  const expectedStatus = {
+    zh: '已接入 Navigator',
+    ko: 'Navigator 연결됨',
+    en: 'Connected to Navigator',
+  };
 
   for (const lang of ['zh', 'ko', 'en']) {
     const entries = getAllModuleAgentEntries(lang);
@@ -66,10 +95,27 @@ test('all module cards localize active status without changing agent ids', () =>
 });
 
 test('module agent entries expose localized labels, module names, routes, and CTA text', () => {
+  const expectedCopy = {
+    zh: {
+      cta: '使用 Navigator',
+      description: '此模組目前由 NexAeon Navigator 讀取公開資料並提供模組化問答。專屬 Agent 仍在建設中。',
+    },
+    ko: {
+      cta: 'Navigator 사용',
+      description: '이 모듈은 현재 NexAeon Navigator가 공개 데이터를 불러와 모듈 기반 답변을 제공합니다. 전용 Agent는 아직 구축 중입니다.',
+    },
+    en: {
+      cta: 'Use Navigator',
+      description: 'This module currently uses NexAeon Navigator to retrieve public data and provide module-specific responses. Its dedicated Agent is still under development.',
+    },
+  };
+
   for (const lang of ['zh', 'ko', 'en']) {
     const copy = getModuleAgentCopy(lang);
     assert.ok(copy.sectionLabel);
-    assert.ok(copy.openActive);
+    assert.equal(copy.openActive, expectedCopy[lang].cta);
+    assert.equal(copy.moduleDescription, expectedCopy[lang].description);
+    assert.ok(copy.indicatorDescription);
 
     for (const moduleId of Object.keys(MODULE_AGENT_PLACEMENTS)) {
       const entries = getModuleAgentEntries(moduleId, lang);
@@ -79,7 +125,7 @@ test('module agent entries expose localized labels, module names, routes, and CT
         assert.ok(localized.subtitle, agent.key);
         assert.ok(localized.moduleLabel, agent.key);
         assert.ok(localized.description, agent.key);
-        assert.ok(status.cta, agent.key);
+        assert.equal(status.cta, expectedCopy[lang].cta, agent.key);
       }
     }
   }
