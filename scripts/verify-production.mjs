@@ -201,6 +201,26 @@ async function verifyXchangeChat() {
   };
 }
 
+async function verifyArchivistChat() {
+  const response = await postJsonWithTimeout(`${BASE_URL}/api/agent/archivist/chat`, {
+    message: 'Summarize the public knowledge related to AI Tutor.',
+    locale: 'en',
+  });
+  if (response.status !== 200) throw new Error(`/api/agent/archivist/chat: expected 200, got HTTP ${response.status}`);
+  const payload = await response.json();
+  if (payload?.agentId !== 'archivist' || !Array.isArray(payload?.executedTools) || !Array.isArray(payload?.citations)) {
+    throw new Error('/api/agent/archivist/chat: unsafe or misrouted success contract');
+  }
+  if (!payload?.conceptMap || !Array.isArray(payload.conceptMap.nodes) || !Array.isArray(payload.conceptMap.relationships)) {
+    throw new Error('/api/agent/archivist/chat: missing concept-map contract');
+  }
+  return {
+    path: '/api/agent/archivist/chat', status: response.status, agentId: payload.agentId,
+    mode: payload.mode, executedTools: payload.executedTools, citationCount: payload.citations.length,
+    conceptNodeCount: payload.conceptMap.nodes.length,
+  };
+}
+
 async function verifyAgentHealth() {
   const head = await fetchHeadWithTimeout(`${BASE_URL}/api/agent/health`);
   if (head.status !== 200) throw new Error(`/api/agent/health HEAD: expected 200, got HTTP ${head.status}`);
@@ -241,6 +261,7 @@ async function main() {
   const navigatorRoute = await verifySpaRoute('/identity/nexaeon-navigator');
   const explorerRoute = await verifySpaRoute('/research/nexaeon-explorer');
   const xchangeRoute = await verifySpaRoute('/teaching/nexaeon-xchange');
+  const archivistRoute = await verifySpaRoute('/knowledge-lab/nexaeon-archivist');
   const legacyNavigatorRoute = await verifySpaRoute('/identity/nexon-ai-assistant');
   const demoRuntime = await verifySpaRoute('/projects/module-demos/nexaeon-ai-tutoring-mvp');
   const health = await verifyAgentHealth();
@@ -249,6 +270,7 @@ async function main() {
     endpoints.push(await verifyEndpoint(endpoint));
   }
   const xchangeChat = await verifyXchangeChat();
+  const archivistChat = await verifyArchivistChat();
 
   console.log(JSON.stringify({
     ok: true,
@@ -257,11 +279,13 @@ async function main() {
     navigatorRoute,
     explorerRoute,
     xchangeRoute,
+    archivistRoute,
     legacyNavigatorRoute,
     demoRuntime,
     health,
     endpoints,
     xchangeChat,
+    archivistChat,
   }, null, 2));
 }
 

@@ -62,6 +62,27 @@ export const XCHANGE_TOOL_ALLOWLIST = Object.freeze([
   'listCourseStructures',
 ]);
 
+export const ARCHIVIST_ALLOWED_CAPABILITIES = Object.freeze([
+  'public_knowledge_search',
+  'public_knowledge_item_retrieval',
+  'public_knowledge_filtering',
+  'public_knowledge_topic_listing',
+  'knowledge_relationship_analysis',
+  'knowledge_theme_grouping',
+  'concept_map_structure',
+  'citations',
+  'localization',
+]);
+
+export const ARCHIVIST_TOOL_ALLOWLIST = Object.freeze([
+  'searchKnowledgeItems',
+  'getKnowledgeItem',
+  'filterKnowledgeItems',
+  'listKnowledgeTopics',
+  'findRelatedKnowledge',
+  'groupKnowledgeByTheme',
+]);
+
 export const SCAFFOLD_ALLOWED_CAPABILITIES = Object.freeze([
   'public_profile_display',
   'route_scaffold',
@@ -295,9 +316,9 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
       en: 'Knowledge Curation Agent',
     },
     description: {
-      zh: '未來協助整理知識節點、研究筆記、概念地圖與可追溯資料結構。',
-      ko: '향후 지식 노드, 연구 노트, 개념 지도, 추적 가능한 자료 구조를 정리합니다.',
-      en: 'Prepared to curate knowledge nodes, research notes, concept maps, and traceable data structures.',
+      zh: '搜尋、分類並連結目前公開的文獻、研究筆記、案例、概念、知識卡片與工具。',
+      ko: '현재 공개된 문헌, 연구 노트, 사례, 개념, 지식 카드와 도구를 검색하고 분류하며 연결합니다.',
+      en: 'Searches, classifies, and connects currently public literature, research notes, cases, concepts, knowledge cards, and tools.',
     },
     futureUse: {
       zh: ['知識節點整理', '研究筆記典藏', '概念關係梳理', '來源脈絡維護'],
@@ -310,16 +331,18 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
       ko: 'Knowledge Lab｜지식 실험실',
       en: 'Knowledge Lab',
     },
-    status: AGENT_STATUS.scaffold,
+    status: AGENT_STATUS.active,
     route: '/knowledge-lab/nexaeon-archivist',
     sourceScope: ['knowledge'],
-    enabled: false,
+    enabled: true,
     public: true,
-    chatEnabled: false,
-    comingSoon: true,
-    runtimeMode: 'scaffold_static',
-    allowedCapabilities: SCAFFOLD_ALLOWED_CAPABILITIES,
-    prohibitedCapabilities: SCAFFOLD_PROHIBITED_CAPABILITIES,
+    chatEnabled: true,
+    comingSoon: false,
+    runtimeMode: 'archivist_tools',
+    allowedCapabilities: ARCHIVIST_ALLOWED_CAPABILITIES,
+    toolAllowlist: ARCHIVIST_TOOL_ALLOWLIST,
+    prohibitedCapabilities: COMMON_PROHIBITED_CAPABILITIES,
+    answerLabel: 'ARCHIVIST',
   },
   {
     key: 'engineer',

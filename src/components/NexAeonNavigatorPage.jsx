@@ -465,7 +465,7 @@ export default function NexAeonNavigatorPage({
     const trimmed = String(nextQuery || '').trim();
     if (!trimmed || retryAfterSeconds > 0 || isGenerating || activeRequestRef.current || submissionLockRef.current) return;
     const now = Date.now();
-    if (lastSubmissionRef.current.query === trimmed && now - lastSubmissionRef.current.at < 1000) return;
+    if (lastSubmissionRef.current.query === trimmed && now - lastSubmissionRef.current.at < 3000) return;
     lastSubmissionRef.current = { query: trimmed, at: now };
     activeRequestRef.current = true;
     submissionLockRef.current = true;

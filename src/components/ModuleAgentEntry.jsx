@@ -9,7 +9,7 @@ import {
 } from '../lib/companionActionConfig.js';
 
 function openModuleAgent({ agent, moduleId, lang, navigate }) {
-  if (['explorer', 'xchange'].includes(agent.key) && agent.chatEnabled && agent.route) {
+  if (['explorer', 'xchange', 'archivist'].includes(agent.key) && agent.chatEnabled && agent.route) {
     navigate(agent.route);
     return;
   }

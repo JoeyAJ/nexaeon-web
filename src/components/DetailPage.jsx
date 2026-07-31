@@ -34,6 +34,11 @@ import {
   XCHANGE_ASSISTANT_UI,
   getXchangeDetailItem,
 } from '../data/xchangeAgent.js';
+import {
+  ARCHIVIST_AGENT_PAGE,
+  ARCHIVIST_ASSISTANT_UI,
+  getArchivistDetailItem,
+} from '../data/archivistAgent.js';
 import { createPrincessModuleActivityAdapter } from '../lib/princessModuleActivity.ts';
 import { getNavigatorSourceRoute } from '../lib/companionActionConfig.js';
 
@@ -2745,8 +2750,9 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
   const { common } = content;
   const item = getDetailItem(type, id, lang)
     || (type === 'research' && id === 'nexaeon-explorer' ? getExplorerDetailItem(lang) : null)
-    || (type === 'teaching' && id === 'nexaeon-xchange' ? getXchangeDetailItem(lang) : null);
-  const contextId = ({ teaching: 'coaching', projects: 'prototype', action: 'action', research: 'research', knowledge: 'knowledge', identity: 'identity' })[type] || 'research';
+    || (type === 'teaching' && id === 'nexaeon-xchange' ? getXchangeDetailItem(lang) : null)
+    || (type === 'knowledge-lab' && id === 'nexaeon-archivist' ? getArchivistDetailItem(lang) : null);
+  const contextId = ({ teaching: 'coaching', projects: 'prototype', action: 'action', research: 'research', knowledge: 'knowledge', 'knowledge-lab': 'knowledge', identity: 'identity' })[type] || 'research';
   const activityAdapter = useMemo(() => createPrincessModuleActivityAdapter(princessEventBridge, contextId), [contextId, princessEventBridge]);
   const parentPath = `/#${type}`;
   const goToParent = () => {
@@ -2795,6 +2801,16 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
             activityAdapter={activityAdapter}
             runtime={XCHANGE_AGENT_PAGE}
             assistantUi={XCHANGE_ASSISTANT_UI}
+          />
+        ) : item.id === 'nexaeon-archivist' ? (
+          <NexAeonNavigatorPage
+            item={item}
+            common={common}
+            lang={lang}
+            navigate={navigate}
+            activityAdapter={activityAdapter}
+            runtime={ARCHIVIST_AGENT_PAGE}
+            assistantUi={ARCHIVIST_ASSISTANT_UI}
           />
         ) : item.id === 'nexaeon-navigator' ? (
           <NexAeonNavigatorPage

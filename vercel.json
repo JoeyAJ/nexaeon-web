@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/agent/archivist/chat",
+      "destination": "/api/agent/chat?agent=archivist"
+    },
+    {
       "source": "/api/agent/xchange/chat",
       "destination": "/api/agent/chat?agent=xchange"
     },

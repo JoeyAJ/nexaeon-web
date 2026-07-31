@@ -25,6 +25,10 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     openXchange: '使用 Xchange',
     xchangeIndicatorDescription: '由 NexAeon Xchange 提供獨立學習教練與課程設計',
     xchangeDescription: 'NexAeon Xchange 目前使用唯讀 Learning Tools 搜尋公開教學素材並協助設計課程、活動、任務與反思流程。',
+    archivistActive: 'Archivist 已啟用',
+    openArchivist: '使用 Archivist',
+    archivistIndicatorDescription: '由 NexAeon Archivist 提供獨立知識整理與關聯分析',
+    archivistDescription: 'NexAeon Archivist 目前使用唯讀 Knowledge Tools 搜尋、分類並連結公開知識資料。',
   },
   ko: {
     sectionLabel: '모듈 Agent',
@@ -43,6 +47,10 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     openXchange: 'Xchange 사용',
     xchangeIndicatorDescription: 'NexAeon Xchange가 독립적인 학습 코칭과 수업 설계를 제공합니다',
     xchangeDescription: 'NexAeon Xchange는 읽기 전용 Learning Tools로 공개 교육 자료를 검색하고 수업, 활동, 과제와 성찰 흐름 설계를 지원합니다.',
+    archivistActive: 'Archivist 활성화됨',
+    openArchivist: 'Archivist 사용',
+    archivistIndicatorDescription: 'NexAeon Archivist가 독립적인 지식 정리와 관계 분석을 제공합니다',
+    archivistDescription: 'NexAeon Archivist는 읽기 전용 Knowledge Tools로 공개 지식 데이터를 검색, 분류하고 연결합니다.',
   },
   en: {
     sectionLabel: 'Module Agent',
@@ -61,6 +69,10 @@ export const MODULE_AGENT_ENTRY_COPY = Object.freeze({
     openXchange: 'Use Xchange',
     xchangeIndicatorDescription: 'NexAeon Xchange provides independent learning coaching and course design',
     xchangeDescription: 'NexAeon Xchange uses read-only Learning Tools to search public teaching materials and support course, activity, task, and reflection design.',
+    archivistActive: 'Archivist Active',
+    openArchivist: 'Use Archivist',
+    archivistIndicatorDescription: 'NexAeon Archivist provides independent knowledge curation and relation analysis',
+    archivistDescription: 'NexAeon Archivist uses read-only Knowledge Tools to search, classify, and connect public knowledge data.',
   },
 });
 
@@ -88,6 +100,15 @@ export function getModuleAgentStatus(agent, lang = 'en') {
       description: copy.xchangeDescription,
     };
   }
+  if (agent.key === 'archivist' && agent.chatEnabled) {
+    return {
+      label: copy.archivistActive,
+      tone: 'active',
+      cta: copy.openArchivist,
+      indicatorDescription: copy.archivistIndicatorDescription,
+      description: copy.archivistDescription,
+    };
+  }
   return {
     label: copy[agent.status] || agent.status,
     tone: agent.status,
@@ -103,7 +124,9 @@ export function getModuleAgentEntries(moduleId, lang = 'en') {
     ? getAgentByKey('explorer')
     : moduleId === 'teaching'
       ? getAgentByKey('xchange')
-      : null;
+      : moduleId === 'knowledge-lab'
+        ? getAgentByKey('archivist')
+        : null;
   const legacyPresentation = independentAgent || getPublicAgents().find((agent) => agent.moduleKey === moduleId);
 
   return moduleAgents
