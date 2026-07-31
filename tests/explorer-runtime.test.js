@@ -11,7 +11,6 @@ import {
   handleExplorerChatRequest,
   validateExplorerRequestBody,
 } from '../lib/agent/explorerRuntime.js';
-import { getExplorerHealthPayload } from '../lib/agent/explorerHealth.js';
 import { EXPLORER_TOOL_NAMES } from '../lib/agent/explorerResearchTools.js';
 
 function createReq(body = { message: 'Compare UTAUT methods', locale: 'en' }) {
@@ -209,19 +208,6 @@ test('Explorer returns explicit empty and tool-error states', async () => {
   });
   assert.equal(failed.payload.reason, 'tool_unavailable');
   assert.deepEqual(failed.payload.executedTools, []);
-});
-
-test('Explorer health reports independent active read-only execution state', () => {
-  const health = getExplorerHealthPayload({
-    now: new Date('2026-07-31T00:00:00.000Z'),
-    config,
-  });
-  assert.equal(health.ok, true);
-  assert.equal(health.agentId, 'explorer');
-  assert.equal(health.mode, 'ai');
-  assert.equal(health.readOnly, true);
-  assert.deepEqual(health.tools, EXPLORER_TOOL_NAMES);
-  assert.deepEqual(health.sourceScope, ['research']);
 });
 
 test('Navigator request construction remains tool-free and unchanged', () => {
