@@ -22,7 +22,7 @@ import {
   validateActionDraftOutput,
 } from '../lib/agent/toolExecutionRuntime.js';
 
-const env = { AIRTABLE_API_KEY: 'server-only-test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'tbl-test' };
+const env = { AIRTABLE_API_KEY: 'server-only-test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'tbl-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit' };
 const req = { headers: { origin: 'https://nexaeon-web.vercel.app', 'user-agent': 'tool-runtime-test', 'x-forwarded-for': '203.0.113.8' } };
 const payload = { title: 'Ship Stage 5-3A', description: 'Create a controlled task draft.' };
 const actor = { actorId: 'test-admin', role: 'admin', sessionId: 'session-test' };
@@ -31,7 +31,7 @@ function executionBody(preview, overrides = {}) {
   return {
     operationId: preview.operationId, agentId: preview.agentId, toolId: preview.toolId,
     targetDataSource: preview.targetDataSource, payload: preview.payload,
-    idempotencyKey: preview.idempotencyKey, confirmationToken: preview.confirmationToken,
+    idempotencyKey: preview.idempotencyKey, auditRecordId: preview.auditRecordId, confirmationToken: preview.confirmationToken,
     ...overrides,
   };
 }
@@ -59,7 +59,7 @@ test('server preview includes fixed hidden-Draft fields, bounded schema, hash, t
   const now = Date.UTC(2026, 7, 1);
   const preview = await createOperationPreview({ payload, req, actor, env, now, operationId: 'operation-1' });
   assert.equal(preview.executionStatus, 'previewed'); assert.equal(preview.permissionLevel, 'WRITE_CONFIRM');
-  assert.deepEqual(Object.keys(preview.fieldsToWrite).sort(), ['Project Name', 'Public Summary']);
+  assert.deepEqual(Object.keys(preview.fieldsToWrite).sort(), ['Action Draft Schema Version', 'Confirmation Timestamp', 'Created By', 'Created Via Agent', 'Draft Status', 'Execution Status', 'Idempotency Key', 'Operation ID', 'Project Name', 'Public Summary', 'Source Tool ID']);
   assert.match(preview.fieldsToWrite['Project Name'], /^\[Draft [a-f0-9]{12}\]/); assert.match(preview.fieldsToWrite['Public Summary'], /idempotency:/);
   assert.equal(new Date(preview.expiresAt).getTime(), now + CONFIRMATION_TTL_MS);
   assert.match(preview.previewHash, /^[a-f0-9]{64}$/); assert.ok(preview.confirmationToken);
@@ -89,8 +89,9 @@ test('confirmed success returns a real record ID and repeated confirmation does 
   const preview = await createOperationPreview({ payload, req, actor, env, operationId: 'operation-3' });
   let writes = 0;
   const createDraft = async () => { writes += 1; return { externalRecordId: 'rec-real-123', replayed: false }; };
-  const first = await executeConfirmedOperation({ body: executionBody(preview), req, actor, env, createDraft, logger: () => {} });
-  const second = await executeConfirmedOperation({ body: executionBody(preview), req, actor, env, createDraft, logger: () => {} });
+  const linkDraft = async () => ({ ok: true });
+  const first = await executeConfirmedOperation({ body: executionBody(preview), req, actor, env, createDraft, linkDraft, logger: () => {} });
+  const second = await executeConfirmedOperation({ body: executionBody(preview), req, actor, env, createDraft, linkDraft, logger: () => {} });
   assert.equal(first.externalRecordId, 'rec-real-123'); assert.equal(first.replayed, false);
   assert.equal(second.externalRecordId, 'rec-real-123'); assert.equal(second.replayed, true); assert.equal(writes, 1);
 });
@@ -114,7 +115,7 @@ test('Airtable adapter recovers existing idempotency result without creating ano
     return { ok: true, json: async () => ({ records: [{ id: 'rec-existing' }] }) };
   };
   const result = await createAirtableActionDraft({ payload, idempotencyKey: 'same-key', env, fetchImpl });
-  assert.deepEqual(result, { externalRecordId: 'rec-existing', replayed: true });
+  assert.deepEqual(result, { externalRecordId: 'rec-existing', replayed: true, legacy: true });
   assert.deepEqual(calls.map(({ method }) => method), ['GET']);
 });
 
@@ -125,12 +126,12 @@ test('Airtable adapter creates only fixed fields and maps rejection and timeout 
     if (!options.method) return { ok: true, json: async () => ({ records: [] }) };
     return { ok: true, json: async () => ({ records: [{ id: 'rec-created' }], createdRecords: ['rec-created'] }) };
   };
-  const result = await createAirtableActionDraft({ payload, idempotencyKey: 'new-key', env, fetchImpl });
+  const result = await createAirtableActionDraft({ payload, idempotencyKey: 'new-key', operationId: 'op-new', createdBy: 'test-admin', confirmationTimestamp: '2026-08-01T00:00:00.000Z', env, fetchImpl });
   const body = JSON.parse(calls[1].body);
   assert.equal(result.externalRecordId, 'rec-created'); assert.equal(calls[1].method, 'PATCH');
-  assert.deepEqual(Object.keys(body.records[0].fields).sort(), ['Project Name', 'Public Summary']);
-  assert.deepEqual(body.performUpsert.fieldsToMergeOn, ['Project Name']); assert.equal(body.typecast, false);
-  await assert.rejects(createAirtableActionDraft({ payload, idempotencyKey: 'reject', env, fetchImpl: async () => ({ ok: false, status: 422 }) }), { code: 'DATA_SOURCE_REJECTED' });
+  assert.deepEqual(Object.keys(body.records[0].fields).sort(), ['Action Draft Schema Version', 'Confirmation Timestamp', 'Created By', 'Created Via Agent', 'Draft Status', 'Execution Status', 'Idempotency Key', 'Operation ID', 'Project Name', 'Public Summary', 'Source Tool ID']);
+  assert.deepEqual(body.performUpsert.fieldsToMergeOn, ['Idempotency Key']); assert.equal(body.typecast, false);
+  await assert.rejects(createAirtableActionDraft({ payload, idempotencyKey: 'reject', env, fetchImpl: async () => ({ ok: false, status: 422 }) }), { code: 'ACTION_SCHEMA_INVALID' });
   await assert.rejects(createAirtableActionDraft({ payload, idempotencyKey: 'timeout', env, fetchImpl: async () => { throw Object.assign(new Error('timeout'), { name: 'TimeoutError' }); } }), { code: 'DATA_SOURCE_TIMEOUT' });
 });
 

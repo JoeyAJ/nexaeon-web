@@ -25,6 +25,10 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   AUTH_RATE_LIMITED: 429,
   ACTOR_SESSION_MISMATCH: 409, AUDIT_CONFIGURATION_MISSING: 503, AUDIT_TIMEOUT: 504,
   AUDIT_REQUEST_FAILED: 502, AUDIT_REQUEST_REJECTED: 502, AUDIT_INVALID_RESPONSE: 502,
+  AUDIT_TABLE_NOT_CONFIGURED: 503, AUDIT_TABLE_SCHEMA_INVALID: 503, ACTION_SCHEMA_INVALID: 503,
+  ACTION_FIELD_NOT_ALLOWED: 400, ACTION_STATUS_NOT_ALLOWED: 400, AUDIT_LINK_FAILED: 502,
+  LEGACY_RECORD_DETECTED: 409, MIGRATION_DUPLICATE_SKIPPED: 409, MIGRATION_FAILED: 500,
+  FORMAL_SCHEMA_REQUIRED: 409,
 });
 
 function isAllowedWriteOrigin(req) {
@@ -118,10 +122,12 @@ async function handleAdminRequest(req, res) {
     if (req.query.admin === 'audit') {
       if (req.method !== 'GET') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
       const session = readAdminSession(req);
-      const records = await getProductionAuditRepository().listAuditRecords({
+      const records = await getProductionAuditRepository().listAuditRecordsForAdmin({
         dateFrom: String(req.query.dateFrom || '').slice(0, 40), dateTo: String(req.query.dateTo || '').slice(0, 40),
         agentId: String(req.query.agentId || '').slice(0, 40), toolId: String(req.query.toolId || '').slice(0, 80),
-        executionStatus: String(req.query.executionStatus || '').slice(0, 40), limit: Math.min(200, Number(req.query.limit) || 100),
+        executionStatus: String(req.query.executionStatus || '').slice(0, 40), recordType: String(req.query.recordType || '').slice(0, 20),
+        operationId: String(req.query.operationId || '').slice(0, 80), externalRecordId: String(req.query.externalRecordId || '').slice(0, 120),
+        limit: Math.min(200, Number(req.query.limit) || 100),
       });
       return res.status(200).json({ ok: true, actorId: session.actorId, role: session.role, count: records.length, records });
     }

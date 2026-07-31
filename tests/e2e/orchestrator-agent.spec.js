@@ -21,7 +21,7 @@ test('Orchestrator runs independently with classifications, proposed plan, sourc
       fieldsToWrite: { 'Project Name': '[Draft idempotency] Coordinate public work', 'Public Summary': 'Draft plan\n\n[NexAeon draft idempotency:test]' },
       warnings: [], expiresAt: '2026-08-01T01:05:00.000Z', confirmationRequired: true,
       previewHash: 'preview-hash', idempotencyKey: `idempotency-${previewCount}`, executionStatus: 'previewed',
-      rollbackSupport: false, confirmationToken: `confirmation-${previewCount}`,
+      auditRecordId: `rec-audit-${previewCount}`, auditPersistenceStatus: 'airtable-dedicated', rollbackSupport: false, confirmationToken: `confirmation-${previewCount}`,
     }) });
   });
   await page.route('**/api/agent/orchestrator/actions/cancel', async (route) => {
@@ -31,7 +31,7 @@ test('Orchestrator runs independently with classifications, proposed plan, sourc
   await page.route('**/api/agent/orchestrator/actions/execute', async (route) => {
     executeCount += 1;
     const body = route.request().postDataJSON();
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, operationId: body.operationId, executionStatus: 'succeeded', targetDataSource: body.targetDataSource, externalRecordId: 'rec-action-draft-real', idempotencyKey: body.idempotencyKey, replayed: false, auditRecordId: 'rec-audit-real', auditPersistenceStatus: 'airtable-shared-hidden' }) });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, operationId: body.operationId, executionStatus: 'succeeded', targetDataSource: body.targetDataSource, externalRecordId: 'rec-action-draft-real', idempotencyKey: body.idempotencyKey, replayed: false, actionWriteStatus: 'succeeded', auditRecordId: body.auditRecordId, auditPersistenceStatus: 'airtable-dedicated' }) });
   });
   await page.route('**/api/agent/orchestrator/chat', async (route) => {
     requests.push(route.request().postDataJSON());

@@ -20,7 +20,7 @@ function request({ method = 'GET', query = {}, body = {}, cookie = '', csrf = ''
 
 test('shared API keeps admin session and audit data private while authorized preview returns audit status', async () => {
   Object.assign(process.env, {
-    AIRTABLE_API_KEY: 'api-test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'tbl-test',
+    AIRTABLE_API_KEY: 'api-test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'tbl-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit',
     NEXAEON_TOOL_EXECUTION_SECRET: 'tool-test-secret', NEXAEON_ADMIN_ACTOR_ID: 'api-admin',
     NEXAEON_ADMIN_ACCESS_SECRET: 'api-access-secret', NEXAEON_ADMIN_SESSION_SECRET: 'api-session-secret',
   });
@@ -38,7 +38,7 @@ test('shared API keeps admin session and audit data private while authorized pre
   try {
     const preview = response();
     await handler(request({ method: 'POST', query: { agent: 'orchestrator', operation: 'preview' }, cookie, csrf: login.body.csrfToken, body: { payload: { title: 'Authorized', description: 'Preview with persistent audit.' } } }), preview);
-    assert.equal(preview.statusCode, 200); assert.equal(preview.body.auditRecordId, 'rec-audit-preview'); assert.equal(preview.body.auditPersistenceStatus, 'airtable-shared-hidden');
+    assert.equal(preview.statusCode, 200); assert.equal(preview.body.auditRecordId, 'rec-audit-preview'); assert.equal(preview.body.auditPersistenceStatus, 'airtable-dedicated');
     assert.ok(preview.body.confirmationToken); assert.equal(JSON.stringify(preview.body).includes('api-access-secret'), false);
   } finally { globalThis.fetch = originalFetch; }
 

@@ -488,7 +488,8 @@ function ActionDraftFlow({ plan, ui }) {
       const result = await request('/api/agent/orchestrator/actions/execute', {
         operationId: preview.operationId, agentId: preview.agentId, toolId: preview.toolId,
         targetDataSource: preview.targetDataSource, payload: preview.payload,
-        idempotencyKey: preview.idempotencyKey, confirmationToken: preview.confirmationToken,
+        idempotencyKey: preview.idempotencyKey, auditRecordId: preview.auditRecordId,
+        confirmationToken: preview.confirmationToken,
       });
       setState({ phase: 'succeeded', preview, result, errorCode: '' });
     } catch (error) {
