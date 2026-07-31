@@ -24,6 +24,11 @@ import NeuralBackground from './NeuralBackground.jsx';
 import { LangSwitcher, NexLogo, NexWordmark } from './Logo.jsx';
 import { toDetailPath } from '../utils/router.js';
 import NexAeonNavigatorPage from './NexAeonNavigatorPage.jsx';
+import {
+  EXPLORER_AGENT_PAGE,
+  EXPLORER_ASSISTANT_UI,
+  getExplorerDetailItem,
+} from '../data/explorerAgent.js';
 import { createPrincessModuleActivityAdapter } from '../lib/princessModuleActivity.ts';
 import { getNavigatorSourceRoute } from '../lib/companionActionConfig.js';
 
@@ -2733,7 +2738,8 @@ function NotFound({ navigate, navigateBack, lang, setLang, theme, setTheme }) {
 export default function DetailPage({ type, id, navigate, navigateBack, lang, setLang, theme, setTheme, princessEventBridge, navigatorActivity, nexonFusionOrchestrator }) {
   const content = getLocalizedSite(lang);
   const { common } = content;
-  const item = getDetailItem(type, id, lang);
+  const item = getDetailItem(type, id, lang)
+    || (type === 'research' && id === 'nexaeon-explorer' ? getExplorerDetailItem(lang) : null);
   const contextId = ({ teaching: 'coaching', projects: 'prototype', action: 'action', research: 'research', knowledge: 'knowledge', identity: 'identity' })[type] || 'research';
   const activityAdapter = useMemo(() => createPrincessModuleActivityAdapter(princessEventBridge, contextId), [contextId, princessEventBridge]);
   const parentPath = `/#${type}`;
@@ -2764,7 +2770,17 @@ export default function DetailPage({ type, id, navigate, navigateBack, lang, set
           {common.backPrevious}
         </button>
 
-        {item.id === 'nexaeon-navigator' ? (
+        {item.id === 'nexaeon-explorer' ? (
+          <NexAeonNavigatorPage
+            item={item}
+            common={common}
+            lang={lang}
+            navigate={navigate}
+            activityAdapter={activityAdapter}
+            runtime={EXPLORER_AGENT_PAGE}
+            assistantUi={EXPLORER_ASSISTANT_UI}
+          />
+        ) : item.id === 'nexaeon-navigator' ? (
           <NexAeonNavigatorPage
             item={item}
             common={common}

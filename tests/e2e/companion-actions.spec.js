@@ -73,10 +73,9 @@ test('Navigator handoff prefills a localized prompt without submitting it', asyn
   expect(chatRequests).toBe(0);
 });
 
-test('all six module Agent regions hand off validated context and preserve actual response agent', async ({ page }) => {
+test('the five Navigator-backed module Agent regions hand off validated context and preserve actual response agent', async ({ page }) => {
   const cases = [
     { moduleId: 'identity', agentId: 'identity', moduleName: 'Identity' },
-    { moduleId: 'research', agentId: 'research', moduleName: 'Research Roadmap' },
     { moduleId: 'teaching', agentId: 'coaching', moduleName: 'Coaching & Curriculum' },
     { moduleId: 'knowledge-lab', agentId: 'knowledge', moduleName: 'Knowledge Lab' },
     { moduleId: 'projects', agentId: 'prototype', moduleName: 'Prototype Lab' },
@@ -118,14 +117,6 @@ test('all six module Agent regions hand off validated context and preserve actua
     await expect(input).toHaveValue('');
     expect(requests).toHaveLength(index);
     expect(await page.evaluate(() => window.history.state?.navigatorSourceRoute)).toBe(`/#${item.moduleId}`);
-    if (item.agentId === 'research') {
-      await page.reload();
-      await page.getByRole('button', { name: 'Switch to English' }).click();
-      await expect(page.getByTestId('navigator-current-module')).toContainText(item.moduleName);
-      await expect(page.getByTestId('navigator-default-agent')).toContainText('Research Agent');
-      expect(requests).toHaveLength(index);
-    }
-
     await input.fill('What should I consider next?');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect(page.locator('.agent-message-assistant').last()).toContainText(`Context answer from ${item.agentId}`);
@@ -143,14 +134,14 @@ test('all six module Agent regions hand off validated context and preserve actua
     await expect(page).toHaveURL(/\/$/);
   }
 
-  await page.getByTestId('module-agent-indicator-research').click();
+  await page.getByTestId('module-agent-indicator-identity').click();
   const input = page.locator('#navigator-agent-query');
   await input.fill('Turn this research into a Dashboard');
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.locator('.agent-message-assistant').last()).toContainText('Context answer from prototype');
   await expect(page.locator('.agent-message-assistant').last()).toContainText('Response Agent: Prototype Agent');
-  expect(requests.at(-1)).toMatchObject({ currentModule: 'research', preferredAgent: 'research' });
+  expect(requests.at(-1)).toMatchObject({ currentModule: 'identity', preferredAgent: 'identity' });
   await page.evaluate(() => window.history.replaceState({ ...window.history.state, nexaeonDepth: 0 }, '', window.location.href));
   await page.locator('.subpage-content > button').first().click();
-  await expect(page).toHaveURL(/#research$/);
+  await expect(page).toHaveURL(/#identity$/);
 });

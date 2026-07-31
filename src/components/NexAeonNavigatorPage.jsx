@@ -6,6 +6,7 @@ import { NAVIGATOR_AGENT } from '../data/agentBrands.js';
 import {
   AGENT_LANDING_COPY,
   AGENT_STATUS,
+  getAgentByKey,
   getAgentLocale,
   getPublicAgents,
 } from '../data/agentRegistry.js';
@@ -17,6 +18,15 @@ import {
 
 const MAX_HISTORY_ITEMS = 4;
 const MAX_HISTORY_ITEM_CHARS = 1000;
+const NAVIGATOR_PAGE_RUNTIME = Object.freeze({
+  id: 'navigator',
+  endpoint: '/api/agent/chat',
+  inputId: 'navigator-agent-query',
+  testId: 'navigator-agent-page',
+  requestPrefix: 'navigator',
+  moduleId: 'navigator',
+  sourceIds: null,
+});
 
 const ASSISTANT_UI = {
   zh: {
@@ -128,6 +138,7 @@ function formatDate(value, lang) {
 function getFallbackMessage(reason, ui) {
   if (reason === 'disabled' || reason === 'missing_configuration') return ui.disabled;
   if (reason === 'no_sources') return ui.noSources;
+  if (reason === 'tool_unavailable') return ui.toolUnavailable || ui.modelUnavailable;
   if (reason === 'moderated') return ui.moderated;
   if (reason === 'forced_sources_only') return ui.forcedSourcesOnly;
   return ui.modelUnavailable;
@@ -280,8 +291,8 @@ function CitationCard({ citation, lang, ui, onNavigate }) {
 }
 
 function getAgentLandingStatus(agent, copy) {
-  const isActiveNavigator = agent.status === AGENT_STATUS.active && agent.chatEnabled;
-  if (isActiveNavigator) {
+  const isActiveAgent = agent.status === AGENT_STATUS.active && agent.chatEnabled;
+  if (isActiveAgent) {
     return {
       label: copy.active,
       tone: 'active',
@@ -338,8 +349,10 @@ function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
   const isSourcesOnly = message.mode === 'sources_only';
   const showFallback = isSourcesOnly && !message.content;
   const showSourcesOnlyNotice = isSourcesOnly && Boolean(message.content) && message.reason !== 'moderated';
-  const responseAgent = getModuleAgent(message.agentId);
-  const responseAgentName = responseAgent?.name?.[lang] || responseAgent?.name?.en || '';
+  const responseAgent = getModuleAgent(message.agentId) || getAgentByKey(message.agentId);
+  const responseAgentName = typeof responseAgent?.name === 'string'
+    ? responseAgent.name
+    : responseAgent?.name?.[lang] || responseAgent?.name?.en || '';
   return (
     <section className="agent-message agent-message-assistant">
       <div className="agent-message-label">
@@ -369,9 +382,22 @@ function AssistantMessage({ message, lang, ui, onNavigate, onCitationOpen }) {
   );
 }
 
-export default function NexAeonNavigatorPage({ item, common, lang, navigate, eventBridge, activityAdapter, fusionOrchestrator }) {
-  const ui = ASSISTANT_UI[lang] || ASSISTANT_UI.en;
-  const [companionHandoff] = useState(() => consumeCompanionNavigatorHandoff(window));
+export default function NexAeonNavigatorPage({
+  item,
+  common,
+  lang,
+  navigate,
+  eventBridge,
+  activityAdapter,
+  fusionOrchestrator,
+  runtime = NAVIGATOR_PAGE_RUNTIME,
+  assistantUi = ASSISTANT_UI,
+}) {
+  const ui = assistantUi[lang] || assistantUi.en;
+  const isNavigator = runtime.id === 'navigator';
+  const [companionHandoff] = useState(() => (
+    isNavigator ? consumeCompanionNavigatorHandoff(window) : null
+  ));
   const [query, setQuery] = useState(() => companionHandoff?.prompt?.slice(0, 500) || '');
   const [messages, setMessages] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -445,10 +471,10 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
     submissionLockRef.current = true;
     const requestSequence = requestSequenceRef.current + 1;
     requestSequenceRef.current = requestSequence;
-    const requestId = `navigator-${requestSequence}-${Date.now()}`;
+    const requestId = `${runtime.requestPrefix}-${requestSequence}-${Date.now()}`;
     activeRequestIdRef.current = requestId;
     lastCompletedRequestIdRef.current = null;
-    const fusionToken = fusionOrchestrator?.start({ requestId, operationType: 'question', contextId: 'navigator' }) || null;
+    const fusionToken = fusionOrchestrator?.start({ requestId, operationType: 'question', contextId: runtime.id }) || null;
     activeFusionTokenRef.current = fusionToken;
     eventBridge?.emit({ type: 'navigator_question_submitted', requestId, timestamp: Date.now() });
 
@@ -471,20 +497,27 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
       fusionOrchestrator?.transition(fusionToken, 'retrieving', {
         sourceAvailability: 'none', citationStatus: 'none', navigationStatus: 'none',
       });
-      const response = await fetch('/api/agent/chat', {
+      const requestBody = isNavigator
+        ? {
+            message: trimmed,
+            locale: lang,
+            history,
+            currentRoute: companionHandoff?.currentRoute || window.location.pathname,
+            currentModule: companionHandoff?.currentModule || runtime.moduleId,
+            preferredAgent: companionHandoff?.preferredAgent || '',
+          }
+        : {
+            message: trimmed,
+            locale: lang,
+            history,
+          };
+      const response = await fetch(runtime.endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({
-          message: trimmed,
-          locale: lang,
-          history,
-          currentRoute: companionHandoff?.currentRoute || window.location.pathname,
-          currentModule: companionHandoff?.currentModule || 'navigator',
-          preferredAgent: companionHandoff?.preferredAgent || '',
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal,
       });
       const payload = await response.json();
@@ -595,8 +628,8 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
     }
     activityAdapter?.dispatch('navigation-arrived', { source: 'navigator', entityType: 'module' });
     const navigationToken = fusionOrchestrator?.start({
-      requestId: `${requestId || 'navigator'}-navigation-${++citationFusionSequenceRef.current}`,
-      operationType: 'module-navigation', contextId: 'navigator', initialPhase: 'guiding',
+      requestId: `${requestId || runtime.id}-navigation-${++citationFusionSequenceRef.current}`,
+      operationType: 'module-navigation', contextId: runtime.id, initialPhase: 'guiding',
     });
     fusionOrchestrator?.transition(navigationToken, 'resolved', {
       resultType: 'navigated', navigationStatus: 'completed', sourceAvailability: 'available',
@@ -606,8 +639,8 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
 
   function openCitation(sourceId) {
     const token = fusionOrchestrator?.start({
-      requestId: `${lastCompletedRequestIdRef.current || 'navigator'}-citation-${String(sourceId || 'source').replace(/[^a-z0-9_-]/gi, '').slice(0, 24)}`,
-      operationType: 'citation-navigation', contextId: 'navigator', initialPhase: 'guiding',
+      requestId: `${lastCompletedRequestIdRef.current || runtime.id}-citation-${String(sourceId || 'source').replace(/[^a-z0-9_-]/gi, '').slice(0, 24)}`,
+      operationType: 'citation-navigation', contextId: runtime.id, initialPhase: 'guiding',
     });
     return token;
   }
@@ -615,16 +648,16 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
   const isSubmitBlocked = isGenerating || retryAfterSeconds > 0;
 
   return (
-    <article className="content-detail-card module-detail-card agent-assistant-card" data-testid="navigator-agent-page">
+    <article className="content-detail-card module-detail-card agent-assistant-card" data-testid={runtime.testId}>
       <div className="detail-badge-row">
         <span className="content-tag">{common.moduleLabel}: {item.category}</span>
         <span className="content-tag">{item.status}</span>
-        {contextAgent ? (
+        {isNavigator && contextAgent ? (
           <span className="content-tag" data-testid="navigator-current-module">
             {ui.currentModule}: {contextAgent.moduleName[lang] || contextAgent.moduleName.en}
           </span>
         ) : null}
-        {preferredAgent ? (
+        {isNavigator && preferredAgent ? (
           <span className="content-tag" data-testid="navigator-default-agent">
             {ui.defaultAgent}: {preferredAgent.name[lang] || preferredAgent.name.en}
           </span>
@@ -636,7 +669,7 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
       <p className="detail-subtitle">{ui.intro}</p>
 
       <section className="agent-source-strip" aria-label={ui.source}>
-        {AGENT_SOURCES.map((source) => (
+        {AGENT_SOURCES.filter((source) => !runtime.sourceIds || runtime.sourceIds.includes(source.id)).map((source) => (
           <span key={source.id}>{source.labels[lang] || source.labels.en}</span>
         ))}
       </section>
@@ -668,11 +701,11 @@ export default function NexAeonNavigatorPage({ item, common, lang, navigate, eve
           submitQuery();
         }}
       >
-        <label htmlFor="navigator-agent-query">{ui.inputLabel}</label>
+        <label htmlFor={runtime.inputId}>{ui.inputLabel}</label>
         <div className="agent-search-row">
           <input
             ref={inputRef}
-            id="navigator-agent-query"
+            id={runtime.inputId}
             type="search"
             value={query}
             maxLength={500}

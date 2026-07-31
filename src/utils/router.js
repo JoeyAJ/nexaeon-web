@@ -21,6 +21,13 @@ export function parseRoute(pathname) {
 
   const agentRoute = getAgentByRoute(normalizedPath);
   if (agentRoute && agentRoute.key !== 'navigator') {
+    if (agentRoute.chatEnabled && agentRoute.enabled) {
+      return {
+        kind: 'detail',
+        type: agentRoute.moduleKey,
+        id: agentRoute.route.split('/').filter(Boolean).at(-1),
+      };
+    }
     return {
       kind: 'agentScaffold',
       key: agentRoute.key,

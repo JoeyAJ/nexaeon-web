@@ -9,6 +9,7 @@ import {
   handleAgentChatRequest,
 } from '../lib/agent/chatRuntime.js';
 import {
+  getExplorerProductionConfig,
   getNavigatorProductionConfig,
 } from '../lib/agent/productionConfig.js';
 import {
@@ -161,6 +162,22 @@ test('production config safely parses enabled flags, force mode, token, and time
   assert.equal(getNavigatorProductionConfig({ NEXAEON_AGENT_TIMEOUT_MS: '10000' }).timeoutMs, 10_000);
   assert.equal(getNavigatorProductionConfig({}).model, 'gpt-5.4-mini-2026-03-17');
   assert.equal(getNavigatorProductionConfig({ OPENAI_MODEL: 'server-model' }).model, 'server-model');
+});
+
+test('Explorer uses the shared production controls with independent kill-switch and force-source override', () => {
+  assert.equal(getExplorerProductionConfig({ NEXAEON_AGENT_ENABLED: 'true' }).enabled, true);
+  assert.equal(getExplorerProductionConfig({
+    NEXAEON_AGENT_ENABLED: 'true',
+    NEXAEON_EXPLORER_ENABLED: 'false',
+  }).enabled, false);
+  assert.equal(getExplorerProductionConfig({
+    NEXAEON_AGENT_ENABLED: 'false',
+    NEXAEON_EXPLORER_ENABLED: 'true',
+  }).enabled, false);
+  assert.equal(getExplorerProductionConfig({
+    NEXAEON_AGENT_ENABLED: 'true',
+    NEXAEON_EXPLORER_FORCE_SOURCES_ONLY: 'true',
+  }).forceSourcesOnly, true);
 });
 
 test('client cannot override production config values', () => {

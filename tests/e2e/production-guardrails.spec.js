@@ -14,7 +14,7 @@ const EXPECTED_MODULE_LABELS = [
 
 const EXPECTED_MODULE_AGENTS = {
   identity: ['Identity Agent'],
-  research: ['Research Agent'],
+  research: ['NexAeon Explorer'],
   teaching: ['Coaching Agent'],
   'knowledge-lab': ['Knowledge Agent'],
   projects: ['Prototype Agent'],
@@ -200,24 +200,29 @@ test('module navigation, browser back, direct refresh, and intro replay guard', 
     }
     const agentId = {
       identity: 'identity',
-      research: 'research',
+      research: 'explorer',
       teaching: 'coaching',
       'knowledge-lab': 'knowledge',
       projects: 'prototype',
       'field-lab': 'action',
     }[module.id];
-    await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Connected to Navigator');
-    await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Its dedicated Agent is still under development.');
+    if (module.id === 'research') {
+      await expect(page.getByTestId('module-agent-entry-explorer')).toContainText('Explorer Active');
+      await expect(page.getByTestId('module-agent-entry-explorer')).toContainText('read-only Research Tools');
+    } else {
+      await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Connected to Navigator');
+      await expect(page.getByTestId(`module-agent-entry-${agentId}`)).toContainText('Its dedicated Agent is still under development.');
+    }
   }
 
   await page.getByTestId('module-card-identity').locator('.module-card-footer button').click();
   await expect(page.getByTestId('module-agent-entry-identity')).toContainText('Connected to Navigator');
 
   await page.getByTestId('module-card-research').locator('.module-card-footer button').click();
-  await page.getByTestId('module-agent-entry-research').getByRole('button', { name: 'Use Navigator' }).click();
-  await expect(page).toHaveURL(/\/identity\/nexaeon-navigator$/);
-  await expect(page.getByTestId('navigator-default-agent')).toContainText('Research Agent');
-  await expect(page.locator('#navigator-agent-query')).toBeFocused();
+  await page.getByTestId('module-agent-entry-explorer').getByRole('button', { name: 'Use Explorer' }).click();
+  await expect(page).toHaveURL(/\/research\/nexaeon-explorer$/);
+  await expect(page.getByTestId('explorer-agent-page')).toBeVisible();
+  await expect(page.locator('#explorer-agent-query')).toBeEnabled();
   expect(chatPostCount).toBe(0);
 
   await page.goto('/');
@@ -433,6 +438,13 @@ test('navigator searches public knowledge with grounded source cards', async ({ 
   await expect(page.getByRole('heading', { name: 'NexAeon Agent System Map', level: 2 })).toBeVisible();
   for (const agentName of EXPECTED_AGENT_SYSTEM_MAP_AGENTS) {
     await expect(page.locator('.agent-landing-section').getByText(agentName)).toBeVisible();
+  }
+  const navigatorCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Navigator' });
+  const explorerCard = page.locator('.agent-landing-card').filter({ hasText: 'NexAeon Explorer' });
+  await expect(navigatorCard).toContainText('Active');
+  await expect(explorerCard).toContainText('Active');
+  for (const agentName of EXPECTED_AGENT_SYSTEM_MAP_AGENTS.slice(2)) {
+    await expect(page.locator('.agent-landing-card').filter({ hasText: agentName })).toContainText('Coming Soon');
   }
   await expect(page.locator('body')).not.toContainText(new RegExp('Nex\\u014dn'));
 

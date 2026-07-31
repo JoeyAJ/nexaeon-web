@@ -22,23 +22,26 @@ test('agent system map copy identifies the Navigator landing overview as a globa
   }
 });
 
-test('agent system map keeps Navigator active and all six dedicated agents coming soon', () => {
+test('agent system map keeps Navigator and Explorer active while the other five agents remain coming soon', () => {
   const agents = getPublicAgents();
   const navigator = agents.find((agent) => agent.key === 'navigator');
-  const dedicatedAgents = agents.filter((agent) => agent.key !== 'navigator');
+  const explorer = agents.find((agent) => agent.key === 'explorer');
+  const scaffoldAgents = agents.filter((agent) => !['navigator', 'explorer'].includes(agent.key));
 
   assert.equal(navigator.status, AGENT_STATUS.active);
   assert.equal(navigator.chatEnabled, true);
   assert.equal(navigator.comingSoon, false);
-  assert.deepEqual(dedicatedAgents.map((agent) => agent.name), [
-    'NexAeon Explorer',
+  assert.equal(explorer.status, AGENT_STATUS.active);
+  assert.equal(explorer.chatEnabled, true);
+  assert.equal(explorer.comingSoon, false);
+  assert.deepEqual(scaffoldAgents.map((agent) => agent.name), [
     'NexAeon Xchange',
     'NexAeon Archivist',
     'NexAeon Engineer',
     'NexAeon Orchestrator',
     'NexAeon Networker',
   ]);
-  for (const agent of dedicatedAgents) {
+  for (const agent of scaffoldAgents) {
     assert.equal(agent.status, AGENT_STATUS.scaffold, agent.name);
     assert.equal(agent.chatEnabled, false, agent.name);
     assert.equal(agent.comingSoon, true, agent.name);
@@ -59,7 +62,7 @@ test('module agent placement is derived from the six Sprint 3 module agents', ()
   assert.equal(entries.length, 6);
   assert.deepEqual(entries.map(({ agent }) => agent.name), [
     'Identity Agent',
-    'Research Agent',
+    'NexAeon Explorer',
     'Coaching Agent',
     'Knowledge Agent',
     'Prototype Agent',
@@ -67,11 +70,11 @@ test('module agent placement is derived from the six Sprint 3 module agents', ()
   ]);
 });
 
-test('all module cards localize Navigator connection status without changing agent ids', () => {
+test('Research uses Explorer while the other module cards keep localized Navigator connection status', () => {
   const expectedNames = {
-    zh: ['身份 Agent', '研究 Agent', '學習教練 Agent', '知識 Agent', '原型 Agent', '行動 Agent'],
-    ko: ['정체성 에이전트', '연구 에이전트', '학습 코칭 에이전트', '지식 에이전트', '프로토타입 에이전트', '실행 에이전트'],
-    en: ['Identity Agent', 'Research Agent', 'Coaching Agent', 'Knowledge Agent', 'Prototype Agent', 'Action Agent'],
+    zh: ['身份 Agent', 'NexAeon Explorer', '學習教練 Agent', '知識 Agent', '原型 Agent', '行動 Agent'],
+    ko: ['정체성 에이전트', 'NexAeon Explorer', '학습 코칭 에이전트', '지식 에이전트', '프로토타입 에이전트', '실행 에이전트'],
+    en: ['Identity Agent', 'NexAeon Explorer', 'Coaching Agent', 'Knowledge Agent', 'Prototype Agent', 'Action Agent'],
   };
   const expectedStatus = {
     zh: '已接入 Navigator',
@@ -81,11 +84,13 @@ test('all module cards localize Navigator connection status without changing age
 
   for (const lang of ['zh', 'ko', 'en']) {
     const entries = getAllModuleAgentEntries(lang);
-    assert.deepEqual(entries.map(({ agent }) => agent.id), ['identity', 'research', 'coaching', 'knowledge', 'prototype', 'action']);
+    assert.deepEqual(entries.map(({ agent }) => agent.id), ['identity', 'explorer', 'coaching', 'knowledge', 'prototype', 'action']);
     assert.deepEqual(entries.map(({ agent }) => agent.name), expectedNames[lang]);
     for (const { agent, status } of entries) {
       assert.equal(agent.status, MODULE_AGENT_STATUS.active);
-      assert.equal(status.label, expectedStatus[lang]);
+      assert.equal(status.label, agent.key === 'explorer'
+        ? { zh: 'Explorer 已啟用', ko: 'Explorer 활성화됨', en: 'Explorer Active' }[lang]
+        : expectedStatus[lang]);
       assert.equal(status.tone, 'active');
     }
   }
@@ -125,7 +130,9 @@ test('module agent entries expose localized labels, module names, routes, and CT
         assert.ok(localized.subtitle, agent.key);
         assert.ok(localized.moduleLabel, agent.key);
         assert.ok(localized.description, agent.key);
-        assert.equal(status.cta, expectedCopy[lang].cta, agent.key);
+        assert.equal(status.cta, agent.key === 'explorer'
+          ? { zh: '使用 Explorer', ko: 'Explorer 사용', en: 'Use Explorer' }[lang]
+          : expectedCopy[lang].cta, agent.key);
       }
     }
   }

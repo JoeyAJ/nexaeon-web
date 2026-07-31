@@ -25,6 +25,23 @@ export const NAVIGATOR_ALLOWED_CAPABILITIES = Object.freeze([
   'localization',
 ]);
 
+export const EXPLORER_ALLOWED_CAPABILITIES = Object.freeze([
+  'public_research_search',
+  'public_research_item_retrieval',
+  'public_research_filtering',
+  'public_research_topic_listing',
+  'grounded_research_analysis',
+  'citations',
+  'localization',
+]);
+
+export const EXPLORER_TOOL_ALLOWLIST = Object.freeze([
+  'searchResearchItems',
+  'getResearchItem',
+  'filterResearchItems',
+  'listResearchTopics',
+]);
+
 export const SCAFFOLD_ALLOWED_CAPABILITIES = Object.freeze([
   'public_profile_display',
   'route_scaffold',
@@ -176,9 +193,9 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
       en: 'Research Exploration Agent',
     },
     description: {
-      zh: '未來協助整理研究主題、理論模型、文獻脈絡與方法路線。',
-      ko: '향후 연구 주제, 이론 모델, 문헌 맥락, 방법론 경로를 정리하도록 설계됩니다.',
-      en: 'Prepared to organize research topics, theory models, literature context, and method pathways.',
+      zh: '搜尋、整理與分析目前公開的研究資料、文獻脈絡、理論模型、方法、量表與變項。',
+      ko: '현재 공개된 연구 자료, 문헌 맥락, 이론 모델, 방법, 척도와 변수를 검색하고 정리하며 분석합니다.',
+      en: 'Searches, organizes, and analyzes currently public research records, literature context, theories, methods, scales, and variables.',
     },
     futureUse: {
       zh: ['研究主題探索', '文獻脈絡整理', '理論模型比較', '研究方法路線建議'],
@@ -191,16 +208,18 @@ export const PUBLIC_AGENT_REGISTRY = Object.freeze([
       ko: 'Research｜연구',
       en: 'Research',
     },
-    status: AGENT_STATUS.scaffold,
+    status: AGENT_STATUS.active,
     route: '/research/nexaeon-explorer',
     sourceScope: ['research'],
-    enabled: false,
+    enabled: true,
     public: true,
-    chatEnabled: false,
-    comingSoon: true,
-    runtimeMode: 'scaffold_static',
-    allowedCapabilities: SCAFFOLD_ALLOWED_CAPABILITIES,
-    prohibitedCapabilities: SCAFFOLD_PROHIBITED_CAPABILITIES,
+    chatEnabled: true,
+    comingSoon: false,
+    runtimeMode: 'explorer_tools',
+    allowedCapabilities: EXPLORER_ALLOWED_CAPABILITIES,
+    toolAllowlist: EXPLORER_TOOL_ALLOWLIST,
+    prohibitedCapabilities: COMMON_PROHIBITED_CAPABILITIES,
+    answerLabel: 'EXPLORER',
   },
   {
     key: 'xchange',
@@ -408,7 +427,7 @@ export function getNavigatorAgent() {
 }
 
 export function getScaffoldAgents() {
-  return getPublicAgents().filter((agent) => agent.key !== 'navigator');
+  return getPublicAgents().filter((agent) => agent.status === AGENT_STATUS.scaffold);
 }
 
 export function getAgentByKey(key) {

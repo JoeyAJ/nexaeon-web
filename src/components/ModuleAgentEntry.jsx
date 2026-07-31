@@ -9,6 +9,10 @@ import {
 } from '../lib/companionActionConfig.js';
 
 function openModuleAgent({ agent, moduleId, lang, navigate }) {
+  if (agent.key === 'explorer' && agent.chatEnabled && agent.route) {
+    navigate(agent.route);
+    return;
+  }
   const sourceRoute = `/#${moduleId}`;
   const handoff = createModuleAgentNavigatorHandoff({
     currentModule: agent.id,
@@ -21,22 +25,21 @@ function openModuleAgent({ agent, moduleId, lang, navigate }) {
 }
 
 export function ModuleAgentIndicator({ moduleId, lang, navigate }) {
-  const copy = getModuleAgentCopy(lang);
   const entries = getModuleAgentEntries(moduleId, lang);
   if (!entries.length) return null;
-  const { agent } = entries[0];
+  const { agent, status } = entries[0];
 
   return (
     <button
       className="module-card-agent-line"
       data-testid={`module-agent-indicator-${moduleId}`}
       type="button"
-      aria-label={copy.openActive}
+      aria-label={status.cta}
       onClick={() => openModuleAgent({ agent, moduleId, lang, navigate })}
     >
-      <span>{copy.indicatorLabel}</span>
+      <span>{status.label}</span>
       <strong>{entries.map(({ agent }) => agent.name).join(' / ')}</strong>
-      <em>{copy.indicatorDescription} · {copy.openActive}</em>
+      <em>{status.indicatorDescription} · {status.cta}</em>
     </button>
   );
 }
@@ -63,7 +66,7 @@ export default function ModuleAgentEntry({ moduleId, lang, navigate }) {
               <h5>{agent.name}</h5>
               <p className="module-agent-entry-role">{localized.subtitle}</p>
             </div>
-            <p>{copy.moduleDescription}</p>
+            <p>{status.description}</p>
             <div className="module-agent-entry-meta">
               <span>{localized.moduleLabel}</span>
             </div>
