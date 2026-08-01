@@ -52,7 +52,7 @@ test('Xchange preview route enforces origin, admin session, CSRF, allowlists, an
     await handler(request({ method: 'POST', query: route, body, cookie, csrf: login.body.csrfToken }), preview);
     assert.equal(preview.statusCode, 200); assert.equal(preview.body.ok, true);
     assert.equal(preview.body.auditPreview.auditRecordId, 'rec-xchange-preview-audit');
-    assert.equal(preview.body.writesPerformed, 0); assert.equal(preview.body.canExecute, false);
+    assert.equal(preview.body.writesPerformed, 0); assert.equal(preview.body.canExecute, true); assert.ok(preview.body.confirmationToken);
 
     const restricted = response();
     await handler(request({ method: 'POST', query: route, body: { ...body, toolId: 'deleteCourse' }, cookie, csrf: login.body.csrfToken }), restricted);
@@ -62,6 +62,23 @@ test('Xchange preview route enforces origin, admin session, CSRF, allowlists, an
     await handler(request({ method: 'POST', query: route, body: { ...body, payload: { ...body.payload, tableId: 'tbl-arbitrary' } }, cookie, csrf: login.body.csrfToken }), massAssignment);
     assert.equal(massAssignment.statusCode, 400); assert.equal(massAssignment.body.errorCode, 'MASS_ASSIGNMENT_REJECTED');
     assert.deepEqual(massAssignment.body.rejectedFields, ['tableId']); assert.equal(massAssignment.body.writesPerformed, 0);
+
+    const executeRoute = { agent: 'xchange', operation: 'execute' };
+    const executeNotFound = response();
+    await handler(request({ method: 'POST', query: executeRoute, body: { operationId: 'missing-operation' }, cookie, csrf: login.body.csrfToken }), executeNotFound);
+    assert.equal(executeNotFound.statusCode, 404); assert.deepEqual(executeNotFound.body, { ok: false, errorCode: 'PREVIEW_NOT_FOUND', writesPerformed: 0 });
+
+    const executeBadOrigin = response();
+    await handler(request({ method: 'POST', query: executeRoute, body: { operationId: 'missing-operation' }, cookie, csrf: login.body.csrfToken, origin: 'https://evil.example' }), executeBadOrigin);
+    assert.equal(executeBadOrigin.statusCode, 403); assert.equal(executeBadOrigin.body.errorCode, 'ORIGIN_NOT_ALLOWED');
+
+    const executeAnonymous = response();
+    await handler(request({ method: 'POST', query: executeRoute, body: { operationId: 'missing-operation' } }), executeAnonymous);
+    assert.equal(executeAnonymous.statusCode, 401); assert.equal(executeAnonymous.body.errorCode, 'AUTH_REQUIRED');
+
+    const executeBadCsrf = response();
+    await handler(request({ method: 'POST', query: executeRoute, body: { operationId: 'missing-operation' }, cookie, csrf: 'wrong' }), executeBadCsrf);
+    assert.equal(executeBadCsrf.statusCode, 403); assert.equal(executeBadCsrf.body.errorCode, 'CSRF_INVALID');
   } finally { globalThis.fetch = originalFetch; }
 });
 

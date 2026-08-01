@@ -104,7 +104,7 @@ test('Xchange supports cancel, empty result, and tool error states', async ({ pa
   await expect(page.getByText('Xchange’s Learning tools cannot read the public data right now. Please try again later.')).toBeVisible();
 });
 
-test('Xchange renders the admin-controlled Course Draft Preview with no execute action', async ({ page }) => {
+test('Xchange renders the admin-controlled Course Draft Preview and requires explicit confirmation to execute', async ({ page }) => {
   const requests = [];
   await page.route('**/api/admin/session', async (route) => {
     await route.fulfill({
@@ -122,12 +122,20 @@ test('Xchange renders the admin-controlled Course Draft Preview with no execute 
         ok: true, previewId: 'xpv-operation-ui', operationId: 'operation-ui', idempotencyKey: 'idem-ui',
         agentId: 'xchange', toolId: 'createCourseDraft', draftType: 'course', targetDataSource: 'notion-teaching-materials',
         contractVersion: 'v1', schemaVersion: 'v1', permissionLevel: 'WRITE_CONFIRM', confirmationRequired: true,
-        previewExpiresAt: '2026-08-02T01:05:00.000Z', previewHash: 'hash-ui',
+        previewExpiresAt: '2099-08-02T01:05:00.000Z', previewHash: 'hash-ui', confirmationToken: 'signed-ui-token',
         normalizedPayload: { title: 'AI Marketing', draftStatus: 'Draft', visibility: 'Private', published: false },
         createPayloadPreview: { '標題': 'AI Marketing', '狀態': 'Draft', '公開狀態': 'Private', Published: false },
         rejectedFields: [], warnings: ['Preview only. No Learning Coaching record was created.'],
-        estimatedWrites: 1, writesPerformed: 0, auditPreview: { executionStatus: 'previewed' }, canExecute: false,
+        estimatedWrites: 1, writesPerformed: 0, auditPreview: { executionStatus: 'previewed' }, canExecute: true,
       }),
+    });
+  });
+  await page.route('**/api/agent/xchange/actions/execute', async (route) => {
+    requests.push({ body: route.request().postDataJSON(), csrf: route.request().headers()['x-nexaeon-csrf'] });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, operationId: 'operation-ui', executionStatus: 'succeeded', writes: 1, writesPerformed: 1, draftStatus: 'Draft', visibility: 'Private', published: false, externalRecordId: 'notion-page-ui', createdAt: '2026-08-02T01:01:00.000Z', notPublished: true, replayed: false }),
     });
   });
 
@@ -139,8 +147,15 @@ test('Xchange renders the admin-controlled Course Draft Preview with no execute 
   await page.getByRole('button', { name: 'Create Preview' }).click();
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('Draft · Private · Published=false');
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('performed 0');
-  await expect(page.getByRole('button', { name: 'Coming in Stage 5-3E-B' })).toBeDisabled();
-  expect(requests).toHaveLength(1);
+  const execute = page.getByRole('button', { name: 'Confirm draft creation' });
+  await expect(execute).toBeDisabled();
+  await page.getByLabel('I confirm this will create one Private Draft in Learning Coaching').check();
+  await expect(execute).toBeEnabled();
+  await execute.click();
+  await expect(page.getByTestId('xchange-execution-success')).toContainText('Draft created successfully');
+  await expect(page.getByTestId('xchange-execution-success')).toContainText('Succeeded · Draft · Private · Published=false');
+  await expect(page.getByRole('button', { name: 'Created' })).toBeDisabled();
+  expect(requests).toHaveLength(2);
   expect(requests[0].csrf).toBe('csrf-preview');
   expect(requests[0].body).toMatchObject({
     agentId: 'xchange', toolId: 'createCourseDraft', targetDataSource: 'notion-teaching-materials',
@@ -148,4 +163,6 @@ test('Xchange renders the admin-controlled Course Draft Preview with no execute 
   });
   expect(requests[0].body.payload).toMatchObject({ title: 'AI Marketing', durationMinutes: 90 });
   expect(requests[0].body.confirmationRequired).toBeUndefined();
+  expect(requests[1].csrf).toBe('csrf-preview');
+  expect(requests[1].body).toMatchObject({ operationId: 'operation-ui', confirmationToken: 'signed-ui-token', confirm: true, previewHash: 'hash-ui' });
 });

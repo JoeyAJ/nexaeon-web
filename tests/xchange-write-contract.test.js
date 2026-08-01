@@ -44,7 +44,7 @@ function activity(overrides = {}) {
 }
 
 async function preview(body = course(), options = {}) {
-  return createXchangeDraftPreview({ body, req, actor, auditRepository: options.auditRepository || repository(), now: options.now || 1_800_000_000_000, operationId: options.operationId || 'operation-1', requestId: options.requestId || 'request-1' });
+  return createXchangeDraftPreview({ body, req, actor, auditRepository: options.auditRepository || repository(), now: options.now || 1_800_000_000_000, operationId: options.operationId || 'operation-1', requestId: options.requestId || 'request-1', env: { NEXAEON_TOOL_EXECUTION_SECRET: 'xchange-test-secret' } });
 }
 
 test.beforeEach(() => resetXchangePreviewStoreForTests());
@@ -53,7 +53,7 @@ test('contract exposes strict schema-backed Course and Learning Activity allowli
   assert.deepEqual(COURSE_DRAFT_FIELDS, ['title', 'summary', 'teachingCategory', 'format', 'subTopic', 'targetAudience', 'durationMinutes', 'difficulty', 'language', 'tags', 'fileUrl']);
   assert.deepEqual(LEARNING_ACTIVITY_DRAFT_FIELDS, ['activityTitle', 'activityType', 'instructions', 'targetAudience', 'estimatedTimeMinutes', 'difficulty', 'language', 'tags', 'materialsUrl']);
   assert.deepEqual(getXchangeProductionContractConfig({ NOTION_TEACHING_DATABASE_ID: 'database-id' }), {
-    platform: 'notion', databaseEnvKey: 'NOTION_TEACHING_DATABASE_ID', databaseId: 'database-id', targetDataSource: XCHANGE_TARGET_DATA_SOURCE, writeRuntimeEnabled: false,
+    platform: 'notion', databaseEnvKey: 'NOTION_TEACHING_DATABASE_ID', databaseId: 'database-id', targetDataSource: XCHANGE_TARGET_DATA_SOURCE, writeRuntimeEnabled: true,
   });
 });
 
@@ -66,7 +66,7 @@ test('valid Course Draft returns the complete v1 preview schema and performs no 
   assert.equal(result.permissionLevel, 'WRITE_CONFIRM'); assert.equal(result.confirmationRequired, true);
   assert.equal(result.normalizedPayload.draftStatus, 'Draft'); assert.equal(result.normalizedPayload.visibility, 'Private'); assert.equal(result.normalizedPayload.published, false);
   assert.equal(result.normalizedPayload.createdViaAgent, 'xchange'); assert.equal(result.createPayloadPreview['公開狀態'], 'Private');
-  assert.equal(result.estimatedWrites, 1); assert.equal(result.writesPerformed, 0); assert.equal(result.canExecute, false); assert.equal(result.executeEndpointEnabled, false);
+  assert.equal(result.estimatedWrites, 1); assert.equal(result.writesPerformed, 0); assert.equal(result.canExecute, true); assert.equal(result.executeEndpointEnabled, true); assert.ok(result.confirmationToken);
   assert.equal(audit.records.length, 1); assert.equal(audit.records[0].executionStatus, 'previewed'); assert.equal(audit.records[0].confirmationStatus, 'pending');
   assert.equal(audit.records[0].sanitizedOutput.writesPerformed, 0); assert.equal(audit.records[0].recordType, 'formal');
 });
@@ -130,7 +130,7 @@ test('different actor or payload creates a distinct idempotency identity', async
   const audit = repository();
   const first = await preview(course(), { auditRepository: audit, operationId: 'one' });
   const changed = await preview(course({ payload: { ...course().payload, title: 'Changed' } }), { auditRepository: audit, operationId: 'two' });
-  const otherActor = await createXchangeDraftPreview({ body: course(), req, actor: { ...actor, actorId: 'admin-2' }, auditRepository: audit, now: 1_800_000_000_000, operationId: 'three' });
+  const otherActor = await createXchangeDraftPreview({ body: course(), req, actor: { ...actor, actorId: 'admin-2' }, auditRepository: audit, now: 1_800_000_000_000, operationId: 'three', env: { NEXAEON_TOOL_EXECUTION_SECRET: 'xchange-test-secret' } });
   assert.notEqual(first.idempotencyKey, changed.idempotencyKey);
   assert.notEqual(first.idempotencyKey, otherActor.idempotencyKey);
   assert.equal(audit.records.length, 3);
