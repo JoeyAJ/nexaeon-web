@@ -61,11 +61,12 @@ test('Airtable audit adapter appends only the dedicated formal schema', async ()
     calls.push(options);
     return { ok: true, json: async () => ({ records: [{ id: 'rec-audit-1' }] }) };
   } });
-  const result = await repository.createAuditRecord({ operationId: 'op-fixed', executionStatus: 'previewed', sanitizedInput: { title: 'Safe' } });
+  const result = await repository.createAuditRecord({ operationId: 'op-fixed', executionStatus: 'previewed', sanitizedInput: { title: 'Safe' }, sanitizedOutput: { requestId: 'request-safe' }, source: 'xchange-write-preview' });
   const body = JSON.parse(calls[0].body);
   assert.equal(result.auditRecordId, 'rec-audit-1'); assert.equal(result.persistence, 'airtable-dedicated');
   assert.equal(body.records[0].fields['Operation ID'], 'op-fixed');
   assert.equal(body.records[0].fields['Schema Version'], 'v1'); assert.equal(body.records[0].fields['Record Type'], 'formal');
+  assert.deepEqual(JSON.parse(body.records[0].fields['Sanitized Output']), { requestId: 'request-safe', source: 'xchange-write-preview' });
   assert.equal('Project Name' in body.records[0].fields, false); assert.equal('Public Summary' in body.records[0].fields, false);
 });
 

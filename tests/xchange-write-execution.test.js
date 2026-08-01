@@ -109,7 +109,7 @@ test('persistent Airtable execution claim uses atomic Audit ID upsert and only t
   const auditRepository = createAirtableAuditRepository({
     env: { AIRTABLE_API_KEY: 'audit-secret', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit' },
     fetchImpl: async (_url, options) => {
-      const body = JSON.parse(options.body); requests.push(body);
+      const body = JSON.parse(options.body); requests.push({ method: options.method, body });
       call += 1;
       return { ok: true, json: async () => ({ records: [{ id: 'rec-lock' }], ...(call === 1 ? { createdRecords: ['rec-lock'], updatedRecords: [] } : { createdRecords: [], updatedRecords: ['rec-lock'] }) }) };
     },
@@ -118,9 +118,51 @@ test('persistent Airtable execution claim uses atomic Audit ID upsert and only t
   const first = await auditRepository.acquireExecutionLock(event);
   const second = await auditRepository.acquireExecutionLock(event);
   assert.equal(first.acquired, true); assert.equal(second.acquired, false);
-  assert.equal(requests.every((body) => body.performUpsert.fieldsToMergeOn[0] === 'Audit ID'), true);
-  assert.equal(requests.every((body) => body.records[0].fields['Audit ID'] === 'xchange-lock-persistent'), true);
+  assert.equal(requests.every(({ method }) => method === 'PATCH'), true);
+  assert.equal(requests.every(({ body }) => body.performUpsert.fieldsToMergeOn[0] === 'Audit ID'), true);
+  assert.equal(requests.every(({ body }) => body.records[0].fields['Audit ID'] === 'xchange-lock-persistent'), true);
   assert.equal(JSON.stringify(requests).includes('audit-secret'), false);
+});
+
+test('Airtable execution claim accepts record-ID objects and classifies missing outcome arrays as lock failure', async () => {
+  const event = { auditId: 'xchange-lock-shape', operationId: 'shape', agentId: 'xchange', toolId: 'createCourseDraft', targetDataSource: 'notion-teaching-materials', executionStatus: 'executing' };
+  const objectShape = createAirtableAuditRepository({
+    env: { AIRTABLE_API_KEY: 'secret', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit' },
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ records: [{ id: 'rec-lock' }], createdRecords: [{ id: 'rec-lock' }], updatedRecords: [] }) }),
+  });
+  assert.equal((await objectShape.acquireExecutionLock(event)).acquired, true);
+
+  const missingOutcome = createAirtableAuditRepository({
+    env: { AIRTABLE_API_KEY: 'secret', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit' },
+    fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ records: [{ id: 'rec-lock' }] }) }),
+  });
+  await assert.rejects(() => missingOutcome.acquireExecutionLock(event), (error) => {
+    assert.equal(error.code, 'AUDIT_LOCK_FAILED'); assert.equal(error.causeCode, 'AUDIT_INVALID_RESPONSE');
+    assert.equal(error.diagnosticReason, 'missing_upsert_outcome_arrays'); return true;
+  });
+});
+
+test('Airtable lock diagnostics distinguish auth, permission, missing table, unknown field, and unusable merge field', async () => {
+  const cases = [
+    [401, { error: { type: 'AUTHENTICATION_REQUIRED', message: 'Authentication required' } }, 'AUDIT_REQUEST_REJECTED', 'authentication_failed'],
+    [403, { error: { type: 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND', message: 'Invalid permissions' } }, 'AUDIT_REQUEST_REJECTED', 'permission_denied'],
+    [404, { error: { type: 'NOT_FOUND', message: 'Could not find table' } }, 'AUDIT_REQUEST_REJECTED', 'base_or_table_not_found'],
+    [422, { error: { type: 'UNKNOWN_FIELD_NAME', message: 'Unknown field name: Audit ID' } }, 'AUDIT_SCHEMA_INVALID', 'field_missing'],
+    [422, { error: { type: 'INVALID_REQUEST', message: 'fieldsToMergeOn cannot contain a computed field' } }, 'AUDIT_SCHEMA_INVALID', 'merge_field_invalid'],
+    [422, { error: { type: 'INVALID_REQUEST', message: 'Invalid performUpsert parameter validation' } }, 'AUDIT_SCHEMA_INVALID', 'upsert_payload_invalid'],
+    [422, { error: { type: 'INVALID_VALUE_FOR_COLUMN', message: 'Field cannot accept the provided value' } }, 'AUDIT_SCHEMA_INVALID', 'field_type_invalid'],
+  ];
+  for (const [status, payload, causeCode, diagnosticReason] of cases) {
+    const repository = createAirtableAuditRepository({
+      env: { AIRTABLE_API_KEY: 'never-log-secret', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit' },
+      fetchImpl: async () => ({ ok: false, status, json: async () => payload }),
+    });
+    await assert.rejects(() => repository.acquireExecutionLock({ auditId: `lock-${status}-${diagnosticReason}`, operationId: 'diagnostic', agentId: 'xchange' }), (error) => {
+      assert.equal(error.code, 'AUDIT_LOCK_FAILED'); assert.equal(error.causeCode, causeCode);
+      assert.equal(error.status, status); assert.equal(error.diagnosticReason, diagnosticReason);
+      assert.equal(JSON.stringify(error).includes('never-log-secret'), false); return true;
+    });
+  }
 });
 
 test('Notion failure records failed with zero writes and an Audit claim failure prevents Notion', async () => {
@@ -130,10 +172,13 @@ test('Notion failure records failed with zero writes and an Audit claim failure 
   assert.equal(lifecycle.at(-1).executionStatus, 'failed'); assert.equal(lifecycle.at(-1).sanitizedOutput.writesPerformed, 0);
 
   const closed = await setup(course(), { operationId: 'audit-failure' });
-  closed.auditRepository.acquireExecutionLock = async () => { throw new Error('audit unavailable'); };
+  closed.auditRepository.acquireExecutionLock = async () => { throw Object.assign(new Error('audit unavailable'), { code: 'AUDIT_LOCK_FAILED', causeCode: 'AUDIT_SCHEMA_INVALID', status: 422, diagnosticReason: 'merge_field_invalid', airtableErrorType: 'INVALID_REQUEST' }); };
   let notionCalls = 0;
-  await assert.rejects(() => executeXchangeDraft({ body: closed.executeBody, req, actor, auditRepository: closed.auditRepository, now: now + 1000, env, notionWriter: async () => { notionCalls += 1; } }), { code: 'AUDIT_PERSISTENCE_FAILED' });
+  const logs = [];
+  await assert.rejects(() => executeXchangeDraft({ body: closed.executeBody, req, actor, auditRepository: closed.auditRepository, now: now + 1000, env, notionWriter: async () => { notionCalls += 1; }, logger: (line) => logs.push(line) }), { code: 'AUDIT_PERSISTENCE_FAILED', internalErrorCode: 'AUDIT_LOCK_FAILED' });
   assert.equal(notionCalls, 0);
+  assert.equal(logs.length, 1); assert.match(logs[0], /"internalErrorCode":"AUDIT_LOCK_FAILED"/); assert.match(logs[0], /"httpStatus":422/); assert.match(logs[0], /"diagnosticReason":"merge_field_invalid"/);
+  assert.equal(logs[0].includes('audit unavailable'), false);
 });
 
 function schema() {

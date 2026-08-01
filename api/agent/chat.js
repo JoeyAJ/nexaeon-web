@@ -1,3 +1,5 @@
+/* global process */
+
 import { handleAgentChatRequest } from '../../lib/agent/chatRuntime.js';
 import { handleXchangeChatRequest } from '../../lib/agent/xchangeRuntime.js';
 import { handleArchivistChatRequest } from '../../lib/agent/archivistRuntime.js';
@@ -36,7 +38,7 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   AUDIT_PERSISTENCE_FAILED: 503,
   SCHEMA_MISMATCH: 503, NOTION_CONFIGURATION_MISSING: 503, NOTION_REQUEST_FAILED: 502, NOTION_INVALID_RESPONSE: 502,
   ACTOR_SESSION_MISMATCH: 409, AUDIT_CONFIGURATION_MISSING: 503, AUDIT_TIMEOUT: 504,
-  AUDIT_REQUEST_FAILED: 502, AUDIT_REQUEST_REJECTED: 502, AUDIT_INVALID_RESPONSE: 502,
+  AUDIT_REQUEST_FAILED: 502, AUDIT_REQUEST_REJECTED: 502, AUDIT_INVALID_RESPONSE: 502, AUDIT_LOCK_FAILED: 503, AUDIT_SCHEMA_INVALID: 503,
   AUDIT_PAGINATION_INVALID: 502, AUDIT_PAGINATION_LIMIT_EXCEEDED: 503,
   AUDIT_TABLE_NOT_CONFIGURED: 503, AUDIT_TABLE_SCHEMA_INVALID: 503, ACTION_SCHEMA_INVALID: 503,
   ACTION_FIELD_NOT_ALLOWED: 400, ACTION_STATUS_NOT_ALLOWED: 400, AUDIT_LINK_FAILED: 502,
@@ -102,6 +104,14 @@ async function handleXchangeOperationRequest(req, res) {
     return res.status(200).json(payload);
   } catch (error) {
     const errorCode = error?.code || (req.query.operation === 'execute' ? 'NOTION_REQUEST_FAILED' : 'PREVIEW_FAILED');
+    if (['AUDIT_CONFIGURATION_MISSING', 'AUDIT_TABLE_NOT_CONFIGURED'].includes(errorCode)) {
+      console.error(JSON.stringify({
+        service: 'nexaeon-xchange', category: 'audit_configuration_failed', operation: req.query.operation,
+        internalErrorCode: errorCode, missingApiKey: !process.env.AIRTABLE_API_KEY,
+        missingBaseId: !process.env.AIRTABLE_BASE_ID, missingAuditTableId: !process.env.AIRTABLE_AUDIT_TABLE_ID,
+        writesPerformed: 0,
+      }));
+    }
     return res.status(OPERATION_ERROR_STATUS[errorCode] || 500).json({
       ok: false,
       errorCode,
