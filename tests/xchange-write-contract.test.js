@@ -65,7 +65,7 @@ test('valid Course Draft returns the complete v1 preview schema and performs no 
   assert.equal(result.requestId, 'request-1'); assert.equal(result.operationId, 'operation-1');
   assert.equal(result.permissionLevel, 'WRITE_CONFIRM'); assert.equal(result.confirmationRequired, true);
   assert.equal(result.normalizedPayload.draftStatus, 'Draft'); assert.equal(result.normalizedPayload.visibility, 'Private'); assert.equal(result.normalizedPayload.published, false);
-  assert.equal(result.normalizedPayload.createdViaAgent, 'xchange'); assert.equal(result.createPayloadPreview['公開狀態'], 'Private');
+  assert.equal(result.normalizedPayload.createdViaAgent, 'xchange'); assert.equal(result.createPayloadPreview['狀態'], '未開始'); assert.equal(result.createPayloadPreview['公開狀態'], 'Draft');
   assert.equal(result.estimatedWrites, 1); assert.equal(result.writesPerformed, 0); assert.equal(result.canExecute, true); assert.equal(result.executeEndpointEnabled, true); assert.ok(result.confirmationToken);
   assert.equal(audit.records.length, 1); assert.equal(audit.records[0].executionStatus, 'previewed'); assert.equal(audit.records[0].confirmationStatus, 'pending');
   assert.equal(audit.records[0].sanitizedOutput.writesPerformed, 0); assert.equal(audit.records[0].recordType, 'formal');

@@ -16,7 +16,32 @@ Xchange can create exactly one new private Learning Coaching draft after an auth
 
 The server resolves `NOTION_TEACHING_DATABASE_ID`; the client cannot provide it. Before create, the writer resolves the database's current data source and validates the exact read-adapter property names and types. It fails closed with `SCHEMA_MISMATCH` before `pages.create` when the schema differs.
 
-Course fields map to `標題`, `教學分類`, `形式`, `子主題`, `對象`, `可講時間(分)`, `難度`, `語言`, `標籤`, optional `檔案連結`, `狀態`, and `公開狀態`. Learning Activity maps the activity title/type/instructions/time/materials to the same confirmed schema. The server always writes `狀態=Draft` and `公開狀態=Private`; `published=false` and `createdViaAgent=xchange` remain enforced contract and Audit metadata and are not guessed as nonexistent Notion properties.
+Course fields map to `標題`, `教學分類`, `形式`, `子主題`, `對象`, `可講時間(分)`, `難度`, `語言`, `標籤`, optional `檔案連結`, `狀態`, and `公開狀態`. Learning Activity maps the activity title/type/instructions/time/materials to the same confirmed schema. `published=false`, logical `visibility=Private`, and `createdViaAgent=xchange` remain enforced contract and Audit metadata and are not guessed as nonexistent Notion properties.
+
+### Observed Production Notion schema
+
+The schema below was read from the Production integration through `databases.retrieve` and `dataSources.retrieve`; no page query or write was performed.
+
+| Property | Production type | Safe option names |
+| --- | --- | --- |
+| 標題 | title | — |
+| 教學分類 | select | AI, 商業, 心理, 教育, 跨域 |
+| 形式 | multi_select | PPT, 課堂講義, 案例, 影片, 問卷, Workshop |
+| 子主題 | rich_text | — |
+| 對象 | multi_select | 大學生, 研究生, 中國學生, 韓國學生, 在職人員 |
+| 可講時間(分) | number | — |
+| 難度 | select | 初級, 中級, 高級 |
+| 語言 | multi_select | 中文, 韓文, 英文 |
+| 標籤 | multi_select | 重要, 熱門, 實驗中, 核心 |
+| 檔案連結 | url | — |
+| 狀態 | status | 未開始, 進行中, 完成 |
+| 公開狀態 | select | Hidden, Draft, Published |
+
+The original writer incorrectly required `狀態=Draft` and `公開狀態=Private`; neither option exists. The Production-safe representation is `狀態=未開始` and `公開狀態=Draft`. The public read adapter still returns only records whose exact `公開狀態` normalizes to Published, so a newly created Draft remains excluded from `GET /api/teaching/courses`.
+
+`標題`, `教學分類`, `子主題`, `可講時間(分)`, `難度`, `語言`, `狀態`, and `公開狀態` are required by the write adapter. `形式`, `對象`, `標籤`, and `檔案連結` are optional: if their property is absent, or an optional select value is not in the observed option allowlist, the property is omitted rather than creating a Notion schema option. Required fields, required types, and the `未開始` / `Draft` safety options always fail closed when unavailable.
+
+Schema failures emit safe structured server diagnostics containing `missingProperties`, `mismatchedProperties` with expected and actual types, `missingRequiredOptions`, `unsupportedWritableProperties`, and optional-property omissions. Logs never include Notion tokens or database/data-source IDs; the client continues to receive only `SCHEMA_MISMATCH`.
 
 ## Idempotency and Audit
 

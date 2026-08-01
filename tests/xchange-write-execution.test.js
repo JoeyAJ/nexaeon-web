@@ -4,6 +4,7 @@ import test from 'node:test';
 import { createAirtableAuditRepository, createMemoryAuditRepository } from '../lib/agent/auditRepository.js';
 import { createXchangeDraftPreview, executeXchangeDraft, resetXchangePreviewStoreForTests } from '../lib/agent/xchangeWriteContract.js';
 import { buildXchangeNotionProperties, createXchangeNotionDraft, validateXchangeNotionSchema } from '../lib/agent/xchangeNotionWriter.js';
+import { isPublishedNotionPage } from '../lib/publicFilters.js';
 
 const env = { NEXAEON_TOOL_EXECUTION_SECRET: 'confirmed-write-test-secret' };
 const actor = { actorId: 'admin@example.test', role: 'admin', sessionId: 'session-a' };
@@ -181,41 +182,89 @@ test('Notion failure records failed with zero writes and an Audit claim failure 
   assert.equal(logs[0].includes('audit unavailable'), false);
 });
 
-function schema() {
+function productionSchema() {
   return {
-    '標題': { type: 'title', title: {} }, '教學分類': { type: 'select', select: {} }, '形式': { type: 'multi_select', multi_select: {} },
-    '子主題': { type: 'rich_text', rich_text: {} }, '對象': { type: 'multi_select', multi_select: {} }, '可講時間(分)': { type: 'number', number: {} },
-    '難度': { type: 'select', select: {} }, '語言': { type: 'multi_select', multi_select: {} }, '標籤': { type: 'multi_select', multi_select: {} },
-    '檔案連結': { type: 'url', url: {} }, '狀態': { type: 'status', status: { options: [{ name: 'Draft' }] } },
-    '公開狀態': { type: 'select', select: { options: [{ name: 'Private' }] } },
+    '標題': { type: 'title', title: {} }, '教學分類': { type: 'select', select: { options: ['AI', '商業', '心理', '教育', '跨域'].map((name) => ({ name })) } },
+    '形式': { type: 'multi_select', multi_select: { options: ['PPT', '課堂講義', '案例', '影片', '問卷', 'Workshop'].map((name) => ({ name })) } },
+    '子主題': { type: 'rich_text', rich_text: {} },
+    '對象': { type: 'multi_select', multi_select: { options: ['大學生', '研究生', '中國學生', '韓國學生', '在職人員'].map((name) => ({ name })) } },
+    '可講時間(分)': { type: 'number', number: {} },
+    '難度': { type: 'select', select: { options: ['初級', '中級', '高級'].map((name) => ({ name })) } },
+    '語言': { type: 'multi_select', multi_select: { options: ['中文', '韓文', '英文'].map((name) => ({ name })) } },
+    '標籤': { type: 'multi_select', multi_select: { options: ['重要', '熱門', '實驗中', '核心'].map((name) => ({ name })) } },
+    '檔案連結': { type: 'url', url: {} }, '狀態': { type: 'status', status: { options: ['未開始', '進行中', '完成'].map((name) => ({ name })) } },
+    '公開狀態': { type: 'select', select: { options: ['Hidden', 'Draft', 'Published'].map((name) => ({ name })) } },
   };
 }
 
-test('real-schema mapper covers Course and Learning Activity and fails closed before create on mismatch', async () => {
-  const courseProperties = buildXchangeNotionProperties({ draftType: 'course', payload: { ...course().payload, fileUrl: 'https://example.test/course' }, schema: schema() });
-  assert.equal(courseProperties['標題'].title[0].text.content, 'AI Marketing'); assert.equal(courseProperties['狀態'].status.name, 'Draft'); assert.equal(courseProperties['公開狀態'].select.name, 'Private');
-  const activityProperties = buildXchangeNotionProperties({ draftType: 'learning_activity', payload: { ...activity().payload, materialsUrl: 'https://example.test/activity' }, schema: schema() });
-  assert.equal(activityProperties['標題'].title[0].text.content, '比較活動'); assert.equal(activityProperties['教學分類'].select.name, 'Discussion'); assert.equal(activityProperties['子主題'].rich_text[0].text.content, '比較兩個回答。');
-  assert.throws(() => validateXchangeNotionSchema({ ...schema(), '公開狀態': { type: 'checkbox', checkbox: {} } }), { code: 'SCHEMA_MISMATCH' });
+test('Production Notion schema validates and maps select, status, multi-select, rich text, number, and URL safely', () => {
+  const schema = productionSchema();
+  assert.equal(validateXchangeNotionSchema(schema).missingProperties.length, 0);
+  const courseProperties = buildXchangeNotionProperties({ draftType: 'course', payload: { ...course().payload, fileUrl: 'https://example.test/course' }, schema });
+  assert.equal(courseProperties['標題'].title[0].text.content, 'AI Marketing');
+  assert.equal(courseProperties['教學分類'].select.name, '教育'); assert.deepEqual(courseProperties['形式'].multi_select, [{ name: 'Workshop' }]);
+  assert.equal(courseProperties['難度'].select.name, '初級'); assert.deepEqual(courseProperties['語言'].multi_select, [{ name: '英文' }]);
+  assert.equal(courseProperties['狀態'].status.name, '未開始'); assert.equal(courseProperties['公開狀態'].select.name, 'Draft');
+  assert.equal(courseProperties['檔案連結'].url, 'https://example.test/course'); assert.equal('標籤' in courseProperties, false);
+
+  const activityProperties = buildXchangeNotionProperties({ draftType: 'learning_activity', payload: { ...activity().payload, materialsUrl: 'https://example.test/activity' }, schema });
+  assert.equal(activityProperties['標題'].title[0].text.content, '比較活動'); assert.equal(activityProperties['教學分類'].select.name, '教育');
+  assert.equal(activityProperties['子主題'].rich_text[0].text.content, '比較兩個回答。'); assert.deepEqual(activityProperties['形式'].multi_select, [{ name: 'Workshop' }]);
+  assert.equal(isPublishedNotionPage({ properties: activityProperties }, ['公開狀態']), false);
+});
+
+test('schema diagnostics fail closed for missing title, wrong type, and missing Draft visibility option', () => {
+  const missingTitle = { ...productionSchema() }; delete missingTitle['標題'];
+  assert.throws(() => validateXchangeNotionSchema(missingTitle), (error) => {
+    assert.equal(error.code, 'SCHEMA_MISMATCH'); assert.deepEqual(error.schemaDiagnostics.missingProperties, ['標題']); return true;
+  });
+  assert.throws(() => validateXchangeNotionSchema({ ...productionSchema(), '狀態': { type: 'checkbox', checkbox: {} } }), (error) => {
+    assert.deepEqual(error.schemaDiagnostics.mismatchedProperties, [{ property: '狀態', expectedType: ['status'], actualType: 'checkbox' }]); return true;
+  });
+  assert.throws(() => validateXchangeNotionSchema({ ...productionSchema(), '狀態': { type: 'status', status: { options: [{ name: '進行中' }, { name: '完成' }] } } }), (error) => {
+    assert.deepEqual(error.schemaDiagnostics.missingRequiredOptions[0], { property: '狀態', requiredOption: '未開始', availableOptions: ['進行中', '完成'] }); return true;
+  });
+  assert.throws(() => validateXchangeNotionSchema({ ...productionSchema(), '公開狀態': { type: 'select', select: { options: [{ name: 'Hidden' }, { name: 'Published' }] } } }), (error) => {
+    assert.deepEqual(error.schemaDiagnostics.missingRequiredOptions[0], { property: '公開狀態', requiredOption: 'Draft', availableOptions: ['Hidden', 'Published'] }); return true;
+  });
+});
+
+test('missing optional properties are omitted without weakening required Draft visibility', () => {
+  const schema = productionSchema();
+  for (const name of ['形式', '對象', '標籤', '檔案連結']) delete schema[name];
+  const diagnostics = validateXchangeNotionSchema(schema);
+  assert.deepEqual(diagnostics.optionalPropertiesOmitted, ['形式', '對象', '標籤', '檔案連結']);
+  const properties = buildXchangeNotionProperties({ draftType: 'course', payload: { ...course().payload, fileUrl: 'https://example.test/course' }, schema });
+  for (const name of ['形式', '對象', '標籤', '檔案連結']) assert.equal(name in properties, false);
+  assert.equal(properties['公開狀態'].select.name, 'Draft'); assert.equal(isPublishedNotionPage({ properties }, ['公開狀態']), false);
+});
+
+test('schema mismatch logs safe property diagnostics and never calls pages.create', async () => {
+  const logs = [];
 
   let creates = 0;
   const notionClient = {
     databases: { retrieve: async () => ({ data_sources: [{ id: 'server-data-source' }] }) },
-    dataSources: { retrieve: async () => ({ properties: { ...schema(), '狀態': { type: 'checkbox', checkbox: {} } } }) },
+    dataSources: { retrieve: async () => ({ properties: { ...productionSchema(), '狀態': { type: 'checkbox', checkbox: {} } } }) },
     pages: { create: async () => { creates += 1; } },
   };
-  await assert.rejects(() => createXchangeNotionDraft({ draftType: 'course', payload: course().payload, env: { NOTION_API_KEY: 'secret', NOTION_TEACHING_DATABASE_ID: 'server-database' }, notionClient }), { code: 'SCHEMA_MISMATCH' });
+  await assert.rejects(() => createXchangeNotionDraft({ draftType: 'course', payload: course().payload, env: { NOTION_API_KEY: 'secret', NOTION_TEACHING_DATABASE_ID: 'server-database' }, notionClient, logger: (line) => logs.push(line) }), { code: 'SCHEMA_MISMATCH' });
   assert.equal(creates, 0);
+  assert.match(logs[0], /"property":"狀態"/); assert.match(logs[0], /"expectedType":\["status"\]/); assert.match(logs[0], /"actualType":"checkbox"/);
+  assert.equal(logs[0].includes('server-database'), false); assert.equal(logs[0].includes('secret'), false);
+});
 
+test('valid Production schema calls pages.create exactly once and returns a Private Draft result', async () => {
   const createCalls = [];
   const validClient = {
     databases: { retrieve: async (input) => { assert.deepEqual(input, { database_id: 'server-database' }); return { data_sources: [{ id: 'server-data-source' }] }; } },
-    dataSources: { retrieve: async () => ({ properties: schema() }) },
+    dataSources: { retrieve: async () => ({ properties: productionSchema() }) },
     pages: { create: async (input) => { createCalls.push(input); return { id: 'created-notion-page', created_time: '2027-01-15T08:00:04.000Z' }; } },
   };
   const written = await createXchangeNotionDraft({ draftType: 'learning_activity', payload: activity().payload, env: { NOTION_API_KEY: 'not-returned-secret', NOTION_TEACHING_DATABASE_ID: 'server-database' }, notionClient: validClient });
   assert.equal(createCalls.length, 1); assert.deepEqual(createCalls[0].parent, { data_source_id: 'server-data-source' });
-  assert.equal(createCalls[0].properties['狀態'].status.name, 'Draft'); assert.equal(createCalls[0].properties['公開狀態'].select.name, 'Private');
+  assert.equal(createCalls[0].properties['狀態'].status.name, '未開始'); assert.equal(createCalls[0].properties['公開狀態'].select.name, 'Draft');
+  assert.equal(isPublishedNotionPage({ properties: createCalls[0].properties }, ['公開狀態']), false);
   assert.deepEqual(written, { externalRecordId: 'created-notion-page', createdAt: '2027-01-15T08:00:04.000Z', properties: createCalls[0].properties });
   assert.equal(JSON.stringify(written).includes('not-returned-secret'), false);
 });
