@@ -44,7 +44,7 @@ test('admin migration UI requires dry-run and confirmation, checks consistency, 
   await page.route('**/api/admin/migration/preview', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ migrationBatchId: 'migration-e2e', recordsToCreate: ['legacy-audit-1'], recordsToUpdate: ['legacy-draft-1'], recordsToSkip: ['legacy-audit-done'], invalidRecordCount: 0, estimatedWrites: 4, warnings: [{ recordId: 'legacy-draft-1', code: 'MISSING_AUDIT_LINK' }], expiresAt: '2026-08-01T01:05:00.000Z', payloadHash: 'hash-e2e', confirmationToken: 'token-e2e' }) }));
   await page.route('**/api/admin/migration/execute', (route) => { migrationExecuteCount += 1; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ migrationBatchId: 'migration-e2e', succeededCount: 2, skippedCount: 1, failedCount: 0, executionStatus: 'succeeded' }) }); });
   const issue = { category: 'action-missing-audit', actionRecordId: 'rec-action', auditRecordId: null, operationId: 'op-1', repairable: true, candidateAuditRecordId: 'rec-audit' };
-  await page.route('**/api/admin/consistency', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, counts: { 'action-missing-audit': 1 }, results: [issue] }) }));
+  await page.route('**/api/admin/consistency', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, actionCount: 2, auditCount: 3, counts: { 'action-missing-audit': 1 }, results: [issue] }) }));
   await page.route('**/api/admin/repair/preview', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ operationId: 'op-1', actionRecordId: 'rec-action', auditRecordId: 'rec-audit', updates: [{ target: 'action', recordId: 'rec-action', fields: { 'Audit Record ID': 'rec-audit' } }], payloadHash: 'repair-hash', confirmationToken: 'repair-token', expiresAt: '2026-08-01T01:05:00.000Z' }) }));
   await page.route('**/api/admin/repair/execute', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, executionStatus: 'succeeded' }) }));
 
@@ -59,9 +59,11 @@ test('admin migration UI requires dry-run and confirmation, checks consistency, 
   await expect(page.getByText('"succeededCount": 2')).toBeVisible(); expect(migrationExecuteCount).toBe(1);
 
   await page.getByRole('button', { name: '檢查 Action／Audit 一致性' }).click();
-  await expect(page.getByText('action-missing-audit', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('consistency-summary')).toContainText('Action 總數2');
+  await expect(page.getByTestId('consistency-summary')).toContainText('Audit 總數3');
+  await expect(page.locator('.admin-consistency-list').getByText('action-missing-audit', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '預覽安全修復' }).click();
   await expect(page.locator('.admin-repair-preview')).toContainText('rec-audit');
   await page.getByRole('button', { name: '確認修復 ID 關聯' }).click();
-  await expect(page.getByText('action-missing-audit', { exact: true })).toBeVisible();
+  await expect(page.locator('.admin-consistency-list').getByText('action-missing-audit', { exact: true })).toBeVisible();
 });

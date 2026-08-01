@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { checkActionAuditConsistency } from '../lib/agent/actionAuditConsistency.js';
-import { executeActionAuditRepair, executeLegacyMigration, MIGRATION_CONFIRMATION_TTL_MS, previewActionAuditRepair, previewLegacyMigration, verifyMigrationBatch } from '../lib/agent/legacyMigrationRuntime.js';
-import { isLegacyAuditProject, isLegacyDraftProject, mapLegacyDraftUpdate, parseLegacyAuditProject } from '../lib/agent/migrationDataSource.js';
+import { executeActionAuditRepair, executeLegacyMigration, MIGRATION_CONFIRMATION_TTL_MS, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../lib/agent/legacyMigrationRuntime.js';
+import { createAirtableMigrationDataSource, isLegacyAuditProject, isLegacyDraftProject, mapLegacyDraftUpdate, parseLegacyAuditProject } from '../lib/agent/migrationDataSource.js';
 
 const env = { NEXAEON_TOOL_EXECUTION_SECRET: 'migration-test-secret' };
 const actor = { actorId: 'admin-1', role: 'admin', sessionId: 'session-1' };
@@ -36,6 +36,12 @@ function memorySource(seedProjects = [legacyAudit(), legacyDraft()], seedAudits 
     async updateProject(recordId, fields) { const record = projects.find(({ id }) => id === recordId); Object.assign(record.fields, fields); return recordId; },
     async updateAudit(recordId, fields) { const record = audits.find(({ id }) => id === recordId); Object.assign(record.fields, fields); Object.assign(record, { externalRecordId: fields['External Record ID'] ?? record.externalRecordId }); return recordId; },
   };
+}
+function formalAction(overrides = {}) {
+  return { id: 'rec-action', fields: { 'Project Name': '[Draft hash] Action', 'Draft Status': 'Draft', 'Operation ID': 'op-1', 'Idempotency Key': 'idem-1', 'Created By': 'admin', 'Created Via Agent': 'orchestrator', 'Execution Status': 'Succeeded', 'Audit Record ID': ['rec-audit'], 'Source Tool ID': 'createActionDraft', 'Action Draft Schema Version': 'v1', ...(overrides.fields || {}) }, ...Object.fromEntries(Object.entries(overrides).filter(([key]) => key !== 'fields')) };
+}
+function formalAudit(overrides = {}) {
+  return { id: 'rec-audit', fields: {}, auditId: 'audit-1', operationId: 'op-1', idempotencyKey: 'idem-1', externalRecordId: 'rec-action', agentId: 'orchestrator', toolId: 'createActionDraft', executionStatus: 'succeeded', schemaVersion: 'v1', ...overrides };
 }
 
 test('legacy identification is strict and draft mapping preserves primary field', () => {
@@ -98,6 +104,58 @@ test('consistency checker classifies consistent, mismatch, orphan, duplicate, le
   assert.equal(duplicate.counts.duplicate, 1);
   assert.equal(checkActionAuditConsistency({ projects: [legacyDraft()], audits: [] }).counts.legacy, 1);
   assert.equal(checkActionAuditConsistency({ projects: [{ ...action, fields: { ...action.fields, 'Created By': '' } }], audits: [audit] }).counts.unknown, 1);
+});
+
+test('consistency checker accepts Airtable linked-record arrays for a normal Action/Audit pair', () => {
+  const result = checkActionAuditConsistency({ projects: [formalAction()], audits: [formalAudit()] });
+  assert.equal(result.actionCount, 1); assert.equal(result.auditCount, 1); assert.equal(result.counts.consistent, 1);
+});
+
+test('consistency checker reports an Action missing its Audit link', () => {
+  const result = checkActionAuditConsistency({ projects: [formalAction({ fields: { 'Audit Record ID': [] } })], audits: [formalAudit()] });
+  const issue = result.results.find(({ category }) => category === 'action-missing-audit');
+  assert.equal(result.counts['action-missing-audit'], 1); assert.equal(issue.candidateAuditRecordId, 'rec-audit');
+});
+
+test('consistency checker reports an Audit whose Action is missing', () => {
+  const result = checkActionAuditConsistency({ projects: [], audits: [formalAudit()] });
+  assert.equal(result.counts['audit-missing-action'], 1);
+});
+
+test('consistency checker reports duplicate physical Audits with the same Audit ID', () => {
+  const result = checkActionAuditConsistency({ projects: [formalAction()], audits: [formalAudit(), formalAudit({ id: 'rec-audit-copy' })] });
+  const duplicate = result.results.find(({ reason }) => reason === 'duplicate-audit-id');
+  assert.equal(result.counts.duplicate, 1); assert.deepEqual(duplicate.auditRecordIds, ['rec-audit', 'rec-audit-copy']);
+});
+
+test('legacy Draft without operation ID is retained as a visible legacy issue', () => {
+  const record = legacyDraft(); record.fields['Audit Record ID'] = ['rec-audit'];
+  const issue = checkActionAuditConsistency({ projects: [record], audits: [] }).results[0];
+  assert.equal(issue.category, 'legacy'); assert.deepEqual(issue.missingFields, ['Operation ID']);
+});
+
+test('legacy Draft without an Audit link is retained as a visible legacy issue', () => {
+  const record = legacyDraft(); record.fields['Operation ID'] = 'legacy-op';
+  const issue = checkActionAuditConsistency({ projects: [record], audits: [] }).results[0];
+  assert.equal(issue.category, 'legacy'); assert.deepEqual(issue.missingFields, ['Audit Record ID']);
+});
+
+test('malformed Airtable record is counted as unknown without hiding the valid records', async () => {
+  const source = createAirtableMigrationDataSource({
+    env: { AIRTABLE_API_KEY: 'test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'projects', AIRTABLE_AUDIT_TABLE_ID: 'audits' },
+    fetchImpl: async (url) => ({ ok: true, json: async () => String(url).includes('/projects') ? { records: [null, formalAction()] } : { records: [{ id: 'rec-audit', fields: { 'Audit ID': 'audit-1', 'Operation ID': 'op-1', 'Idempotency Key': 'idem-1', 'External Record ID': 'rec-action', 'Agent ID': 'orchestrator', 'Tool ID': 'createActionDraft', 'Execution Status': 'succeeded', 'Schema Version': 'v1' } }] } }),
+  });
+  const result = await runConsistencyCheck({ dataSource: source });
+  assert.equal(result.counts.unknown, 1); assert.equal(result.counts.consistent, 1);
+  assert.equal(result.results.find(({ reason }) => reason === 'malformed-project-record').actionRecordId, 'malformed-project-1');
+});
+
+test('Airtable request failure preserves an explicit safe error code', async () => {
+  const source = createAirtableMigrationDataSource({
+    env: { AIRTABLE_API_KEY: 'test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'projects', AIRTABLE_AUDIT_TABLE_ID: 'audits' },
+    fetchImpl: async () => { throw new TypeError('secret-bearing upstream failure'); },
+  });
+  await assert.rejects(runConsistencyCheck({ dataSource: source }), { code: 'DATA_SOURCE_REQUEST_FAILED', message: 'migration_request_failed' });
 });
 
 test('repair preview and confirm only patch uniquely verified ID links', async () => {

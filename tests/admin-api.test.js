@@ -60,3 +60,23 @@ test('migration, consistency, and repair admin routes reject visitors before dat
   const consistency = response(); await handler(request({ method: 'GET', query: { admin: 'consistency' } }), consistency);
   assert.equal(consistency.statusCode, 401); assert.equal(consistency.body.errorCode, 'AUTH_REQUIRED');
 });
+
+test('authenticated consistency failure returns a specific safe data-source error code', async () => {
+  Object.assign(process.env, {
+    AIRTABLE_API_KEY: 'api-test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'tbl-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit',
+    NEXAEON_TOOL_EXECUTION_SECRET: 'tool-test-secret', NEXAEON_ADMIN_ACTOR_ID: 'api-admin',
+    NEXAEON_ADMIN_ACCESS_SECRET: 'api-access-secret', NEXAEON_ADMIN_SESSION_SECRET: 'api-session-secret',
+  });
+  const login = response();
+  await handler(request({ method: 'POST', query: { admin: 'session' }, body: { actorId: 'api-admin', accessSecret: 'api-access-secret' } }), login);
+  const cookie = login.headers['set-cookie'].split(';')[0];
+  const originalFetch = globalThis.fetch; const originalError = console.error; const logged = [];
+  globalThis.fetch = async () => { throw new TypeError('Authorization: Bearer should-never-leak'); };
+  console.error = (message) => logged.push(message);
+  try {
+    const consistency = response(); await handler(request({ method: 'GET', query: { admin: 'consistency' }, cookie }), consistency);
+    assert.equal(consistency.statusCode, 502); assert.deepEqual(consistency.body, { ok: false, errorCode: 'DATA_SOURCE_REQUEST_FAILED' });
+    assert.equal(JSON.stringify(consistency.body).includes('should-never-leak'), false);
+    assert.equal(logged.some((message) => message.includes('should-never-leak')), false);
+  } finally { globalThis.fetch = originalFetch; console.error = originalError; }
+});

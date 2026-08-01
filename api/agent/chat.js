@@ -20,7 +20,9 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   CONFIRMATION_REQUESTER_MISMATCH: 403, CONFIRMATION_EXPIRED: 410, OPERATION_CANCELLED: 409,
   OPERATION_ALREADY_SUCCEEDED: 409, DATA_SOURCE_CONFIGURATION_MISSING: 503,
   DATA_SOURCE_TIMEOUT: 504, DATA_SOURCE_REQUEST_FAILED: 502, DATA_SOURCE_REJECTED: 502,
-  DATA_SOURCE_INVALID_RESPONSE: 502, INVALID_TOOL_OUTPUT: 502,
+  DATA_SOURCE_INVALID_RESPONSE: 502, DATA_SOURCE_SCHEMA_INVALID: 503, DATA_SOURCE_PAGINATION_INVALID: 502,
+  DATA_SOURCE_PAGINATION_LIMIT_EXCEEDED: 503, CONSISTENCY_DATA_INVALID: 502, CONSISTENCY_CHECK_FAILED: 500,
+  INVALID_TOOL_OUTPUT: 502,
   AUTH_CONFIGURATION_MISSING: 503, AUTH_INVALID_CREDENTIALS: 401, AUTH_REQUIRED: 401,
   AUTH_ROLE_FORBIDDEN: 403, AUTH_SESSION_EXPIRED: 401, CSRF_INVALID: 403,
   AUTH_RATE_LIMITED: 429,
@@ -173,7 +175,9 @@ async function handleAdminRequest(req, res) {
     return res.status(404).json({ ok: false, errorCode: 'ADMIN_ROUTE_NOT_FOUND' });
   } catch (error) {
     const errorCode = error?.code || 'ADMIN_REQUEST_FAILED';
-    return res.status(OPERATION_ERROR_STATUS[errorCode] || 500).json({ ok: false, errorCode });
+    const status = OPERATION_ERROR_STATUS[errorCode] || 500;
+    if (status >= 500) console.error(JSON.stringify({ service: 'nexaeon-admin', category: 'admin_request_failed', adminRoute: String(req.query?.admin || '').slice(0, 40), errorCode, upstreamStatus: Number.isInteger(error?.status) ? error.status : null }));
+    return res.status(status).json({ ok: false, errorCode });
   }
 }
 
