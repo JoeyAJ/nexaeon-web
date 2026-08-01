@@ -214,6 +214,18 @@ test('an Action-linked preview audit with a succeeded lifecycle sibling is valid
   assert.equal(checked.counts['link-mismatch'], 0); assert.equal(checked.counts['audit-missing-action'], 0);
 });
 
+test('an idempotent retry preview link is valid when its retry lifecycle has one succeeded sibling', () => {
+  const action = formalAction({ fields: { 'Operation ID': 'op-original', 'Audit Record ID': 'rec-retry-preview' } });
+  const retryPreview = formalAudit({ id: 'rec-retry-preview', auditId: 'audit-retry-preview', operationId: 'op-retry', externalRecordId: '', executionStatus: 'previewed' });
+  const retrySucceeded = formalAudit({ id: 'rec-retry-final', auditId: 'audit-retry-final', operationId: 'op-retry', externalRecordId: 'rec-action', executionStatus: 'succeeded' });
+  const originalSucceeded = formalAudit({ id: 'rec-original-final', auditId: 'audit-original-final', operationId: 'op-original', externalRecordId: 'rec-action', executionStatus: 'succeeded' });
+  const checked = checkActionAuditConsistency({ projects: [action], audits: [retryPreview, retrySucceeded, originalSucceeded] });
+  const result = checked.results.find(({ actionRecordId }) => actionRecordId === 'rec-action');
+  assert.equal(result.category, 'consistent'); assert.equal(result.reason, 'linked-retry-preview-with-succeeded-lifecycle');
+  assert.equal(result.lifecycleOperationId, 'op-retry'); assert.deepEqual(result.lifecycleAuditRecordIds, ['rec-retry-preview', 'rec-retry-final']);
+  assert.equal(checked.counts['link-mismatch'], 0); assert.equal(checked.counts.duplicate, 0);
+});
+
 test('migration lifecycle audits and legal Action lifecycle siblings are not false duplicates', () => {
   const action = formalAction({ fields: { 'Audit Record ID': 'rec-preview' } });
   const previewAudit = formalAudit({ id: 'rec-preview', auditId: 'audit-preview', externalRecordId: '', executionStatus: 'previewed' });

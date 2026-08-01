@@ -190,7 +190,7 @@ async function handleAdminRequest(req, res) {
           auditRecordId: item.auditRecordId, operationId: item.operationId || null,
           candidateAuditRecordIds: item.candidateAuditRecordIds || [], candidateBasis: item.candidateBasis || null,
           currentAuditRecordId: item.currentAuditRecordId || null, expectedAuditRecordId: item.expectedAuditRecordId || null,
-          lifecycleAuditRecordIds: item.lifecycleAuditRecordIds || [], duplicateBasis: item.duplicateBasis || null,
+          lifecycleOperationId: item.lifecycleOperationId || null, lifecycleAuditRecordIds: item.lifecycleAuditRecordIds || [], duplicateBasis: item.duplicateBasis || null,
           auditId: item.auditId || null, sourceRecordId: item.sourceRecordId || null,
           auditRecordIds: item.auditRecordIds || [], actionRecordIds: item.actionRecordIds || [], safe: item.safe === true,
         })),
