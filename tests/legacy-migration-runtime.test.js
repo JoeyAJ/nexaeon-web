@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { checkActionAuditConsistency } from '../lib/agent/actionAuditConsistency.js';
+import { checkActionAuditConsistency, findForensicAuditCandidates } from '../lib/agent/actionAuditConsistency.js';
 import { canonicalActionType, executeActionAuditRepair, executeLegacyMigration, inspectMigrationSafety, MIGRATION_CONFIRMATION_TTL_MS, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../lib/agent/legacyMigrationRuntime.js';
 import { createAirtableMigrationDataSource, isLegacyAuditProject, isLegacyDraftProject, mapLegacyDraftUpdate, parseLegacyAuditProject } from '../lib/agent/migrationDataSource.js';
 import { validateMigrationPreflight } from '../lib/agent/migrationPreflight.js';
@@ -271,6 +271,42 @@ test('no canonical Audit candidate rejects repair preview without writes', async
   assert.equal(issue.safe, false); assert.deepEqual(issue.candidateAuditRecordIds, []);
   await assert.rejects(previewActionAuditRepair({ issue, actor, req, env, dataSource: source }), { code: 'REPAIR_NOT_SAFE' });
   assert.equal(source.projects[0].fields['Audit Record ID'], '');
+});
+
+test('forensic candidate search reports ordered evidence without making a score-only match repairable', async () => {
+  const action = formalAction({
+    createdTime: '2026-08-01T00:00:00.000Z',
+    fields: { 'Audit Record ID': '', 'Operation ID': 'Unknown', 'Idempotency Key': 'orphan-key', 'Project Name': '[Draft alpha-fingerprint] Forensic action', 'Public Summary': 'alpha-fingerprint request' },
+  });
+  const audit = formalAudit({ id: 'rec-nearby', operationId: 'unrelated-op', idempotencyKey: 'different-key', externalRecordId: '' });
+  audit.createdTime = '2026-08-01T00:03:00.000Z';
+  audit.fields = { 'Actor ID': 'admin', Timestamp: '2026-08-01T00:03:00.000Z' };
+  audit.sanitizedInput = { summary: 'alpha-fingerprint request' };
+  const issue = checkActionAuditConsistency({ projects: [action], audits: [audit] }).results.find(({ category }) => category === 'action-missing-audit');
+  assert.equal(issue.candidateCount, 1); assert.equal(issue.candidateAuditRecordIds[0], 'rec-nearby');
+  assert.equal(issue.candidateMatches[0].evidence.some(({ field }) => field === 'Created timestamp'), true);
+  assert.equal(issue.candidateMatches[0].evidence.some(({ field }) => field === 'Sanitized payload fingerprint'), true);
+  assert.equal(issue.safe, false); assert.equal(issue.repairable, false);
+  await assert.rejects(previewActionAuditRepair({ issue, actor, req, env, dataSource: memorySource([action], [audit]) }), { code: 'REPAIR_NOT_SAFE' });
+});
+
+test('forensic Action details expose the requested fields and redact credentials', () => {
+  const action = formalAction({
+    createdTime: '2026-08-01T01:02:03.000Z',
+    fields: { 'Last Modified Time': '2026-08-01T02:03:04.000Z', 'Legacy Notes': 'token=do-not-leak retained note', 'Public Summary': 'api_key: hidden-value safe summary' },
+  });
+  const details = findForensicAuditCandidates(action, []).actionDetails;
+  assert.equal(details.createdTime, '2026-08-01T01:02:03.000Z'); assert.equal(details.updatedTime, '2026-08-01T02:03:04.000Z');
+  assert.equal(details.createdBy, 'admin'); assert.equal(details.sourceToolId, 'createActionDraft');
+  assert.equal(details.legacyNotes.includes('do-not-leak'), false); assert.equal(details.sanitizedPayload.includes('hidden-value'), false);
+});
+
+test('multiple forensic candidates remain ambiguous and list concrete IDs by score', () => {
+  const action = formalAction({ createdTime: '2026-08-01T00:00:00.000Z', fields: { 'Audit Record ID': '', 'Operation ID': 'Unknown', 'Idempotency Key': 'orphan' } });
+  const audits = ['rec-one', 'rec-two'].map((id, index) => ({ ...formalAudit({ id, operationId: `other-${index}`, idempotencyKey: `other-${index}`, externalRecordId: '' }), createdTime: `2026-08-01T00:0${index + 1}:00.000Z`, fields: {} }));
+  const issue = checkActionAuditConsistency({ projects: [action], audits }).results.find(({ category }) => category === 'action-missing-audit');
+  assert.equal(issue.candidateCount, 2); assert.deepEqual(issue.candidateAuditRecordIds, ['rec-one', 'rec-two']);
+  assert.equal(issue.safe, false); assert.equal(issue.recommendedAction, 'manual-review-required-ambiguous');
 });
 
 test('partial migration failure is audited and the same confirmed batch safely resumes remaining records', async () => {

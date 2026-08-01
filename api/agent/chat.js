@@ -189,6 +189,11 @@ async function handleAdminRequest(req, res) {
           category: item.category, reason: item.reason || null, actionRecordId: item.actionRecordId,
           auditRecordId: item.auditRecordId, operationId: item.operationId || null,
           candidateAuditRecordIds: item.candidateAuditRecordIds || [], candidateBasis: item.candidateBasis || null,
+          candidateCount: item.candidateCount || 0,
+          candidateMatches: (item.candidateMatches || []).map(({ auditRecordId, matchScore, evidence }) => ({
+            auditRecordId, matchScore, evidence: (evidence || []).map(({ field, match, weight }) => ({ field, match, weight })),
+          })),
+          recommendedAction: item.recommendedAction || null,
           currentAuditRecordId: item.currentAuditRecordId || null, expectedAuditRecordId: item.expectedAuditRecordId || null,
           lifecycleOperationId: item.lifecycleOperationId || null, lifecycleAuditRecordIds: item.lifecycleAuditRecordIds || [], duplicateBasis: item.duplicateBasis || null,
           auditId: item.auditId || null, sourceRecordId: item.sourceRecordId || null,
