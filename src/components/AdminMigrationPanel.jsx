@@ -7,6 +7,19 @@ const COPY = {
 };
 
 const CATEGORIES = ['consistent', 'action-missing-audit', 'audit-missing-action', 'link-mismatch', 'operation-mismatch', 'idempotency-mismatch', 'duplicate', 'legacy', 'unknown'];
+const PREFLIGHT_COPY = { zh: 'Schema Preflight／Partial Write 檢查', ko: '스키마 Preflight / Partial Write 검사', en: 'Schema preflight / partial-write check' };
+const PREFLIGHT_UI = {
+  zh: { passed: 'Preflight 通過', failed: 'Preflight 失敗', issues: 'Schema 問題', writes: 'Writes performed', partial: 'Partial writes', audits: '剩餘 legacy Audit', drafts: '剩餘 legacy Draft', table: 'Table', field: 'Field', current: 'Current Type', expected: 'Expected Type', next: '下一步', ready: '產生新的 dry-run，經管理員確認後再決定是否執行。', blocked: '先修正下列 schema 問題；在全部通過前 Migration write 會維持封鎖。', details: '顯示技術詳情' },
+  ko: { passed: 'Preflight 통과', failed: 'Preflight 실패', issues: '스키마 문제', writes: 'Writes performed', partial: 'Partial writes', audits: '남은 legacy Audit', drafts: '남은 legacy Draft', table: 'Table', field: 'Field', current: 'Current Type', expected: 'Expected Type', next: '다음 단계', ready: '새 dry-run을 생성하고 관리자 확인 후 실행 여부를 결정하세요.', blocked: '아래 스키마 문제를 먼저 수정하세요. 모두 통과하기 전에는 쓰기가 차단됩니다.', details: '기술 세부정보 표시' },
+  en: { passed: 'Preflight passed', failed: 'Preflight failed', issues: 'Schema issues', writes: 'Writes performed', partial: 'Partial writes', audits: 'Remaining legacy Audits', drafts: 'Remaining legacy Drafts', table: 'Table', field: 'Field', current: 'Current type', expected: 'Expected type', next: 'Next step', ready: 'Generate a fresh dry run, then let an administrator decide whether to execute it.', blocked: 'Resolve the schema issues below. Migration writes remain blocked until every check passes.', details: 'Show technical details' },
+};
+
+function partialWriteCount(report) {
+  const partial = report?.partialWrites || {};
+  const migratedAudits = (partial.legacyAudits || []).filter(({ state }) => state === 'written').length;
+  const migratedDrafts = (partial.drafts || []).filter(({ migrationBatchId }) => Boolean(migrationBatchId)).length;
+  return migratedAudits + migratedDrafts + (partial.migrationAudits || []).length;
+}
 
 async function request(path, { method = 'GET', csrfToken, body } = {}) {
   const response = await fetch(path, {
@@ -15,15 +28,17 @@ async function request(path, { method = 'GET', csrfToken, body } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const payload = await response.json();
-  if (!response.ok) throw Object.assign(new Error(payload.errorCode || 'ADMIN_REQUEST_FAILED'), { code: payload.errorCode || 'ADMIN_REQUEST_FAILED' });
+  if (!response.ok) throw Object.assign(new Error(payload.errorCode || 'ADMIN_REQUEST_FAILED'), { code: payload.errorCode || 'ADMIN_REQUEST_FAILED', details: payload.details || {} });
   return payload;
 }
 
 export default function AdminMigrationPanel({ lang, csrfToken }) {
   const copy = COPY[lang] || COPY.en;
+  const preflightCopy = PREFLIGHT_UI[lang] || PREFLIGHT_UI.en;
   const [busy, setBusy] = useState('');
   const [errorCode, setErrorCode] = useState('');
   const [preview, setPreview] = useState(null);
+  const [safetyReport, setSafetyReport] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [migrationResult, setMigrationResult] = useState(null);
   const [consistency, setConsistency] = useState(null);
@@ -33,13 +48,21 @@ export default function AdminMigrationPanel({ lang, csrfToken }) {
 
   async function perform(key, operation) {
     setBusy(key); setErrorCode('');
-    try { return await operation(); } catch (error) { setErrorCode(error.code || 'ADMIN_REQUEST_FAILED'); return null; }
+    try { return await operation(); } catch (error) {
+      const detail = [error.details?.tableName || error.details?.tableRole, error.details?.fieldName, error.details?.airtableErrorType, error.details?.actualType && error.details?.expectedType ? `${error.details.actualType} → ${error.details.expectedType}` : ''].filter(Boolean).join(' · ');
+      setErrorCode(`${error.code || 'ADMIN_REQUEST_FAILED'}${detail ? ` — ${detail}` : ''}`); return null;
+    }
     finally { setBusy(''); }
   }
 
   async function loadPreview() {
     const payload = await perform('preview', () => request('/api/admin/migration/preview', { method: 'POST', csrfToken, body: {} }));
     if (payload) { setPreview(payload); setConfirmed(false); setMigrationResult(null); }
+  }
+
+  async function loadSafetyReport() {
+    const payload = await perform('preflight', () => request('/api/admin/migration/preflight'));
+    if (payload) setSafetyReport(payload);
   }
 
   async function executeMigration() {
@@ -67,6 +90,22 @@ export default function AdminMigrationPanel({ lang, csrfToken }) {
   return (
     <section className="admin-migration-panel" data-testid="admin-migration-panel">
       <h2>{copy.title}</h2><p>{copy.notice}</p>
+      <button type="button" onClick={loadSafetyReport} disabled={Boolean(busy)}>{busy === 'preflight' ? copy.running : PREFLIGHT_COPY[lang] || PREFLIGHT_COPY.en}</button>
+      {safetyReport ? (
+        <section className="admin-migration-preview" data-testid="migration-safety-report">
+          <h3>{safetyReport.preflight?.ok ? preflightCopy.passed : preflightCopy.failed}</h3>
+          <dl>
+            <div><dt>{preflightCopy.issues}</dt><dd>{safetyReport.preflight?.issues?.length || 0}</dd></div>
+            <div><dt>{preflightCopy.writes}</dt><dd>{safetyReport.preflight?.writesPerformed || 0}</dd></div>
+            <div><dt>{preflightCopy.partial}</dt><dd>{partialWriteCount(safetyReport)}</dd></div>
+            <div><dt>{preflightCopy.audits}</dt><dd>{safetyReport.partialWrites?.remainingLegacyAuditCount || 0}</dd></div>
+            <div><dt>{preflightCopy.drafts}</dt><dd>{safetyReport.partialWrites?.remainingLegacyDraftCount || 0}</dd></div>
+          </dl>
+          {safetyReport.preflight?.issues?.length ? <div className="admin-consistency-list">{safetyReport.preflight.issues.map((issue, index) => <article key={`${issue.code}:${issue.tableRole}:${issue.fieldName || ''}:${index}`}><strong>{issue.code}</strong><span>{preflightCopy.table}: {safetyReport.preflight.tables?.find(({ role }) => role === issue.tableRole)?.tableName || issue.tableRole || '—'}</span><span>{preflightCopy.field}: {issue.fieldName || '—'}</span><span>{preflightCopy.current}: {issue.actualType || '—'} / {preflightCopy.expected}: {issue.expectedType || '—'}</span></article>)}</div> : null}
+          <p><strong>{preflightCopy.next}:</strong> {safetyReport.preflight?.ok ? preflightCopy.ready : preflightCopy.blocked}</p>
+          <details><summary>{preflightCopy.details}</summary><pre className="admin-migration-result">{JSON.stringify(safetyReport, null, 2)}</pre></details>
+        </section>
+      ) : null}
       <button type="button" onClick={loadPreview} disabled={Boolean(busy)}>{busy === 'preview' ? copy.running : copy.dryRun}</button>
       {preview ? (
         <div className="admin-migration-preview" data-testid="migration-dry-run">

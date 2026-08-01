@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { checkActionAuditConsistency } from '../lib/agent/actionAuditConsistency.js';
-import { executeActionAuditRepair, executeLegacyMigration, MIGRATION_CONFIRMATION_TTL_MS, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../lib/agent/legacyMigrationRuntime.js';
+import { canonicalActionType, executeActionAuditRepair, executeLegacyMigration, inspectMigrationSafety, MIGRATION_CONFIRMATION_TTL_MS, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../lib/agent/legacyMigrationRuntime.js';
 import { createAirtableMigrationDataSource, isLegacyAuditProject, isLegacyDraftProject, mapLegacyDraftUpdate, parseLegacyAuditProject } from '../lib/agent/migrationDataSource.js';
+import { validateMigrationPreflight } from '../lib/agent/migrationPreflight.js';
 
 const env = { NEXAEON_TOOL_EXECUTION_SECRET: 'migration-test-secret' };
 const actor = { actorId: 'admin-1', role: 'admin', sessionId: 'session-1' };
@@ -20,6 +21,15 @@ function memorySource(seedProjects = [legacyAudit(), legacyDraft()], seedAudits 
   const parse = (raw) => { try { return JSON.parse(raw || '{}'); } catch { return {}; } };
   return {
     projects, audits,
+    describeTarget() { return { baseId: 'app-test', projectsTableId: 'tbl-projects', auditTableId: 'tbl-audits' }; },
+    async inspectSchema() {
+      const projectNames = ['Project Name', 'Action Draft Schema Version', 'Draft Status', 'Operation ID', 'Idempotency Key', 'Created By', 'Created Via Agent', 'Execution Status', 'Source Tool ID', 'Audit Record ID'];
+      const auditNames = ['Audit ID', 'Operation ID', 'Idempotency Key', 'Timestamp', 'Agent ID', 'Tool ID', 'Permission Level', 'Target Data Source', 'Action Type', 'Execution Status', 'Confirmation Status', 'Confirmation Timestamp', 'Actor ID', 'Actor Role', 'Actor Session Hash', 'Sanitized Input', 'Sanitized Output', 'External Record ID', 'Error Code', 'Duration Ms', 'Preview Hash', 'Requester Fingerprint', 'Audit Persistence Status', 'Created At', 'Schema Version', 'Record Type'];
+      return [
+        { role: 'projects', tableId: 'tbl-projects', name: 'Projects', fields: projectNames.map((name) => ({ name, type: 'singleLineText', choices: [] })) },
+        { role: 'audit', tableId: 'tbl-audits', name: 'NexAeon Tool Execution Audit', fields: auditNames.map((name) => ({ name, type: 'singleLineText', choices: [] })) },
+      ];
+    },
     async listProjects() { return structuredClone(projects); },
     async listAudits() { return structuredClone(audits); },
     async createAudit(fields) {
@@ -76,7 +86,7 @@ test('migration requires admin, explicit confirmation, matching payload, fingerp
   await assert.rejects(executeLegacyMigration({ body, actor, req, env, now: now + MIGRATION_CONFIRMATION_TTL_MS + 1, dataSource: source }), { code: 'MIGRATION_TOKEN_EXPIRED' });
 });
 
-test('confirmed migration creates a redacted legacy-migrated audit, updates formal draft fields, retains source and is idempotent', async () => {
+test('confirmed migration creates a redacted migrated audit, updates formal draft fields, retains source and is idempotent', async () => {
   const source = memorySource(); const originalNames = source.projects.map(({ fields }) => fields['Project Name']);
   const preview = await previewLegacyMigration({ actor, req, env, dataSource: source });
   const body = { confirm: true, migrationBatchId: preview.migrationBatchId, payloadHash: preview.payloadHash, confirmationToken: preview.confirmationToken };
@@ -84,11 +94,11 @@ test('confirmed migration creates a redacted legacy-migrated audit, updates form
   assert.equal(result.succeededCount, 2); assert.equal(result.failedCount, 0); assert.equal(result.executionStatus, 'succeeded');
   assert.deepEqual(source.projects.map(({ fields }) => fields['Project Name']), originalNames);
   assert.equal(source.projects.length, 2); assert.equal(source.projects[1].fields['Action Draft Schema Version'], 'v1');
-  const migrated = source.audits.find(({ recordType }) => recordType === 'legacy-migrated');
+  const migrated = source.audits.find(({ recordType }) => recordType === 'migrated');
   assert.equal(migrated.sanitizedOutput.migrationSourceRecordId, 'rec-legacy-audit');
   assert.equal(JSON.stringify(migrated).includes('must-redact'), false);
   const replay = await executeLegacyMigration({ body, actor, req, env, dataSource: source });
-  assert.equal(replay.replayed, true); assert.equal(source.audits.filter(({ recordType }) => recordType === 'legacy-migrated').length, 1);
+  assert.equal(replay.replayed, true); assert.equal(source.audits.filter(({ recordType }) => recordType === 'migrated').length, 1);
   const verified = await verifyMigrationBatch({ migrationBatchId: preview.migrationBatchId, dataSource: source });
   assert.equal(verified.migratedAuditCount, 1); assert.equal(verified.remainingLegacyDraftCount, 0); assert.equal(verified.sourceRecordsRetained, true);
 });
@@ -193,7 +203,7 @@ test('an Action-linked preview audit can safely receive its missing External Rec
 test('partial migration failure is audited and the same confirmed batch safely resumes remaining records', async () => {
   const source = memorySource(); const upsertAudit = source.upsertAudit.bind(source); let failLegacyOnce = true;
   source.upsertAudit = async (fields) => {
-    if (fields['Record Type'] === 'legacy-migrated' && failLegacyOnce) { failLegacyOnce = false; throw Object.assign(new Error('temporary'), { code: 'DATA_SOURCE_REQUEST_FAILED' }); }
+    if (fields['Record Type'] === 'migrated' && failLegacyOnce) { failLegacyOnce = false; throw Object.assign(new Error('temporary'), { code: 'DATA_SOURCE_REQUEST_FAILED' }); }
     return upsertAudit(fields);
   };
   const preview = await previewLegacyMigration({ actor, req, env, dataSource: source });
@@ -201,5 +211,128 @@ test('partial migration failure is audited and the same confirmed batch safely r
   const partial = await executeLegacyMigration({ body, actor, req, env, dataSource: source });
   assert.equal(partial.executionStatus, 'partial_failure'); assert.equal(partial.failedCount, 1);
   const resumed = await executeLegacyMigration({ body, actor, req, env, dataSource: source });
-  assert.equal(resumed.executionStatus, 'succeeded'); assert.equal(source.audits.filter(({ recordType }) => recordType === 'legacy-migrated').length, 1);
+  assert.equal(resumed.executionStatus, 'succeeded'); assert.equal(source.audits.filter(({ recordType }) => recordType === 'migrated').length, 1);
+});
+
+test('execute performs zero writes until complete schema and payload preflight succeeds', async () => {
+  const source = memorySource(); let writes = 0;
+  const inspectSchema = source.inspectSchema.bind(source);
+  source.inspectSchema = async () => (await inspectSchema()).map((table) => table.role === 'audit' ? { ...table, fields: table.fields.filter(({ name }) => name !== 'Tool ID') } : table);
+  for (const method of ['createAudit', 'upsertAudit', 'updateProject']) {
+    const original = source[method].bind(source); source[method] = async (...args) => { writes += 1; return original(...args); };
+  }
+  const preview = await previewLegacyMigration({ actor, req, env, dataSource: source });
+  const body = { confirm: true, migrationBatchId: preview.migrationBatchId, payloadHash: preview.payloadHash, confirmationToken: preview.confirmationToken };
+  await assert.rejects(executeLegacyMigration({ body, actor, req, env, dataSource: source }), { code: 'DATA_SOURCE_FIELD_MISSING', fieldName: 'Tool ID' });
+  assert.equal(writes, 0);
+});
+
+test('preflight rejects a linked Audit field and a malformed linked-record payload precisely', () => {
+  const schema = [
+    { role: 'projects', tableId: 'projects', name: 'Projects', fields: [{ name: 'Audit Record ID', type: 'multipleRecordLinks' }] },
+    { role: 'audit', tableId: 'audits', name: 'Audit', fields: [{ name: 'Tool ID', type: 'formula' }] },
+  ];
+  const report = validateMigrationPreflight({ schema, writes: [
+    { kind: 'draft', tableRole: 'projects', fields: { 'Audit Record ID': 'not-an-array' } },
+    { kind: 'audit', tableRole: 'audit', fields: { 'Tool ID': 'executeLegacyMigration' } },
+  ] });
+  assert.ok(report.issues.some(({ code, fieldName }) => code === 'DATA_SOURCE_LINK_INVALID' && fieldName === 'Audit Record ID'));
+  assert.ok(report.issues.some(({ code, fieldName }) => code === 'DATA_SOURCE_FIELD_TYPE_INVALID' && fieldName === 'Tool ID'));
+  assert.equal(report.writesPerformed, 0);
+});
+
+test('preflight reports linked table mismatch separately from canonical text-field mismatch', () => {
+  const source = memorySource();
+  return source.inspectSchema().then((schema) => {
+    const projects = schema.find(({ role }) => role === 'projects');
+    const auditId = projects.fields.find(({ name }) => name === 'Audit Record ID');
+    Object.assign(auditId, { type: 'multipleRecordLinks', linkedTableId: 'tbl-wrong' });
+    const report = validateMigrationPreflight({ schema, writes: [], target: source.describeTarget() });
+    assert.ok(report.issues.some(({ code, fieldName }) => code === 'DATA_SOURCE_LINK_TARGET_INVALID' && fieldName === 'Audit Record ID'));
+    assert.equal(report.writesPerformed, 0);
+  });
+});
+
+test('canonical Action Type and Record Type use existing Production select choices', async () => {
+  assert.equal(canonicalActionType('executeLegacyMigration'), 'execute');
+  assert.equal(canonicalActionType('createActionDraft'), 'create');
+  const source = memorySource(); const preview = await previewLegacyMigration({ actor, req, env, dataSource: source });
+  const body = { confirm: true, migrationBatchId: preview.migrationBatchId, payloadHash: preview.payloadHash, confirmationToken: preview.confirmationToken };
+  await executeLegacyMigration({ body, actor, req, env, dataSource: source });
+  const migrationAudits = source.audits.filter(({ toolId }) => toolId === 'executeLegacyMigration');
+  const migrated = source.audits.find(({ recordType }) => recordType === 'migrated');
+  assert.ok(migrationAudits.every(({ fields }) => fields['Action Type'] === 'execute'));
+  assert.equal(migrated.fields['Action Type'], 'create'); assert.equal(migrated.fields['Record Type'], 'migrated');
+});
+
+test('schema-aligned text Audit Record ID and canonical selects pass with zero preflight writes', async () => {
+  const source = memorySource(); const inspectSchema = source.inspectSchema.bind(source);
+  source.inspectSchema = async () => (await inspectSchema()).map((table) => table.role !== 'audit' ? table : {
+    ...table, fields: table.fields.map((field) => field.name === 'Action Type' ? { ...field, type: 'singleSelect', choices: ['create', 'read', 'update', 'delete', 'execute'] } : field.name === 'Record Type' ? { ...field, type: 'singleSelect', choices: ['formal', 'legacy', 'migrated'] } : field),
+  });
+  const report = await inspectMigrationSafety({ actor, dataSource: source });
+  assert.equal(report.preflight.ok, true); assert.equal(report.preflight.checkedWriteCount, 4); assert.equal(report.preflight.writesPerformed, 0);
+  const auditId = report.preflight.tables.find(({ role }) => role === 'projects').fields.find(({ fieldName }) => fieldName === 'Audit Record ID');
+  assert.equal(auditId.actualType, 'singleLineText'); assert.equal(auditId.expectedType, 'singleLineText');
+});
+
+test('unsupported single-select choice blocks preflight without writing', async () => {
+  const source = memorySource(); const inspectSchema = source.inspectSchema.bind(source);
+  source.inspectSchema = async () => (await inspectSchema()).map((table) => table.role !== 'audit' ? table : {
+    ...table, fields: table.fields.map((field) => field.name === 'Action Type' ? { ...field, type: 'singleSelect', choices: ['create'] } : field),
+  });
+  const report = await inspectMigrationSafety({ actor, dataSource: source });
+  assert.equal(report.preflight.ok, false); assert.equal(report.preflight.writesPerformed, 0);
+  assert.ok(report.preflight.issues.some(({ fieldName, detail }) => fieldName === 'Action Type' && detail === 'missing-select-choice:execute'));
+});
+
+test('existing v1 Draft is unchanged and duplicate execute creates no second migration audit', async () => {
+  const v1 = formalAction({ id: 'rec-v1' }); const before = structuredClone(v1);
+  const source = memorySource([legacyAudit(), v1]);
+  const preview = await previewLegacyMigration({ actor, req, env, dataSource: source });
+  const body = { confirm: true, migrationBatchId: preview.migrationBatchId, payloadHash: preview.payloadHash, confirmationToken: preview.confirmationToken };
+  await executeLegacyMigration({ body, actor, req, env, dataSource: source });
+  const auditCount = source.audits.length;
+  const replay = await executeLegacyMigration({ body, actor, req, env, dataSource: source });
+  assert.deepEqual(source.projects.find(({ id }) => id === 'rec-v1'), before);
+  assert.equal(replay.replayed, true); assert.equal(source.audits.length, auditCount);
+});
+
+test('Airtable 422 preserves safe upstream type and maps unknown field without leaking payload', async () => {
+  const source = createAirtableMigrationDataSource({
+    env: { AIRTABLE_API_KEY: 'secret-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'projects', AIRTABLE_AUDIT_TABLE_ID: 'audits' },
+    fetchImpl: async () => ({ ok: false, status: 422, json: async () => ({ error: { type: 'UNKNOWN_FIELD_NAME', message: 'Unknown field name: Tool ID secret-key' } }) }),
+  });
+  await assert.rejects(source.createAudit({ 'Tool ID': 'executeLegacyMigration' }), (error) => {
+    assert.equal(error.code, 'DATA_SOURCE_FIELD_MISSING'); assert.equal(error.airtableErrorType, 'UNKNOWN_FIELD_NAME'); assert.equal(error.fieldName, 'Tool ID');
+    assert.equal(JSON.stringify(error).includes('secret-key'), false); return true;
+  });
+});
+
+test('partial-write inspection reports source, target, batch, operation, and duplicate evidence', async () => {
+  const source = memorySource();
+  source.audits.push({ id: 'rec-migrated', fields: { 'Audit ID': 'old-audit' }, auditId: 'old-audit', operationId: 'old-op', toolId: 'createActionDraft', recordType: 'migrated', sanitizedOutput: { migrationSourceRecordId: 'rec-legacy-audit', migrationBatchId: 'migration-old' } });
+  source.audits.push({ ...structuredClone(source.audits[0]), id: 'rec-migrated-copy' });
+  const report = await inspectMigrationSafety({ actor, dataSource: source });
+  assert.equal(report.partialWrites.legacyAudits[0].state, 'written');
+  assert.deepEqual(report.partialWrites.legacyAudits[0].targetAuditRecordIds, ['rec-migrated', 'rec-migrated-copy']);
+  assert.deepEqual(report.partialWrites.legacyAudits[0].migrationBatchIds, ['migration-old']);
+  assert.equal(report.partialWrites.duplicateAuditIds[0].key, 'old-audit');
+});
+
+test('partial-write evidence remains available when Airtable schema metadata permission is missing', async () => {
+  const source = memorySource();
+  source.inspectSchema = async () => { throw Object.assign(new Error('forbidden'), { code: 'DATA_SOURCE_SCHEMA_METADATA_FORBIDDEN', status: 403, airtableErrorType: 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND' }); };
+  const report = await inspectMigrationSafety({ actor, dataSource: source });
+  assert.equal(report.preflight.ok, false); assert.equal(report.preflight.writesPerformed, 0);
+  assert.equal(report.preflight.issues[0].code, 'DATA_SOURCE_SCHEMA_METADATA_FORBIDDEN');
+  assert.equal(report.partialWrites.legacyAudits[0].sourceRecordId, 'rec-legacy-audit');
+  assert.equal(report.partialWrites.drafts[0].sourceRecordId, 'rec-legacy-draft');
+});
+
+test('dry-run skips an existing migrated Audit and existing Draft v1', async () => {
+  const draft = legacyDraft(); draft.fields['Action Draft Schema Version'] = 'v1';
+  const migrated = { id: 'rec-migrated', fields: { 'Audit ID': 'old-audit' }, auditId: 'old-audit', operationId: 'old-op', toolId: 'createActionDraft', recordType: 'migrated', sanitizedOutput: { migrationSourceRecordId: 'rec-legacy-audit', migrationBatchId: 'migration-old' } };
+  const preview = await previewLegacyMigration({ actor, req, env, dataSource: memorySource([legacyAudit(), draft], [migrated]) });
+  assert.deepEqual(preview.recordsToCreate, []); assert.deepEqual(preview.recordsToUpdate, []); assert.equal(preview.alreadyMigratedCount, 2);
 });

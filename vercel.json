@@ -17,6 +17,10 @@
       "destination": "/api/agent/chat?admin=migration-preview"
     },
     {
+      "source": "/api/admin/migration/preflight",
+      "destination": "/api/agent/chat?admin=migration-preflight"
+    },
+    {
       "source": "/api/admin/migration/execute",
       "destination": "/api/agent/chat?admin=migration-execute"
     },

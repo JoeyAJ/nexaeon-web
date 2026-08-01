@@ -41,6 +41,7 @@ test('admin migration UI requires dry-run and confirmation, checks consistency, 
   let migrationExecuteCount = 0;
   await page.route('**/api/admin/session', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, authenticated: true, actorId: 'e2e-admin', role: 'admin', csrfToken: 'csrf-e2e', expiresAt: '2026-08-01T01:15:00.000Z' }) }));
   await page.route('**/api/admin/audit**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, count: 0, records: [] }) }));
+  await page.route('**/api/admin/migration/preflight', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, preflight: { ok: false, writesPerformed: 0, issues: [{ code: 'DATA_SOURCE_FIELD_TYPE_INVALID', tableRole: 'audit', fieldName: 'Tool ID' }] }, partialWrites: { remainingLegacyAuditCount: 1, remainingLegacyDraftCount: 1, persistedMigrationBatchIds: [] } }) }));
   await page.route('**/api/admin/migration/preview', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ migrationBatchId: 'migration-e2e', recordsToCreate: ['legacy-audit-1'], recordsToUpdate: ['legacy-draft-1'], recordsToSkip: ['legacy-audit-done'], invalidRecordCount: 0, estimatedWrites: 4, warnings: [{ recordId: 'legacy-draft-1', code: 'MISSING_AUDIT_LINK' }], expiresAt: '2026-08-01T01:05:00.000Z', payloadHash: 'hash-e2e', confirmationToken: 'token-e2e' }) }));
   await page.route('**/api/admin/migration/execute', (route) => { migrationExecuteCount += 1; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ migrationBatchId: 'migration-e2e', succeededCount: 2, skippedCount: 1, failedCount: 0, executionStatus: 'succeeded' }) }); });
   const issue = { category: 'action-missing-audit', actionRecordId: 'rec-action', auditRecordId: null, operationId: 'op-1', repairable: true, candidateAuditRecordId: 'rec-audit' };
@@ -50,6 +51,9 @@ test('admin migration UI requires dry-run and confirmation, checks consistency, 
 
   await page.goto('/admin/audit');
   await expect(page.getByTestId('admin-migration-panel')).toBeVisible();
+  await page.getByRole('button', { name: 'Schema Preflight／Partial Write 檢查' }).click();
+  await expect(page.getByTestId('migration-safety-report')).toContainText('DATA_SOURCE_FIELD_TYPE_INVALID');
+  expect(migrationExecuteCount).toBe(0);
   await page.getByRole('button', { name: '產生 Migration Dry Run' }).click();
   await expect(page.getByTestId('migration-dry-run')).toContainText('migration-e2e');
   await expect(page.getByRole('button', { name: '執行已確認 Migration' })).toBeDisabled();

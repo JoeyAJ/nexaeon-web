@@ -1,5 +1,5 @@
 import { createAirtableMigrationDataSource } from '../lib/agent/migrationDataSource.js';
-import { previewLegacyMigration, runConsistencyCheck } from '../lib/agent/legacyMigrationRuntime.js';
+import { inspectMigrationSafety, previewLegacyMigration, runConsistencyCheck } from '../lib/agent/legacyMigrationRuntime.js';
 
 const dataSource = createAirtableMigrationDataSource();
 let schema = [];
@@ -9,7 +9,8 @@ const req = { headers: { 'x-forwarded-for': '127.0.0.1', 'user-agent': 'nexaeon-
 const actor = { actorId: 'production-dry-run', role: 'admin', sessionId: 'read-only-inspection' };
 const preview = await previewLegacyMigration({ actor, req, dataSource });
 const consistency = await runConsistencyCheck({ dataSource });
-const safeSchema = schema.map((table) => ({ role: table.role, name: table.name, primaryField: table.fields.find(({ isPrimary }) => isPrimary)?.name || null, fieldNames: table.fields.map(({ name }) => name) }));
+const safety = await inspectMigrationSafety({ actor, dataSource });
+const safeSchema = schema.map((table) => ({ role: table.role, tableId: table.tableId, name: table.name, primaryField: table.fields.find(({ isPrimary }) => isPrimary)?.name || null, fields: table.fields.map(({ id, name, type, linkedTableId, choices }) => ({ id, name, type, linkedTableId: linkedTableId || null, choices })) }));
 
 console.log(JSON.stringify({
   mode: 'read-only', schema: safeSchema, schemaError,
@@ -31,4 +32,6 @@ console.log(JSON.stringify({
     expiresAt: preview.expiresAt,
   },
   consistency: { actionCount: consistency.actionCount, auditCount: consistency.auditCount, counts: consistency.counts },
+  preflight: safety.preflight,
+  partialWrites: safety.partialWrites,
 }, null, 2));

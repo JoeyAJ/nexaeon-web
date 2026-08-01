@@ -59,6 +59,8 @@ test('migration, consistency, and repair admin routes reject visitors before dat
   }
   const consistency = response(); await handler(request({ method: 'GET', query: { admin: 'consistency' } }), consistency);
   assert.equal(consistency.statusCode, 401); assert.equal(consistency.body.errorCode, 'AUTH_REQUIRED');
+  const preflight = response(); await handler(request({ method: 'GET', query: { admin: 'migration-preflight' } }), preflight);
+  assert.equal(preflight.statusCode, 401); assert.equal(preflight.body.errorCode, 'AUTH_REQUIRED');
 });
 
 test('authenticated consistency failure returns a specific safe data-source error code', async () => {

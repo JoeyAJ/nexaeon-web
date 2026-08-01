@@ -7,7 +7,7 @@ import { handleNetworkerChatRequest } from '../../lib/agent/networkerRuntime.js'
 import { cancelOperation, createOperationPreview, executeConfirmedOperation } from '../../lib/agent/toolExecutionRuntime.js';
 import { clearAdminSessionCookie, createAdminSession, readAdminSession, requireAdminCsrf } from '../../lib/agent/adminSession.js';
 import { getProductionAuditRepository } from '../../lib/agent/auditRepository.js';
-import { executeActionAuditRepair, executeLegacyMigration, getMigrationStatus, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../../lib/agent/legacyMigrationRuntime.js';
+import { executeActionAuditRepair, executeLegacyMigration, getMigrationStatus, inspectMigrationSafety, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../../lib/agent/legacyMigrationRuntime.js';
 
 const adminLoginAttempts = new Map();
 const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -21,6 +21,8 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   OPERATION_ALREADY_SUCCEEDED: 409, DATA_SOURCE_CONFIGURATION_MISSING: 503,
   DATA_SOURCE_TIMEOUT: 504, DATA_SOURCE_REQUEST_FAILED: 502, DATA_SOURCE_REJECTED: 502,
   DATA_SOURCE_INVALID_RESPONSE: 502, DATA_SOURCE_SCHEMA_INVALID: 503, DATA_SOURCE_PAGINATION_INVALID: 502,
+  DATA_SOURCE_TABLE_MISSING: 503, DATA_SOURCE_FIELD_MISSING: 503, DATA_SOURCE_FIELD_TYPE_INVALID: 503, DATA_SOURCE_LINK_INVALID: 503, DATA_SOURCE_LINK_TARGET_INVALID: 503,
+  DATA_SOURCE_SCHEMA_METADATA_FORBIDDEN: 503,
   DATA_SOURCE_PAGINATION_LIMIT_EXCEEDED: 503, CONSISTENCY_DATA_INVALID: 502, CONSISTENCY_CHECK_FAILED: 500,
   INVALID_TOOL_OUTPUT: 502,
   AUTH_CONFIGURATION_MISSING: 503, AUTH_INVALID_CREDENTIALS: 401, AUTH_REQUIRED: 401,
@@ -28,6 +30,7 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   AUTH_RATE_LIMITED: 429,
   ACTOR_SESSION_MISMATCH: 409, AUDIT_CONFIGURATION_MISSING: 503, AUDIT_TIMEOUT: 504,
   AUDIT_REQUEST_FAILED: 502, AUDIT_REQUEST_REJECTED: 502, AUDIT_INVALID_RESPONSE: 502,
+  AUDIT_PAGINATION_INVALID: 502, AUDIT_PAGINATION_LIMIT_EXCEEDED: 503,
   AUDIT_TABLE_NOT_CONFIGURED: 503, AUDIT_TABLE_SCHEMA_INVALID: 503, ACTION_SCHEMA_INVALID: 503,
   ACTION_FIELD_NOT_ALLOWED: 400, ACTION_STATUS_NOT_ALLOWED: 400, AUDIT_LINK_FAILED: 502,
   LEGACY_RECORD_DETECTED: 409, MIGRATION_DUPLICATE_SKIPPED: 409, MIGRATION_FAILED: 500,
@@ -144,6 +147,23 @@ async function handleAdminRequest(req, res) {
       const actor = requireAdminCsrf(req, readAdminSession(req));
       return res.status(200).json(await previewLegacyMigration({ actor, req }));
     }
+    if (req.query.admin === 'migration-preflight') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+      const actor = readAdminSession(req);
+      const payload = await inspectMigrationSafety({ actor });
+      console.info(JSON.stringify({
+        service: 'nexaeon-admin', category: 'migration_preflight_completed', preflightOk: payload.preflight?.ok,
+        checkedWriteCount: payload.preflight?.checkedWriteCount, writesPerformed: payload.preflight?.writesPerformed,
+        issues: (payload.preflight?.issues || []).map(({ code, tableRole, fieldName, actualType, expectedType }) => ({ code, tableRole, fieldName, actualType, expectedType })),
+        remainingLegacyAuditCount: payload.partialWrites?.remainingLegacyAuditCount,
+        remainingLegacyDraftCount: payload.partialWrites?.remainingLegacyDraftCount,
+        legacyAudits: (payload.partialWrites?.legacyAudits || []).map(({ sourceRecordId, sourceOperationId, state, targetAuditRecordIds, migrationBatchIds }) => ({ sourceRecordId, sourceOperationId, state, targetAuditRecordIds, migrationBatchIds })),
+        legacyDrafts: (payload.partialWrites?.drafts || []).filter(({ state, migrationBatchId }) => state === 'not-written' || migrationBatchId).map(({ sourceRecordId, operationId, state, migrationBatchId, auditLinkRecordIds }) => ({ sourceRecordId, operationId, state, migrationBatchId, auditLinkRecordIds })),
+        migrationAudits: payload.partialWrites?.migrationAudits || [], duplicateAuditIds: payload.partialWrites?.duplicateAuditIds || [],
+        duplicateMigrationSources: payload.partialWrites?.duplicateMigrationSources || [], persistedMigrationBatchIds: payload.partialWrites?.persistedMigrationBatchIds || [],
+      }));
+      return res.status(200).json(payload);
+    }
     if (req.query.admin === 'migration-execute') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
       if (!isAllowedWriteOrigin(req)) return res.status(403).json({ ok: false, errorCode: 'ORIGIN_NOT_ALLOWED' });
@@ -176,8 +196,14 @@ async function handleAdminRequest(req, res) {
   } catch (error) {
     const errorCode = error?.code || 'ADMIN_REQUEST_FAILED';
     const status = OPERATION_ERROR_STATUS[errorCode] || 500;
-    if (status >= 500) console.error(JSON.stringify({ service: 'nexaeon-admin', category: 'admin_request_failed', adminRoute: String(req.query?.admin || '').slice(0, 40), errorCode, upstreamStatus: Number.isInteger(error?.status) ? error.status : null }));
-    return res.status(status).json({ ok: false, errorCode });
+    const details = Object.fromEntries(Object.entries({
+      upstreamStatus: Number.isInteger(error?.status) ? error.status : undefined,
+      airtableErrorType: error?.airtableErrorType,
+      tableRole: error?.tableRole, tableName: error?.tableName, fieldName: error?.fieldName,
+      actualType: error?.actualType, expectedType: error?.expectedType,
+    }).filter(([, value]) => value !== undefined && value !== null && value !== ''));
+    if (status >= 500) console.error(JSON.stringify({ service: 'nexaeon-admin', category: 'admin_request_failed', adminRoute: String(req.query?.admin || '').slice(0, 40), errorCode, ...details }));
+    return res.status(status).json({ ok: false, errorCode, ...(Object.keys(details).length ? { details } : {}) });
   }
 }
 
