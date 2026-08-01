@@ -44,9 +44,11 @@ test('admin migration UI requires dry-run and confirmation, checks consistency, 
   await page.route('**/api/admin/migration/preflight', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, preflight: { ok: false, writesPerformed: 0, issues: [{ code: 'DATA_SOURCE_FIELD_TYPE_INVALID', tableRole: 'audit', fieldName: 'Tool ID' }] }, partialWrites: { remainingLegacyAuditCount: 1, remainingLegacyDraftCount: 1, persistedMigrationBatchIds: [] } }) }));
   await page.route('**/api/admin/migration/preview', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ migrationBatchId: 'migration-e2e', recordsToCreate: ['legacy-audit-1'], recordsToUpdate: ['legacy-draft-1'], recordsToSkip: ['legacy-audit-done'], invalidRecordCount: 0, estimatedWrites: 4, warnings: [{ recordId: 'legacy-draft-1', code: 'MISSING_AUDIT_LINK' }], expiresAt: '2026-08-01T01:05:00.000Z', payloadHash: 'hash-e2e', confirmationToken: 'token-e2e' }) }));
   await page.route('**/api/admin/migration/execute', (route) => { migrationExecuteCount += 1; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ migrationBatchId: 'migration-e2e', succeededCount: 2, skippedCount: 1, failedCount: 0, executionStatus: 'succeeded' }) }); });
-  const issue = { category: 'action-missing-audit', actionRecordId: 'rec-action', auditRecordId: null, operationId: 'op-1', repairable: true, candidateAuditRecordId: 'rec-audit' };
-  await page.route('**/api/admin/consistency', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, actionCount: 2, auditCount: 3, counts: { 'action-missing-audit': 1 }, results: [issue] }) }));
-  await page.route('**/api/admin/repair/preview', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ operationId: 'op-1', actionRecordId: 'rec-action', auditRecordId: 'rec-audit', updates: [{ target: 'action', recordId: 'rec-action', fields: { 'Audit Record ID': 'rec-audit' } }], payloadHash: 'repair-hash', confirmationToken: 'repair-token', expiresAt: '2026-08-01T01:05:00.000Z' }) }));
+  const issue = { category: 'action-missing-audit', actionRecordId: 'rec-action', auditRecordId: null, operationId: 'op-1', repairable: true, safe: true, candidateAuditRecordId: 'rec-audit', candidateAuditRecordIds: ['rec-audit'], candidateBasis: 'external-record-id' };
+  const mismatch = { category: 'link-mismatch', actionRecordId: 'rec-linked-action', auditRecordId: 'rec-current', operationId: 'op-2', currentAuditRecordId: 'rec-current', expectedAuditRecordId: 'rec-expected', repairable: false, safe: false };
+  const duplicate = { category: 'duplicate', reason: 'duplicate-audit-id', duplicateBasis: 'audit-id', auditId: 'audit-duplicate', auditRecordIds: ['rec-duplicate-a', 'rec-duplicate-b'], repairable: false };
+  await page.route('**/api/admin/consistency', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, actionCount: 2, auditCount: 3, counts: { 'action-missing-audit': 1, 'link-mismatch': 1, duplicate: 1 }, results: [issue, mismatch, duplicate] }) }));
+  await page.route('**/api/admin/repair/preview', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ safe: true, reason: 'unique-external-record-id', operationId: 'op-1', actionRecordId: 'rec-action', auditRecordId: 'rec-audit', before: { action: { recordId: 'rec-action', auditRecordId: null } }, after: { action: { recordId: 'rec-action', auditRecordId: 'rec-audit' } }, updates: [{ target: 'action', recordId: 'rec-action', fields: { 'Audit Record ID': 'rec-audit' } }], payloadHash: 'repair-hash', confirmationToken: 'repair-token', expiresAt: '2026-08-01T01:05:00.000Z' }) }));
   await page.route('**/api/admin/repair/execute', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, executionStatus: 'succeeded' }) }));
 
   await page.goto('/admin/audit');
@@ -66,8 +68,14 @@ test('admin migration UI requires dry-run and confirmation, checks consistency, 
   await expect(page.getByTestId('consistency-summary')).toContainText('Action 總數2');
   await expect(page.getByTestId('consistency-summary')).toContainText('Audit 總數3');
   await expect(page.locator('.admin-consistency-list').getByText('action-missing-audit', { exact: true })).toBeVisible();
+  await expect(page.locator('.admin-consistency-list article').filter({ hasText: 'action-missing-audit' })).toContainText('候選 Audit: rec-audit');
+  await expect(page.locator('.admin-consistency-list article').filter({ hasText: 'link-mismatch' })).toContainText('目前關聯: rec-current / 預期關聯: rec-expected');
+  await expect(page.locator('.admin-consistency-list article').filter({ hasText: 'duplicate' })).toContainText('rec-duplicate-a, rec-duplicate-b');
+  await expect(page.locator('.admin-consistency-list article').filter({ hasText: 'duplicate' })).toContainText('判定依據: audit-id');
+  await expect(page.getByRole('button', { name: '預覽安全修復' })).toHaveCount(1);
   await page.getByRole('button', { name: '預覽安全修復' }).click();
-  await expect(page.locator('.admin-repair-preview')).toContainText('rec-audit');
+  await expect(page.getByTestId('repair-preview')).toContainText('修復前');
+  await expect(page.getByTestId('repair-preview')).toContainText('修復後');
   await page.getByRole('button', { name: '確認修復 ID 關聯' }).click();
   await expect(page.locator('.admin-consistency-list').getByText('action-missing-audit', { exact: true })).toBeVisible();
 });

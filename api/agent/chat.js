@@ -181,7 +181,21 @@ async function handleAdminRequest(req, res) {
     if (req.query.admin === 'consistency') {
       if (req.method !== 'GET') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
       const session = readAdminSession(req);
-      return res.status(200).json({ ok: true, actorId: session.actorId, ...(await runConsistencyCheck()) });
+      const payload = await runConsistencyCheck();
+      console.info(JSON.stringify({
+        service: 'nexaeon-admin', category: 'consistency_check_completed',
+        actionCount: payload.actionCount, auditCount: payload.auditCount, counts: payload.counts,
+        results: (payload.results || []).map((item) => ({
+          category: item.category, reason: item.reason || null, actionRecordId: item.actionRecordId,
+          auditRecordId: item.auditRecordId, operationId: item.operationId || null,
+          candidateAuditRecordIds: item.candidateAuditRecordIds || [], candidateBasis: item.candidateBasis || null,
+          currentAuditRecordId: item.currentAuditRecordId || null, expectedAuditRecordId: item.expectedAuditRecordId || null,
+          lifecycleAuditRecordIds: item.lifecycleAuditRecordIds || [], duplicateBasis: item.duplicateBasis || null,
+          auditId: item.auditId || null, sourceRecordId: item.sourceRecordId || null,
+          auditRecordIds: item.auditRecordIds || [], actionRecordIds: item.actionRecordIds || [], safe: item.safe === true,
+        })),
+      }));
+      return res.status(200).json({ ok: true, actorId: session.actorId, ...payload });
     }
     if (req.query.admin === 'repair-preview' || req.query.admin === 'repair-execute') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });

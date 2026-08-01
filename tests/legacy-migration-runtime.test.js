@@ -103,6 +103,19 @@ test('confirmed migration creates a redacted migrated audit, updates formal draf
   assert.equal(verified.migratedAuditCount, 1); assert.equal(verified.remainingLegacyDraftCount, 0); assert.equal(verified.sourceRecordsRetained, true);
 });
 
+test('migration links a legacy Draft to its uniquely identified migrated Audit', async () => {
+  const draft = legacyDraft('rec-legacy-draft');
+  const audit = legacyAudit('rec-legacy-audit');
+  audit.fields['Public Summary'] = JSON.stringify({ auditId: 'legacy-audit', operationId: 'legacy-op', idempotencyKey: 'idem-legacy', agentId: 'orchestrator', toolId: 'createActionDraft', executionStatus: 'succeeded', externalRecordId: 'rec-legacy-draft' });
+  const source = memorySource([audit, draft]);
+  const preview = await previewLegacyMigration({ actor, req, env, dataSource: source });
+  const body = { confirm: true, migrationBatchId: preview.migrationBatchId, payloadHash: preview.payloadHash, confirmationToken: preview.confirmationToken };
+  await executeLegacyMigration({ body, actor, req, env, dataSource: source });
+  const migrated = source.audits.find(({ recordType }) => recordType === 'migrated');
+  const updated = source.projects.find(({ id }) => id === 'rec-legacy-draft');
+  assert.equal(updated.fields['Audit Record ID'], migrated.id); assert.equal(updated.fields['Operation ID'], 'legacy-op');
+});
+
 test('consistency checker classifies consistent, mismatch, orphan, duplicate, legacy, and missing fields', () => {
   const action = { id: 'rec-action', fields: { 'Project Name': '[Draft hash] Action', 'Draft Status': 'Draft', 'Operation ID': 'op-1', 'Idempotency Key': 'idem-1', 'Created By': 'admin', 'Created Via Agent': 'orchestrator', 'Execution Status': 'Succeeded', 'Audit Record ID': 'rec-audit', 'Source Tool ID': 'createActionDraft', 'Action Draft Schema Version': 'v1' } };
   const audit = { id: 'rec-audit', operationId: 'op-1', idempotencyKey: 'idem-1', externalRecordId: 'rec-action', agentId: 'orchestrator', toolId: 'createActionDraft', executionStatus: 'succeeded', schemaVersion: 'v1' };
@@ -174,6 +187,7 @@ test('repair preview and confirm only patch uniquely verified ID links', async (
   const source = memorySource([action], [audit]);
   const issue = checkActionAuditConsistency({ projects: source.projects, audits: source.audits }).results.find(({ category }) => category === 'action-missing-audit');
   const preview = await previewActionAuditRepair({ issue, actor, req, env, dataSource: source });
+  assert.equal(preview.safe, true); assert.equal(preview.before.action.auditRecordId, null); assert.equal(preview.after.action.auditRecordId, 'rec-audit');
   assert.deepEqual(preview.updates, [{ target: 'action', recordId: 'rec-action', fields: { 'Audit Record ID': 'rec-audit' } }]);
   await assert.rejects(executeActionAuditRepair({ body: { ...preview, issue, confirm: false }, actor, req, env, dataSource: source }), { code: 'REPAIR_CONFIRMATION_REQUIRED' });
   const result = await executeActionAuditRepair({ body: { ...preview, issue, confirm: true }, actor, req, env, dataSource: source });
@@ -188,16 +202,63 @@ test('ambiguous or conflicting repair is rejected without writing', async () => 
   assert.equal(source.projects.every(({ fields }) => !fields['Audit Record ID']), true);
 });
 
-test('an Action-linked preview audit can safely receive its missing External Record ID despite append-only sibling events', async () => {
+test('an Action-linked preview audit with a succeeded lifecycle sibling is valid and remains unchanged', () => {
   const action = { id: 'rec-action', fields: { 'Project Name': '[Draft] A', 'Draft Status': 'Draft', 'Operation ID': 'op-1', 'Idempotency Key': 'idem-1', 'Created By': 'admin', 'Created Via Agent': 'orchestrator', 'Execution Status': 'Succeeded', 'Audit Record ID': 'rec-preview', 'Source Tool ID': 'createActionDraft', 'Action Draft Schema Version': 'v1' } };
   const previewAudit = { id: 'rec-preview', fields: {}, operationId: 'op-1', idempotencyKey: 'idem-1', externalRecordId: '', agentId: 'orchestrator', toolId: 'createActionDraft', executionStatus: 'previewed', schemaVersion: 'v1', sanitizedOutput: {} };
   const finalAudit = { ...previewAudit, id: 'rec-final', externalRecordId: 'rec-action', executionStatus: 'succeeded' };
   const source = memorySource([action], [previewAudit, finalAudit]);
   const checked = checkActionAuditConsistency({ projects: source.projects, audits: source.audits });
-  const issue = checked.results.find(({ category }) => category === 'link-mismatch');
-  assert.equal(issue.repairable, true); assert.equal(checked.counts['audit-missing-action'], 0);
+  const result = checked.results.find(({ actionRecordId }) => actionRecordId === 'rec-action');
+  assert.equal(result.category, 'consistent'); assert.equal(result.reason, 'linked-preview-with-succeeded-lifecycle');
+  assert.deepEqual(result.lifecycleAuditRecordIds, ['rec-preview', 'rec-final']);
+  assert.equal(checked.counts['link-mismatch'], 0); assert.equal(checked.counts['audit-missing-action'], 0);
+});
+
+test('migration lifecycle audits and legal Action lifecycle siblings are not false duplicates', () => {
+  const action = formalAction({ fields: { 'Audit Record ID': 'rec-preview' } });
+  const previewAudit = formalAudit({ id: 'rec-preview', auditId: 'audit-preview', externalRecordId: '', executionStatus: 'previewed' });
+  const finalAudit = formalAudit({ id: 'rec-final', auditId: 'audit-final', externalRecordId: 'rec-action', executionStatus: 'succeeded' });
+  const migrationStart = formalAudit({ id: 'rec-migration-start', auditId: 'migration-start:batch', operationId: 'batch', idempotencyKey: 'migration:key', toolId: 'executeLegacyMigration', recordType: 'formal', externalRecordId: '' });
+  const migrationEnd = formalAudit({ id: 'rec-migration-end', auditId: 'migration-end:batch', operationId: 'batch', idempotencyKey: 'migration:key', toolId: 'executeLegacyMigration', recordType: 'formal', externalRecordId: '' });
+  const checked = checkActionAuditConsistency({ projects: [action], audits: [previewAudit, finalAudit, migrationStart, migrationEnd] });
+  assert.equal(checked.counts.consistent, 1); assert.equal(checked.counts.duplicate, 0); assert.equal(checked.auditCount, 2);
+});
+
+test('true duplicate detection reports concrete record IDs and basis', () => {
+  const sourceAudit = formalAudit({ id: 'rec-migrated-1', auditId: 'audit-one', recordType: 'migrated', sanitizedOutput: { migrationSourceRecordId: 'rec-source' } });
+  const duplicateSource = formalAudit({ id: 'rec-migrated-2', auditId: 'audit-two', recordType: 'migrated', sanitizedOutput: { migrationSourceRecordId: 'rec-source' } });
+  const checked = checkActionAuditConsistency({ projects: [], audits: [sourceAudit, duplicateSource] });
+  const duplicate = checked.results.find(({ reason }) => reason === 'duplicate-migration-source');
+  assert.equal(duplicate.duplicateBasis, 'migration-source-record-id'); assert.equal(duplicate.sourceRecordId, 'rec-source');
+  assert.deepEqual(duplicate.auditRecordIds, ['rec-migrated-1', 'rec-migrated-2']);
+});
+
+test('Unknown migrated Draft fields get a unique canonical Audit candidate in repair preview', async () => {
+  const action = formalAction({ id: 'rec-legacy-draft', fields: { 'Operation ID': 'Unknown', 'Audit Record ID': '', 'Idempotency Key': 'idem-legacy' } });
+  const audit = formalAudit({ id: 'rec-migrated-audit', operationId: 'legacy-op', idempotencyKey: 'idem-legacy', externalRecordId: 'rec-legacy-draft', recordType: 'migrated' });
+  const source = memorySource([action], [audit]);
+  const issue = checkActionAuditConsistency({ projects: source.projects, audits: source.audits }).results.find(({ category }) => category === 'action-missing-audit');
+  assert.equal(issue.safe, true); assert.deepEqual(issue.candidateAuditRecordIds, ['rec-migrated-audit']); assert.equal(issue.candidateBasis, 'external-record-id');
   const preview = await previewActionAuditRepair({ issue, actor, req, env, dataSource: source });
-  assert.deepEqual(preview.updates, [{ target: 'audit', recordId: 'rec-preview', fields: { 'External Record ID': 'rec-action' } }]);
+  assert.deepEqual(preview.updates[0].fields, { 'Audit Record ID': 'rec-migrated-audit', 'Operation ID': 'legacy-op' });
+});
+
+test('multiple canonical Audit candidates reject repair preview without writes', async () => {
+  const action = formalAction({ fields: { 'Audit Record ID': '', 'Operation ID': 'Unknown' } });
+  const audits = [formalAudit({ id: 'rec-audit-a', operationId: 'op-a', externalRecordId: '' }), formalAudit({ id: 'rec-audit-b', operationId: 'op-b', externalRecordId: '' })];
+  const source = memorySource([action], audits);
+  const issue = checkActionAuditConsistency({ projects: source.projects, audits: source.audits }).results.find(({ category }) => category === 'action-missing-audit');
+  assert.equal(issue.safe, false); assert.deepEqual(issue.candidateAuditRecordIds, ['rec-audit-a', 'rec-audit-b']);
+  await assert.rejects(previewActionAuditRepair({ issue, actor, req, env, dataSource: source }), { code: 'REPAIR_NOT_SAFE' });
+  assert.equal(source.projects[0].fields['Audit Record ID'], '');
+});
+
+test('no canonical Audit candidate rejects repair preview without writes', async () => {
+  const source = memorySource([formalAction({ fields: { 'Audit Record ID': '', 'Operation ID': 'Unknown' } })], []);
+  const issue = checkActionAuditConsistency({ projects: source.projects, audits: source.audits }).results.find(({ category }) => category === 'action-missing-audit');
+  assert.equal(issue.safe, false); assert.deepEqual(issue.candidateAuditRecordIds, []);
+  await assert.rejects(previewActionAuditRepair({ issue, actor, req, env, dataSource: source }), { code: 'REPAIR_NOT_SAFE' });
+  assert.equal(source.projects[0].fields['Audit Record ID'], '');
 });
 
 test('partial migration failure is audited and the same confirmed batch safely resumes remaining records', async () => {
