@@ -15,6 +15,7 @@ import {
   COMPANION_NAVIGATOR_FOCUS_EVENT,
   consumeCompanionNavigatorHandoff,
 } from '../lib/companionActionConfig.js';
+import XchangeDraftPreviewPanel from './XchangeDraftPreviewPanel.jsx';
 
 const MAX_HISTORY_ITEMS = 4;
 const MAX_HISTORY_ITEM_CHARS = 1000;
@@ -965,6 +966,8 @@ export default function NexAeonNavigatorPage({
           </button>
         ))}
       </section>
+
+      {runtime.id === 'xchange' ? <XchangeDraftPreviewPanel lang={lang} /> : null}
 
       <AgentLandingSection lang={lang} navigate={navigate} />
     </article>

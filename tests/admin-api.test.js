@@ -14,9 +14,56 @@ function response() {
   };
 }
 
-function request({ method = 'GET', query = {}, body = {}, cookie = '', csrf = '' } = {}) {
-  return { method, query, body, headers: { origin: 'https://nexaeon-web.vercel.app', cookie, 'x-nexaeon-csrf': csrf, 'user-agent': 'admin-api-test', 'x-forwarded-for': '203.0.113.12' } };
+function request({ method = 'GET', query = {}, body = {}, cookie = '', csrf = '', origin = 'https://nexaeon-web.vercel.app' } = {}) {
+  return { method, query, body, headers: { origin, cookie, 'x-nexaeon-csrf': csrf, 'user-agent': 'admin-api-test', 'x-forwarded-for': '203.0.113.12' } };
 }
+
+test('Xchange preview route enforces origin, admin session, CSRF, allowlists, and zero writes', async () => {
+  Object.assign(process.env, {
+    AIRTABLE_API_KEY: 'api-test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'tbl-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit',
+    NEXAEON_ADMIN_ACTOR_ID: 'xchange-admin', NEXAEON_ADMIN_ACCESS_SECRET: 'xchange-access', NEXAEON_ADMIN_SESSION_SECRET: 'xchange-session-secret',
+  });
+  const route = { agent: 'xchange', operation: 'preview' };
+  const body = {
+    agentId: 'xchange', toolId: 'createCourseDraft', actionType: 'create', targetDataSource: 'notion-teaching-materials',
+    draftType: 'course', language: 'en', payload: { title: 'AI course', summary: 'A safe preview.', durationMinutes: 90 }, contractVersion: 'v1', schemaVersion: 'v1',
+  };
+  const invalidOrigin = response();
+  await handler(request({ method: 'POST', query: route, body, origin: 'https://evil.example' }), invalidOrigin);
+  assert.equal(invalidOrigin.statusCode, 403); assert.equal(invalidOrigin.body.errorCode, 'ORIGIN_NOT_ALLOWED');
+
+  const anonymous = response();
+  await handler(request({ method: 'POST', query: route, body }), anonymous);
+  assert.equal(anonymous.statusCode, 401); assert.equal(anonymous.body.errorCode, 'AUTH_REQUIRED');
+
+  const login = response();
+  await handler(request({ method: 'POST', query: { admin: 'session' }, body: { actorId: 'xchange-admin', accessSecret: 'xchange-access' } }), login);
+  const cookie = login.headers['set-cookie'].split(';')[0];
+  const invalidCsrf = response();
+  await handler(request({ method: 'POST', query: route, body, cookie, csrf: 'invalid' }), invalidCsrf);
+  assert.equal(invalidCsrf.statusCode, 403); assert.equal(invalidCsrf.body.errorCode, 'CSRF_INVALID');
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, options = {}) => options.method === 'POST'
+    ? { ok: true, json: async () => ({ records: [{ id: 'rec-xchange-preview-audit' }] }) }
+    : { ok: true, json: async () => ({ records: [] }) };
+  try {
+    const preview = response();
+    await handler(request({ method: 'POST', query: route, body, cookie, csrf: login.body.csrfToken }), preview);
+    assert.equal(preview.statusCode, 200); assert.equal(preview.body.ok, true);
+    assert.equal(preview.body.auditPreview.auditRecordId, 'rec-xchange-preview-audit');
+    assert.equal(preview.body.writesPerformed, 0); assert.equal(preview.body.canExecute, false);
+
+    const restricted = response();
+    await handler(request({ method: 'POST', query: route, body: { ...body, toolId: 'deleteCourse' }, cookie, csrf: login.body.csrfToken }), restricted);
+    assert.equal(restricted.statusCode, 403); assert.equal(restricted.body.errorCode, 'TOOL_NOT_ALLOWED'); assert.equal(restricted.body.writesPerformed, 0);
+
+    const massAssignment = response();
+    await handler(request({ method: 'POST', query: route, body: { ...body, payload: { ...body.payload, tableId: 'tbl-arbitrary' } }, cookie, csrf: login.body.csrfToken }), massAssignment);
+    assert.equal(massAssignment.statusCode, 400); assert.equal(massAssignment.body.errorCode, 'MASS_ASSIGNMENT_REJECTED');
+    assert.deepEqual(massAssignment.body.rejectedFields, ['tableId']); assert.equal(massAssignment.body.writesPerformed, 0);
+  } finally { globalThis.fetch = originalFetch; }
+});
 
 test('shared API keeps admin session and audit data private while authorized preview returns audit status', async () => {
   Object.assign(process.env, {

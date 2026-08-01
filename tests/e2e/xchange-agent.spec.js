@@ -103,3 +103,49 @@ test('Xchange supports cancel, empty result, and tool error states', async ({ pa
   await page.getByRole('button', { name: 'Submit' }).click();
   await expect(page.getByText('Xchange’s Learning tools cannot read the public data right now. Please try again later.')).toBeVisible();
 });
+
+test('Xchange renders the admin-controlled Course Draft Preview with no execute action', async ({ page }) => {
+  const requests = [];
+  await page.route('**/api/admin/session', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, authenticated: true, actorId: 'xchange-admin', role: 'admin', csrfToken: 'csrf-preview' }),
+    });
+  });
+  await page.route('**/api/agent/xchange/actions/preview', async (route) => {
+    requests.push({ body: route.request().postDataJSON(), csrf: route.request().headers()['x-nexaeon-csrf'] });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true, previewId: 'xpv-operation-ui', operationId: 'operation-ui', idempotencyKey: 'idem-ui',
+        agentId: 'xchange', toolId: 'createCourseDraft', draftType: 'course', targetDataSource: 'notion-teaching-materials',
+        contractVersion: 'v1', schemaVersion: 'v1', permissionLevel: 'WRITE_CONFIRM', confirmationRequired: true,
+        previewExpiresAt: '2026-08-02T01:05:00.000Z', previewHash: 'hash-ui',
+        normalizedPayload: { title: 'AI Marketing', draftStatus: 'Draft', visibility: 'Private', published: false },
+        createPayloadPreview: { '標題': 'AI Marketing', '狀態': 'Draft', '公開狀態': 'Private', Published: false },
+        rejectedFields: [], warnings: ['Preview only. No Learning Coaching record was created.'],
+        estimatedWrites: 1, writesPerformed: 0, auditPreview: { executionStatus: 'previewed' }, canExecute: false,
+      }),
+    });
+  });
+
+  await page.goto('/teaching/nexaeon-xchange');
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await expect(page.getByTestId('xchange-draft-preview-panel')).toBeVisible();
+  await page.getByLabel('Title').fill('AI Marketing');
+  await page.getByLabel('Summary / subtopic').fill('A 90-minute coaching-led course.');
+  await page.getByRole('button', { name: 'Create Preview' }).click();
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('Draft · Private · Published=false');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('performed 0');
+  await expect(page.getByRole('button', { name: 'Coming in Stage 5-3E-B' })).toBeDisabled();
+  expect(requests).toHaveLength(1);
+  expect(requests[0].csrf).toBe('csrf-preview');
+  expect(requests[0].body).toMatchObject({
+    agentId: 'xchange', toolId: 'createCourseDraft', targetDataSource: 'notion-teaching-materials',
+    draftType: 'course', contractVersion: 'v1', schemaVersion: 'v1',
+  });
+  expect(requests[0].body.payload).toMatchObject({ title: 'AI Marketing', durationMinutes: 90 });
+  expect(requests[0].body.confirmationRequired).toBeUndefined();
+});

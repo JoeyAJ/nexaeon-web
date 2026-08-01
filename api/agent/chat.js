@@ -8,6 +8,7 @@ import { cancelOperation, createOperationPreview, executeConfirmedOperation } fr
 import { clearAdminSessionCookie, createAdminSession, readAdminSession, requireAdminCsrf } from '../../lib/agent/adminSession.js';
 import { getProductionAuditRepository } from '../../lib/agent/auditRepository.js';
 import { executeActionAuditRepair, executeLegacyMigration, getMigrationStatus, inspectMigrationSafety, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../../lib/agent/legacyMigrationRuntime.js';
+import { createXchangeDraftPreview } from '../../lib/agent/xchangeWriteContract.js';
 
 const adminLoginAttempts = new Map();
 const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -15,6 +16,8 @@ const ADMIN_LOGIN_MAX_ATTEMPTS = 5;
 
 const OPERATION_ERROR_STATUS = Object.freeze({
   INVALID_INPUT: 400, MASS_ASSIGNMENT_REJECTED: 400, PAYLOAD_TOO_LARGE: 413,
+  REQUIRED_FIELD_MISSING: 400, INVALID_DRAFT_TYPE: 400, UNSUPPORTED_LANGUAGE: 400, SCHEMA_VERSION_INVALID: 400,
+  UPDATE_NOT_ALLOWED: 403, DELETE_NOT_ALLOWED: 403, TARGET_DATA_SOURCE_NOT_ALLOWED: 403,
   TOOL_NOT_ALLOWED: 403, AGENT_NOT_ALLOWED: 403, RESTRICTED_TOOL: 403, DATA_SOURCE_NOT_ALLOWED: 403,
   CONFIRMATION_REQUIRED: 403, CONFIRMATION_INVALID: 403, CONFIRMATION_MISMATCH: 409,
   CONFIRMATION_REQUESTER_MISMATCH: 403, CONFIRMATION_EXPIRED: 410, OPERATION_CANCELLED: 409,
@@ -28,6 +31,7 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   AUTH_CONFIGURATION_MISSING: 503, AUTH_INVALID_CREDENTIALS: 401, AUTH_REQUIRED: 401,
   AUTH_ROLE_FORBIDDEN: 403, AUTH_SESSION_EXPIRED: 401, CSRF_INVALID: 403,
   AUTH_RATE_LIMITED: 429,
+  AUDIT_PERSISTENCE_FAILED: 503,
   ACTOR_SESSION_MISMATCH: 409, AUDIT_CONFIGURATION_MISSING: 503, AUDIT_TIMEOUT: 504,
   AUDIT_REQUEST_FAILED: 502, AUDIT_REQUEST_REJECTED: 502, AUDIT_INVALID_RESPONSE: 502,
   AUDIT_PAGINATION_INVALID: 502, AUDIT_PAGINATION_LIMIT_EXCEEDED: 503,
@@ -75,6 +79,34 @@ async function handleOrchestratorOperationRequest(req, res) {
   } catch (error) {
     const errorCode = error?.code || 'EXECUTION_FAILED';
     return res.status(OPERATION_ERROR_STATUS[errorCode] || 500).json({ ok: false, errorCode });
+  }
+}
+
+async function handleXchangeOperationRequest(req, res) {
+  privateJson(res);
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+  }
+  if (!isAllowedWriteOrigin(req)) return res.status(403).json({ ok: false, errorCode: 'ORIGIN_NOT_ALLOWED' });
+  try {
+    const actor = requireAdminCsrf(req, readAdminSession(req));
+    if (req.query.operation !== 'preview') return res.status(404).json({ ok: false, errorCode: 'OPERATION_NOT_FOUND' });
+    const payload = await createXchangeDraftPreview({
+      body: req.body,
+      req,
+      actor,
+      auditRepository: getProductionAuditRepository(),
+    });
+    return res.status(200).json(payload);
+  } catch (error) {
+    const errorCode = error?.code || 'PREVIEW_FAILED';
+    return res.status(OPERATION_ERROR_STATUS[errorCode] || 500).json({
+      ok: false,
+      errorCode,
+      ...(Array.isArray(error?.rejectedFields) ? { rejectedFields: error.rejectedFields } : {}),
+      writesPerformed: 0,
+    });
   }
 }
 
@@ -252,6 +284,10 @@ export default async function handler(req, res) {
     return;
   }
   if (req.query?.agent === 'xchange') {
+    if (req.query?.operation) {
+      await handleXchangeOperationRequest(req, res);
+      return;
+    }
     await handleXchangeChatRequest(req, res);
     return;
   }

@@ -113,6 +113,8 @@ test('Xchange has an independent identity, coaching prompt, locale instruction, 
   assert.match(prompt, /coaching-oriented learning/);
   assert.match(prompt, /Never invent courses, teaching materials/);
   assert.match(prompt, /Do not write, update, delete/);
+  assert.match(prompt, /Draft Preview form/);
+  assert.match(prompt, /Never claim that draft content was saved/);
   assert.match(buildXchangeInstruction('ko'), /Korean/);
   assert.match(buildXchangeInstruction('zh'), /Traditional Chinese/);
 });

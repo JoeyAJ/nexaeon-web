@@ -77,6 +77,10 @@
       "destination": "/api/agent/chat?agent=xchange"
     },
     {
+      "source": "/api/agent/xchange/actions/preview",
+      "destination": "/api/agent/chat?agent=xchange&operation=preview"
+    },
+    {
       "source": "/((?!api/|assets/|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
       "destination": "/index.html"
     }
