@@ -309,6 +309,13 @@ test('multiple forensic candidates remain ambiguous and list concrete IDs by sco
   assert.equal(issue.safe, false); assert.equal(issue.recommendedAction, 'manual-review-required-ambiguous');
 });
 
+test('generic acceptance wording and a distant timestamp do not fabricate an Audit candidate', () => {
+  const action = formalAction({ createdTime: '2026-07-31T16:14:38.000Z', fields: { 'Audit Record ID': '', 'Operation ID': 'Unknown', 'Idempotency Key': 'stage-3a-key', 'Project Name': 'Stage 5-3A Production Acceptance Draft', 'Public Summary': 'Controlled production acceptance action' } });
+  const audit = { ...formalAudit({ id: 'rec-stage-3c', operationId: 'other', idempotencyKey: 'stage-3c-key', externalRecordId: '' }), createdTime: '2026-07-31T17:45:00.000Z', fields: {}, sanitizedInput: { title: 'Stage 5-3C Production Acceptance formal Action schema' } };
+  const issue = checkActionAuditConsistency({ projects: [action], audits: [audit] }).results.find(({ category }) => category === 'action-missing-audit');
+  assert.equal(issue.candidateCount, 0); assert.deepEqual(issue.candidateAuditRecordIds, []); assert.equal(issue.safe, false);
+});
+
 test('partial migration failure is audited and the same confirmed batch safely resumes remaining records', async () => {
   const source = memorySource(); const upsertAudit = source.upsertAudit.bind(source); let failLegacyOnce = true;
   source.upsertAudit = async (fields) => {
