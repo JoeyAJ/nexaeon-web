@@ -126,7 +126,9 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
         normalizedPayload: { title: 'AI Marketing', draftStatus: 'Draft', visibility: 'Private', published: false },
         createPayloadPreview: { '標題': 'AI Marketing', '狀態': 'Draft', '公開狀態': 'Private', Published: false },
         contentPreview: { overview: { courseTitle: 'AI Marketing', purpose: 'Help learners apply evidence-led marketing decisions.' }, learningObjectives: ['Identify audience evidence', 'Compare campaign options', 'Design a measurable campaign'] },
-        contentQuality: { status: 'Complete', errors: [], warnings: [] }, contentSchemaVersion: 'v1', rendererVersion: 'v1', estimatedBodyBlocks: 72,
+        extractedRequirements: { exactTitle: 'AI Marketing', topic: 'AI Marketing', targetAudience: ['University students'], durationMinutes: 90, difficulty: 'Beginner', format: ['Workshop'], language: 'en', requiredElements: ['learning objectives'], subjectKeywords: ['AI', 'Marketing'] },
+        preservedConstraints: { exactTitle: true, targetAudience: true, format: true, durationMinutes: true, difficulty: true, language: true },
+        contentQuality: { status: 'Complete', errors: [], warnings: [], qualityReasons: ['All quality checks passed.'], topicRelevance: { score: 1, valid: true }, promptOverlap: { ratio: 0, valid: true } }, contentSchemaVersion: 'v1', rendererVersion: 'v1', estimatedBodyBlocks: 72,
         durationValidation: { expectedMinutes: 90, actualMinutes: 90, valid: true },
         rejectedFields: [], warnings: ['Preview only. No Learning Coaching record was created.'],
         estimatedWrites: 1, writesPerformed: 0, auditPreview: { executionStatus: 'previewed' }, canExecute: true,
@@ -154,6 +156,10 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('90 / 90 min · valid');
   await expect(page.getByTestId('xchange-content-preview')).toContainText('Help learners apply evidence-led marketing decisions.');
   await expect(page.getByTestId('xchange-content-preview')).toContainText('Design a measurable campaign');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('Extracted requirements');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('University students');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('Topic relevance');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('All quality checks passed.');
   const execute = page.getByRole('button', { name: 'Confirm draft creation' });
   await expect(execute).toBeDisabled();
   await page.getByLabel('I confirm this will create one Private Draft in Learning Coaching').check();

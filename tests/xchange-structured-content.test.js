@@ -5,6 +5,8 @@ import {
   buildCourseNotionBlocks,
   buildLearningActivityNotionBlocks,
   createStructuredContent,
+  applyExtractedRequirements,
+  extractStructuredRequirements,
   generateCourseContent,
   generateLearningActivityContent,
   validateStructuredContent,
@@ -17,6 +19,21 @@ import { createXchangeDraftPreview, executeXchangeDraft, resetXchangePreviewStor
 
 const coursePayload = (language = 'en') => ({ title: 'Evidence-led AI course', summary: 'Use evidence to make and revise decisions.', teachingCategory: 'Course', format: ['Workshop'], targetAudience: ['Students'], durationMinutes: 90, difficulty: 'Intermediate', language: [language], tags: ['AI'] });
 const activityPayload = (language = 'en') => ({ activityTitle: 'Evidence comparison', activityType: 'Discussion', instructions: 'Compare two responses and justify a revision.', targetAudience: ['Students'], estimatedTimeMinutes: 30, difficulty: 'Beginner', language: [language], tags: ['AI'] });
+const CHINESE_AI_MARKETING_PROMPT = `請建立一個給大學生使用的 90 分鐘「生成式 AI 與行銷策略」課程草稿，語言使用繁體中文，難度為初級，形式為 Workshop。
+
+課程需要包含：
+1. 明確的學習目標
+2. 完整的 90 分鐘時間配置
+3. 至少一個小組實作活動
+4. 評量方式
+5. AI 使用風險與注意事項`;
+
+function aiMarketingCase() {
+  const raw = { title: 'AI 行銷策略', summary: CHINESE_AI_MARKETING_PROMPT, teachingCategory: 'Course', format: ['Course'], durationMinutes: 90, difficulty: 'Beginner', language: ['zh'] };
+  const requirements = extractStructuredRequirements('course', raw);
+  const payload = applyExtractedRequirements('course', raw, requirements);
+  return { raw, requirements, payload, ...createStructuredContent('course', payload, { requirements, sourcePrompt: CHINESE_AI_MARKETING_PROMPT }) };
+}
 
 function notionSchema() {
   const options = (...names) => names.map((name) => ({ name }));
@@ -44,6 +61,56 @@ test('Learning Activity content v1 has usable scripts, differentiation, output, 
   assert.equal(content.steps.length, 3); assert.equal(content.teacherScript.length, 3);
   assert.equal(content.steps.reduce((sum, step) => sum + step.durationMinutes, 0), 30);
   assert.equal(content.expectedOutput.requirements.length >= 3, true); assert.equal(quality.durationValidation.valid, true);
+});
+
+test('Production regression prompt preserves exact requirements and produces a specific complete AI marketing workshop', () => {
+  const { requirements, payload, content, quality } = aiMarketingCase();
+  assert.equal(requirements.exactTitle, '生成式 AI 與行銷策略'); assert.equal(payload.title, '生成式 AI 與行銷策略');
+  assert.deepEqual(requirements.targetAudience, ['大學生']); assert.deepEqual(payload.targetAudience, ['大學生']);
+  assert.deepEqual(requirements.format, ['Workshop']); assert.deepEqual(payload.format, ['Workshop']);
+  assert.equal(requirements.durationMinutes, 90); assert.equal(requirements.difficulty, 'Beginner'); assert.equal(requirements.language, 'zh');
+  assert.deepEqual(requirements.requiredElements, ['learning objectives', 'session plan', 'group activity', 'assessment', 'AI risks']);
+  assert.equal(content.overview.courseTitle, '生成式 AI 與行銷策略'); assert.deepEqual(content.overview.targetAudience, ['大學生']); assert.deepEqual(content.overview.format, ['Workshop']);
+  assert.deepEqual(content.sessionPlan.map((stage) => stage.durationMinutes), [10, 20, 15, 30, 10, 5]);
+  assert.equal(content.sessionPlan.reduce((sum, stage) => sum + stage.durationMinutes, 0), 90);
+  assert.equal(JSON.stringify(content).includes(CHINESE_AI_MARKETING_PROMPT), false);
+  assert.match(content.coreContent.map((section) => `${section.title} ${section.explanation}`).join(' '), /受眾分析.*提示詞.*品牌/isu);
+  assert.match(content.activities[0].title, /AI 行銷內容設計挑戰/u); assert.match(content.activities[0].steps.join(' '), /受眾/u); assert.match(content.activities[0].steps.join(' '), /提示詞/u); assert.match(content.activities[0].steps.join(' '), /品牌/u); assert.match(content.activities[0].steps.join(' '), /驗證|查證/u);
+  assert.deepEqual(content.assessment.criteria, ['目標受眾匹配度', '品牌語調一致性', '提示詞設計清晰度與可控制性', '內容事實正確性與來源查核', '行銷策略與漏斗階段的可行性', 'AI 風險辨識與修訂完整性']);
+  assert.equal(content.risksAndNotes.filter((item) => /幻覺|隱私|著作權|偏見|品牌語調|過度依賴/u.test(item)).length >= 6, true);
+  assert.equal(quality.status, 'Complete'); assert.equal(quality.topicRelevance.score, 1); assert.equal(quality.promptOverlap.ratio < quality.promptOverlap.threshold, true);
+  assert.deepEqual(quality.preservedConstraints, { exactTitle: true, targetAudience: true, format: true, durationMinutes: true, difficulty: true, language: true });
+});
+
+test('Preview contract writes extracted constraints into normalized properties and exposes quality diagnostics', async () => {
+  resetXchangePreviewStoreForTests(); const auditRepository = createMemoryAuditRepository();
+  const preview = await createXchangeDraftPreview({
+    body: { agentId: 'xchange', toolId: 'createCourseDraft', actionType: 'create', targetDataSource: 'notion-teaching-materials', draftType: 'course', language: 'zh', payload: { title: 'AI 行銷策略', summary: CHINESE_AI_MARKETING_PROMPT, teachingCategory: 'Course', format: ['Course'], durationMinutes: 90, difficulty: 'Beginner', language: ['zh'] }, contractVersion: 'v1', schemaVersion: 'v1' },
+    req: { headers: {} }, actor: { actorId: 'admin', role: 'admin', sessionId: 'session' }, auditRepository,
+    now: 1_800_000_000_000, operationId: 'quality-hotfix-preview', env: { NEXAEON_TOOL_EXECUTION_SECRET: 'test-secret' },
+  });
+  assert.equal(preview.normalizedPayload.title, '生成式 AI 與行銷策略'); assert.deepEqual(preview.normalizedPayload.targetAudience, ['大學生']); assert.deepEqual(preview.normalizedPayload.format, ['Workshop']);
+  assert.equal(preview.createPayloadPreview['標題'], '生成式 AI 與行銷策略'); assert.deepEqual(preview.createPayloadPreview['對象'], ['大學生']); assert.deepEqual(preview.createPayloadPreview['形式'], ['Workshop']);
+  assert.equal(preview.contentQuality.status, 'Complete'); assert.equal(preview.contentQuality.topicRelevance.valid, true); assert.equal(preview.contentQuality.promptOverlap.valid, true);
+  assert.equal(preview.preservedConstraints.targetAudience, true); assert.equal(preview.extractedRequirements.requiredElements.length, 5); assert.equal(preview.writesPerformed, 0);
+});
+
+test('generic templates, missing audience, and replaced format cannot pass AI marketing quality validation', () => {
+  const { requirements, content } = aiMarketingCase();
+  const generic = structuredClone(content);
+  generic.coreContent = [{ title: '問題定義', explanation: '先定義問題與預期成果，再提出兩個選項並執行與回饋。', keyPoints: ['先定義問題', '提出選項', '執行與回饋'] }];
+  assert.equal(validateStructuredContent('course', generic, { requirements, sourcePrompt: CHINESE_AI_MARKETING_PROMPT }).status, 'Incomplete');
+  const noAudience = structuredClone(content); noAudience.overview.targetAudience = [];
+  assert.equal(validateStructuredContent('course', noAudience, { requirements, sourcePrompt: CHINESE_AI_MARKETING_PROMPT }).status, 'Incomplete');
+  const wrongFormat = structuredClone(content); wrongFormat.overview.format = ['Course'];
+  assert.equal(validateStructuredContent('course', wrongFormat, { requirements, sourcePrompt: CHINESE_AI_MARKETING_PROMPT }).status, 'Incomplete');
+});
+
+test('high prompt overlap and instruction leakage are rejected', () => {
+  const { requirements, content } = aiMarketingCase();
+  const copied = structuredClone(content); copied.coreContent[0].explanation = CHINESE_AI_MARKETING_PROMPT;
+  const quality = validateStructuredContent('course', copied, { requirements, sourcePrompt: CHINESE_AI_MARKETING_PROMPT });
+  assert.equal(quality.status, 'Rejected'); assert.equal(quality.promptOverlap.valid, false); assert.equal(quality.promptOverlap.instructionLeakage.length > 0, true);
 });
 
 test('missing sections, empty content, duration mismatches, and generic teacher/learner actions are incomplete', () => {

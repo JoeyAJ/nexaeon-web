@@ -26,7 +26,7 @@ test('Xchange preview route enforces origin, admin session, CSRF, allowlists, an
   const route = { agent: 'xchange', operation: 'preview' };
   const body = {
     agentId: 'xchange', toolId: 'createCourseDraft', actionType: 'create', targetDataSource: 'notion-teaching-materials',
-    draftType: 'course', language: 'en', payload: { title: 'AI course', summary: 'A safe preview.', durationMinutes: 90 }, contractVersion: 'v1', schemaVersion: 'v1',
+    draftType: 'course', language: 'en', payload: { title: 'AI course', summary: 'A safe preview.', targetAudience: ['University students'], format: ['Workshop'], difficulty: 'Beginner', language: ['en'], durationMinutes: 90 }, contractVersion: 'v1', schemaVersion: 'v1',
   };
   const invalidOrigin = response();
   await handler(request({ method: 'POST', query: route, body, origin: 'https://evil.example' }), invalidOrigin);

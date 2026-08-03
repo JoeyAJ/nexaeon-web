@@ -38,7 +38,7 @@ function activity(overrides = {}) {
   return {
     agentId: 'xchange', toolId: 'createLearningActivityDraft', actionType: 'create',
     targetDataSource: XCHANGE_TARGET_DATA_SOURCE, draftType: 'learning_activity', language: 'zh',
-    payload: { activityTitle: '小組討論', activityType: 'Discussion', instructions: '比較兩個 AI 回答並反思。', estimatedTimeMinutes: 30, difficulty: 'Beginner', language: ['繁體中文'] },
+    payload: { activityTitle: '小組討論', activityType: 'Discussion', instructions: '比較兩個 AI 回答並反思。', targetAudience: ['大學生'], estimatedTimeMinutes: 30, difficulty: 'Beginner', language: ['繁體中文'] },
     contractVersion: 'v1', schemaVersion: 'v1', ...overrides,
   };
 }
