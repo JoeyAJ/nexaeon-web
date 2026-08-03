@@ -4,6 +4,7 @@ import test from 'node:test';
 import { createAirtableAuditRepository, createMemoryAuditRepository } from '../lib/agent/auditRepository.js';
 import { createXchangeDraftPreview, executeXchangeDraft, resetXchangePreviewStoreForTests } from '../lib/agent/xchangeWriteContract.js';
 import { buildXchangeNotionProperties, createXchangeNotionDraft, validateXchangeNotionSchema } from '../lib/agent/xchangeNotionWriter.js';
+import { createStructuredContent } from '../lib/agent/xchangeStructuredContent.js';
 import { isPublishedNotionPage } from '../lib/publicFilters.js';
 
 const env = { NEXAEON_TOOL_EXECUTION_SECRET: 'confirmed-write-test-secret' };
@@ -56,7 +57,7 @@ test('confirmed Course Draft writes exactly once with forced private draft field
   assert.equal(calls[0].payload.visibility, 'Private');
   assert.equal(calls[0].payload.published, false);
   assert.equal(calls[0].payload.createdViaAgent, 'xchange');
-  assert.deepEqual(result, { ok: true, operationId: 'execute-operation', executionStatus: 'succeeded', writes: 1, writesPerformed: 1, draftStatus: 'Draft', visibility: 'Private', published: false, externalRecordId: 'notion-page-1', createdAt: '2027-01-15T08:00:01.000Z', notPublished: true, replayed: false });
+  assert.deepEqual(result, { ok: true, operationId: 'execute-operation', executionStatus: 'succeeded', writes: 1, writesPerformed: 1, draftStatus: 'Draft', visibility: 'Private', published: false, externalRecordId: 'notion-page-1', createdAt: '2027-01-15T08:00:01.000Z', notPublished: true, replayed: false, notionPageCreated: true, bodyComplete: true, bodyBlocksWritten: 0, bodyAppendBatches: 0, partialExternalWrite: false });
   const lifecycle = await auditRepository.getAuditLifecycleByOperationId('execute-operation');
   assert.deepEqual(lifecycle.map((event) => event.executionStatus), ['previewed', 'executing', 'succeeded']);
   assert.equal(lifecycle.every((event) => event.actorId !== actor.actorId), true);
@@ -261,10 +262,12 @@ test('valid Production schema calls pages.create exactly once and returns a Priv
     dataSources: { retrieve: async () => ({ properties: productionSchema() }) },
     pages: { create: async (input) => { createCalls.push(input); return { id: 'created-notion-page', created_time: '2027-01-15T08:00:04.000Z' }; } },
   };
-  const written = await createXchangeNotionDraft({ draftType: 'learning_activity', payload: activity().payload, env: { NOTION_API_KEY: 'not-returned-secret', NOTION_TEACHING_DATABASE_ID: 'server-database' }, notionClient: validClient });
+  const content = createStructuredContent('learning_activity', activity().payload).content;
+  const written = await createXchangeNotionDraft({ draftType: 'learning_activity', payload: activity().payload, content, env: { NOTION_API_KEY: 'not-returned-secret', NOTION_TEACHING_DATABASE_ID: 'server-database' }, notionClient: validClient });
   assert.equal(createCalls.length, 1); assert.deepEqual(createCalls[0].parent, { data_source_id: 'server-data-source' });
   assert.equal(createCalls[0].properties['狀態'].status.name, '未開始'); assert.equal(createCalls[0].properties['公開狀態'].select.name, 'Draft');
   assert.equal(isPublishedNotionPage({ properties: createCalls[0].properties }, ['公開狀態']), false);
-  assert.deepEqual(written, { externalRecordId: 'created-notion-page', createdAt: '2027-01-15T08:00:04.000Z', properties: createCalls[0].properties });
+  assert.equal(createCalls[0].children.length > 0, true);
+  assert.deepEqual(written, { externalRecordId: 'created-notion-page', createdAt: '2027-01-15T08:00:04.000Z', properties: createCalls[0].properties, notionPageCreated: true, pageCreated: true, bodyComplete: true, bodyBlocksWritten: createCalls[0].children.length, bodyAppendBatches: 0, partialExternalWrite: false });
   assert.equal(JSON.stringify(written).includes('not-returned-secret'), false);
 });

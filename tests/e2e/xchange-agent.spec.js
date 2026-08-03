@@ -125,6 +125,9 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
         previewExpiresAt: '2099-08-02T01:05:00.000Z', previewHash: 'hash-ui', confirmationToken: 'signed-ui-token',
         normalizedPayload: { title: 'AI Marketing', draftStatus: 'Draft', visibility: 'Private', published: false },
         createPayloadPreview: { '標題': 'AI Marketing', '狀態': 'Draft', '公開狀態': 'Private', Published: false },
+        contentPreview: { overview: { courseTitle: 'AI Marketing', purpose: 'Help learners apply evidence-led marketing decisions.' }, learningObjectives: ['Identify audience evidence', 'Compare campaign options', 'Design a measurable campaign'] },
+        contentQuality: { status: 'Complete', errors: [], warnings: [] }, contentSchemaVersion: 'v1', rendererVersion: 'v1', estimatedBodyBlocks: 72,
+        durationValidation: { expectedMinutes: 90, actualMinutes: 90, valid: true },
         rejectedFields: [], warnings: ['Preview only. No Learning Coaching record was created.'],
         estimatedWrites: 1, writesPerformed: 0, auditPreview: { executionStatus: 'previewed' }, canExecute: true,
       }),
@@ -147,6 +150,10 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
   await page.getByRole('button', { name: 'Create Preview' }).click();
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('Draft · Private · Published=false');
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('performed 0');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('Complete');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('90 / 90 min · valid');
+  await expect(page.getByTestId('xchange-content-preview')).toContainText('Help learners apply evidence-led marketing decisions.');
+  await expect(page.getByTestId('xchange-content-preview')).toContainText('Design a measurable campaign');
   const execute = page.getByRole('button', { name: 'Confirm draft creation' });
   await expect(execute).toBeDisabled();
   await page.getByLabel('I confirm this will create one Private Draft in Learning Coaching').check();

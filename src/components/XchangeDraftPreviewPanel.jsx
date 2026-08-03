@@ -10,6 +10,7 @@ const COPY = Object.freeze({
     previewTitle: '結構化 Preview', target: '目標資料來源', permission: '寫入權限', expires: 'Preview 期限', writes: '預估 writes',
     warning: '警告', status: '安全狀態', operation: 'Operation ID', previewOnly: 'Preview only', notWritten: '尚未寫入', confirmNeeded: '需要管理員確認',
     confirmLabel: '我確認這將在 Learning Coaching 建立一筆 Private Draft', execute: '確認建立草稿', executing: '正在建立私有草稿……', created: '草稿建立成功', createdButton: '已建立', expired: 'Preview 已過期，請重新建立', notPublished: '此內容尚未公開', failed: '操作失敗', adminSession: '管理員 session', draftTypeLabel: '草稿類型', createdAt: '建立時間', recordId: 'Notion page ID',
+    propertiesTitle: 'Draft Properties', contentTitle: 'Draft Page Content', qualityTitle: '品質檢查', quality: '品質狀態', durationTotal: '時間總和', bodyBlocks: '預計 Notion blocks', schema: '正文 schema', draftSafety: '此頁會以 Draft／非公開狀態建立，且不會自動發布。',
   },
   ko: {
     title: 'Xchange Draft Execution', intro: '통제된 Preview를 만든 뒤 관리자가 명시적으로 확인한 경우에만 Learning Coaching에 비공개 초안을 하나 만듭니다.',
@@ -20,6 +21,7 @@ const COPY = Object.freeze({
     previewTitle: '구조화된 Preview', target: '대상 데이터 소스', permission: '쓰기 권한', expires: 'Preview 만료', writes: '예상 writes',
     warning: '경고', status: '안전 상태', operation: 'Operation ID', previewOnly: 'Preview only', notWritten: '아직 쓰지 않음', confirmNeeded: '관리자 확인 필요',
     confirmLabel: 'Learning Coaching에 Private Draft 한 건을 만드는 것에 동의합니다', execute: '초안 생성 확인', executing: '비공개 초안을 만드는 중…', created: '초안 생성 성공', createdButton: '생성됨', expired: 'Preview가 만료되었습니다. 다시 만들어 주세요', notPublished: '이 콘텐츠는 아직 공개되지 않았습니다', failed: '작업 실패', adminSession: '관리자 session', draftTypeLabel: '초안 유형', createdAt: '생성 시간', recordId: 'Notion page ID',
+    propertiesTitle: 'Draft Properties', contentTitle: 'Draft Page Content', qualityTitle: '품질 검사', quality: '품질 상태', durationTotal: '시간 합계', bodyBlocks: '예상 Notion blocks', schema: '본문 schema', draftSafety: '이 페이지는 Draft/비공개로 생성되며 자동 게시되지 않습니다.',
   },
   en: {
     title: 'Xchange Draft Execution', intro: 'Create a controlled preview first. One private Learning Coaching draft is written only after explicit administrator confirmation.',
@@ -30,6 +32,7 @@ const COPY = Object.freeze({
     previewTitle: 'Structured Preview', target: 'Target data source', permission: 'Write permission', expires: 'Preview expiry', writes: 'Estimated writes',
     warning: 'Warning', status: 'Safety status', operation: 'Operation ID', previewOnly: 'Preview only', notWritten: 'Not written', confirmNeeded: 'Admin confirmation required',
     confirmLabel: 'I confirm this will create one Private Draft in Learning Coaching', execute: 'Confirm draft creation', executing: 'Creating the private draft…', created: 'Draft created successfully', createdButton: 'Created', expired: 'Preview expired. Please create a new one', notPublished: 'This content is not published', failed: 'Operation failed', adminSession: 'Admin session', draftTypeLabel: 'Draft type', createdAt: 'Created at', recordId: 'Notion page ID',
+    propertiesTitle: 'Draft Properties', contentTitle: 'Draft Page Content', qualityTitle: 'Quality checks', quality: 'Quality status', durationTotal: 'Duration total', bodyBlocks: 'Estimated Notion blocks', schema: 'Content schema', draftSafety: 'This page will be created as a non-public Draft and will not be published automatically.',
   },
 });
 
@@ -53,6 +56,16 @@ function errorText(lang, code) {
 
 function tags(value) {
   return String(value || '').split(/[,，、]/u).map((item) => item.trim()).filter(Boolean);
+}
+
+function label(value) {
+  return String(value).replace(/([a-z])([A-Z])/gu, '$1 $2').replace(/^./u, (character) => character.toUpperCase());
+}
+
+function ContentValue({ value }) {
+  if (Array.isArray(value)) return <ul>{value.map((item, index) => <li key={`${index}-${typeof item === 'string' ? item : ''}`}>{typeof item === 'object' ? <ContentValue value={item} /> : String(item)}</li>)}</ul>;
+  if (value && typeof value === 'object') return <div className="xchange-content-fields">{Object.entries(value).map(([key, item]) => <div key={key}><strong>{label(key)}</strong><ContentValue value={item} /></div>)}</div>;
+  return <p>{String(value ?? '')}</p>;
 }
 
 export default function XchangeDraftPreviewPanel({ lang }) {
@@ -204,7 +217,7 @@ export default function XchangeDraftPreviewPanel({ lang }) {
 
   return (
     <section className="xchange-draft-preview-panel" data-testid="xchange-draft-preview-panel" data-phase={state.phase}>
-      <div className="xchange-preview-heading"><div><span className="content-tag">Stage 5-3E-B · Confirmed write</span><h2>{copy.title}</h2><p>{copy.intro}</p></div></div>
+      <div className="xchange-preview-heading"><div><span className="content-tag">Stage 5-3E-C · Structured content</span><h2>{copy.title}</h2><p>{copy.intro}</p></div></div>
       {auth.phase !== 'authenticated' ? (
         <form className="agent-admin-auth" onSubmit={login} data-testid="xchange-admin-login">
           <strong>{copy.adminRequired}</strong>
@@ -241,8 +254,17 @@ export default function XchangeDraftPreviewPanel({ lang }) {
             <div><dt>{copy.expires}</dt><dd>{state.preview.previewExpiresAt}</dd></div>
             <div><dt>{copy.permission}</dt><dd>{state.preview.permissionLevel}</dd></div>
             <div><dt>{copy.writes}</dt><dd>{state.preview.estimatedWrites} · performed {state.preview.writesPerformed}</dd></div>
-            {Object.entries(state.preview.createPayloadPreview || {}).map(([field, value]) => <div key={field}><dt>{field}</dt><dd>{Array.isArray(value) ? value.join(', ') : String(value)}</dd></div>)}
+            <div><dt>{copy.quality}</dt><dd>{state.preview.contentQuality?.status}</dd></div>
+            <div><dt>{copy.durationTotal}</dt><dd>{state.preview.durationValidation?.actualMinutes} / {state.preview.durationValidation?.expectedMinutes} min · {state.preview.durationValidation?.valid ? 'valid' : 'invalid'}</dd></div>
+            <div><dt>{copy.bodyBlocks}</dt><dd>{state.preview.estimatedBodyBlocks}</dd></div>
+            <div><dt>{copy.schema}</dt><dd>{state.preview.contentSchemaVersion} · renderer {state.preview.rendererVersion}</dd></div>
           </dl>
+          <section className="xchange-preview-properties"><h3>{copy.propertiesTitle}</h3><dl>
+            {Object.entries(state.preview.createPayloadPreview || {}).map(([field, value]) => <div key={field}><dt>{field}</dt><dd>{Array.isArray(value) ? value.join(', ') : String(value)}</dd></div>)}
+          </dl></section>
+          <section className="xchange-content-preview" data-testid="xchange-content-preview"><h3>{copy.contentTitle}</h3>{Object.entries(state.preview.contentPreview || {}).map(([section, value]) => <article key={section}><h4>{label(section)}</h4><ContentValue value={value} /></article>)}</section>
+          <section className="xchange-content-quality"><h3>{copy.qualityTitle}</h3><p>{state.preview.contentQuality?.status}</p>{state.preview.contentQuality?.errors?.length ? <ul>{state.preview.contentQuality.errors.map((error) => <li key={error}>{error}</li>)}</ul> : null}</section>
+          <p className="xchange-draft-safety">{copy.draftSafety}</p>
           {state.preview.warnings?.length ? <div className="xchange-preview-warnings"><strong>{copy.warning}</strong><ul>{state.preview.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div> : null}
           {state.phase !== 'succeeded' ? <div className="xchange-confirmation" data-testid="xchange-confirmation"><label><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={previewExpired || state.phase !== 'previewed'} />{copy.confirmLabel}</label>{previewExpired ? <p data-state="failed">{copy.expired}</p> : null}<button className="mvp-action-button" type="button" onClick={executeDraft} disabled={auth.phase !== 'authenticated' || !confirmed || previewExpired || state.phase !== 'previewed'}>{copy.execute}</button></div> : null}
           {state.result ? <div className="xchange-execution-success" data-testid="xchange-execution-success"><strong>{copy.created}</strong><dl><div><dt>{copy.operation}</dt><dd>{state.result.operationId}</dd></div><div><dt>{copy.status}</dt><dd>Succeeded · Draft · Private · Published=false</dd></div><div><dt>{copy.writes}</dt><dd>1 · performed 1</dd></div><div><dt>{copy.createdAt}</dt><dd>{state.result.createdAt}</dd></div><div><dt>{copy.recordId}</dt><dd>{state.result.externalRecordId}</dd></div></dl><p>{copy.notPublished}</p><button className="mvp-action-button" type="button" disabled>{copy.createdButton}</button></div> : null}
