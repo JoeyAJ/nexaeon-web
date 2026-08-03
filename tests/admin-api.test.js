@@ -63,6 +63,15 @@ test('Xchange preview route enforces origin, admin session, CSRF, allowlists, an
     assert.equal(massAssignment.statusCode, 400); assert.equal(massAssignment.body.errorCode, 'MASS_ASSIGNMENT_REJECTED');
     assert.deepEqual(massAssignment.body.rejectedFields, ['tableId']); assert.equal(massAssignment.body.writesPerformed, 0);
 
+    const reviseRoute = { agent: 'xchange', operation: 'revise' };
+    const reviseMissing = response();
+    await handler(request({ method: 'POST', query: reviseRoute, body: { sourceOperationId: 'missing', sourcePreviewHash: 'missing', editMode: 'edit_field', targetPath: 'title', replacementValue: 'Changed', preserveOtherSections: true, contractVersion: 'v1', contentSchemaVersion: 'v1' }, cookie, csrf: login.body.csrfToken }), reviseMissing);
+    assert.equal(reviseMissing.statusCode, 404); assert.equal(reviseMissing.body.errorCode, 'PREVIEW_NOT_FOUND'); assert.equal(reviseMissing.body.writesPerformed, 0);
+
+    const reviseBadOrigin = response();
+    await handler(request({ method: 'POST', query: reviseRoute, body: {}, cookie, csrf: login.body.csrfToken, origin: 'https://evil.example' }), reviseBadOrigin);
+    assert.equal(reviseBadOrigin.statusCode, 403); assert.equal(reviseBadOrigin.body.errorCode, 'ORIGIN_NOT_ALLOWED');
+
     const executeRoute = { agent: 'xchange', operation: 'execute' };
     const executeNotFound = response();
     await handler(request({ method: 'POST', query: executeRoute, body: { operationId: 'missing-operation' }, cookie, csrf: login.body.csrfToken }), executeNotFound);

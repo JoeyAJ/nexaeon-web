@@ -6925,10 +6925,74 @@ body {
 
 .xchange-preview-properties,
 .xchange-content-preview,
-.xchange-content-quality {
+.xchange-content-quality,
+.xchange-change-summary,
+.xchange-revision-panel {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.xchange-revision-actions,
+.xchange-revision-submit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.xchange-revision-actions button,
+.xchange-revision-submit button {
+  border: 1px solid var(--line-1);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--fg-1);
+  background: var(--bg-1);
+  cursor: pointer;
+}
+
+.xchange-revision-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.xchange-revision-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--fg-2);
+  font-size: 0.83rem;
+}
+
+.xchange-revision-form select,
+.xchange-revision-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--line-1);
+  border-radius: 10px;
+  padding: 10px;
+  color: var(--fg-1);
+  background: var(--bg-1);
+  font: inherit;
+}
+
+.xchange-revision-submit {
+  grid-column: 1 / -1;
+}
+
+.xchange-change-summary dl,
+.xchange-change-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.xchange-change-values article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line-1);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
 }
 
 .xchange-content-preview article {
@@ -6995,5 +7059,11 @@ body {
   .xchange-preview-wide,
   .xchange-preview-submit {
     grid-column: auto;
+  }
+
+  .xchange-revision-form,
+  .xchange-change-summary dl,
+  .xchange-change-values {
+    grid-template-columns: 1fr;
   }
 }

@@ -143,6 +143,30 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
       body: JSON.stringify({ ok: true, operationId: 'operation-ui', executionStatus: 'succeeded', writes: 1, writesPerformed: 1, draftStatus: 'Draft', visibility: 'Private', published: false, externalRecordId: 'notion-page-ui', createdAt: '2026-08-02T01:01:00.000Z', notPublished: true, replayed: false }),
     });
   });
+  await page.route('**/api/agent/xchange/actions/revise', async (route) => {
+    requests.push({ body: route.request().postDataJSON(), csrf: route.request().headers()['x-nexaeon-csrf'] });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true, previewId: 'xpv-operation-ui-r2', operationId: 'operation-ui-r2', idempotencyKey: 'idem-ui-r2',
+        agentId: 'xchange', toolId: 'createCourseDraft', draftType: 'course', language: 'en', targetDataSource: 'notion-teaching-materials',
+        contractVersion: 'v1', schemaVersion: 'v1', permissionLevel: 'WRITE_CONFIRM', confirmationRequired: true,
+        previewExpiresAt: '2099-08-02T01:06:00.000Z', previewHash: 'hash-ui-r2', confirmationToken: 'signed-ui-token-r2',
+        normalizedPayload: { title: 'Advanced AI Marketing', draftStatus: 'Draft', visibility: 'Private', published: false },
+        createPayloadPreview: { '標題': 'Advanced AI Marketing', '狀態': 'Draft', '公開狀態': 'Private', Published: false },
+        contentPreview: { overview: { courseTitle: 'Advanced AI Marketing', purpose: 'Help learners apply evidence-led marketing decisions.' }, learningObjectives: ['Identify audience evidence', 'Compare campaign options', 'Design a measurable campaign'] },
+        extractedRequirements: { exactTitle: 'Advanced AI Marketing', topic: 'Advanced AI Marketing', targetAudience: ['University students'], durationMinutes: 90, difficulty: 'Beginner', format: ['Workshop'], language: 'en', requiredElements: ['learning objectives'], subjectKeywords: ['AI', 'Marketing'] },
+        preservedConstraints: { exactTitle: true, targetAudience: true, format: true, durationMinutes: true, difficulty: true, language: true },
+        contentQuality: { status: 'Complete', errors: [], warnings: [], qualityReasons: ['All quality checks passed.'], topicRelevance: { score: 1, valid: true }, promptOverlap: { ratio: 0, valid: true } },
+        contentSchemaVersion: 'v1', rendererVersion: 'v1', estimatedBodyBlocks: 72, durationValidation: { expectedMinutes: 90, actualMinutes: 90, valid: true },
+        previewVersion: 2, revisionNumber: 2, parentOperationId: 'operation-ui', revisionReason: 'Update the title',
+        changedPaths: ['metadata.title', 'overview'], preservedPaths: ['activities', 'assessment'], regeneratedPaths: [], autoAdjustedPaths: ['overview'],
+        changeSummary: { before: 'AI Marketing', after: 'Advanced AI Marketing', changedPaths: ['metadata.title', 'overview'], preservedPaths: ['activities', 'assessment'], autoAdjustedPaths: ['overview'], qualityBefore: 'Complete', qualityAfter: 'Complete', estimatedBlocksBefore: 72, estimatedBlocksAfter: 72, durationBefore: { actualMinutes: 90 }, durationAfter: { actualMinutes: 90 }, canExecute: true },
+        rejectedFields: [], warnings: ['Revision preview only.'], estimatedWrites: 1, writesPerformed: 0, canExecute: true,
+      }),
+    });
+  });
 
   await page.goto('/teaching/nexaeon-xchange');
   await page.getByRole('button', { name: 'Switch to English' }).click();
@@ -160,6 +184,14 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('University students');
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('Topic relevance');
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('All quality checks passed.');
+  await page.getByRole('button', { name: 'Edit field' }).click();
+  await page.getByLabel('Edit instruction').fill('Update the title');
+  await page.getByLabel('Replacement value (use JSON for sections)').fill('Advanced AI Marketing');
+  await page.getByRole('button', { name: 'Apply revision' }).click();
+  await expect(page.getByTestId('xchange-change-summary')).toContainText('AI Marketing');
+  await expect(page.getByTestId('xchange-change-summary')).toContainText('Advanced AI Marketing');
+  await expect(page.getByTestId('xchange-change-summary')).toContainText('metadata.title, overview');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('2 · parent operation-ui');
   const execute = page.getByRole('button', { name: 'Confirm draft creation' });
   await expect(execute).toBeDisabled();
   await page.getByLabel('I confirm this will create one Private Draft in Learning Coaching').check();
@@ -168,7 +200,7 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
   await expect(page.getByTestId('xchange-execution-success')).toContainText('Draft created successfully');
   await expect(page.getByTestId('xchange-execution-success')).toContainText('Succeeded · Draft · Private · Published=false');
   await expect(page.getByRole('button', { name: 'Created' })).toBeDisabled();
-  expect(requests).toHaveLength(2);
+  expect(requests).toHaveLength(3);
   expect(requests[0].csrf).toBe('csrf-preview');
   expect(requests[0].body).toMatchObject({
     agentId: 'xchange', toolId: 'createCourseDraft', targetDataSource: 'notion-teaching-materials',
@@ -177,5 +209,7 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
   expect(requests[0].body.payload).toMatchObject({ title: 'AI Marketing', durationMinutes: 90 });
   expect(requests[0].body.confirmationRequired).toBeUndefined();
   expect(requests[1].csrf).toBe('csrf-preview');
-  expect(requests[1].body).toMatchObject({ operationId: 'operation-ui', confirmationToken: 'signed-ui-token', confirm: true, previewHash: 'hash-ui' });
+  expect(requests[1].body).toMatchObject({ sourceOperationId: 'operation-ui', sourcePreviewHash: 'hash-ui', editMode: 'edit_field', targetPath: 'title', replacementValue: 'Advanced AI Marketing', preserveOtherSections: true, contractVersion: 'v1', contentSchemaVersion: 'v1' });
+  expect(requests[2].csrf).toBe('csrf-preview');
+  expect(requests[2].body).toMatchObject({ operationId: 'operation-ui-r2', confirmationToken: 'signed-ui-token-r2', confirm: true, previewHash: 'hash-ui-r2' });
 });

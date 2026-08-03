@@ -10,7 +10,7 @@ import { cancelOperation, createOperationPreview, executeConfirmedOperation } fr
 import { clearAdminSessionCookie, createAdminSession, readAdminSession, requireAdminCsrf } from '../../lib/agent/adminSession.js';
 import { getProductionAuditRepository } from '../../lib/agent/auditRepository.js';
 import { executeActionAuditRepair, executeLegacyMigration, getMigrationStatus, inspectMigrationSafety, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../../lib/agent/legacyMigrationRuntime.js';
-import { createXchangeDraftPreview, executeXchangeDraft } from '../../lib/agent/xchangeWriteContract.js';
+import { createXchangeDraftPreview, executeXchangeDraft, reviseXchangeDraftPreview } from '../../lib/agent/xchangeWriteContract.js';
 
 const adminLoginAttempts = new Map();
 const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -19,6 +19,7 @@ const ADMIN_LOGIN_MAX_ATTEMPTS = 5;
 const OPERATION_ERROR_STATUS = Object.freeze({
   INVALID_INPUT: 400, MASS_ASSIGNMENT_REJECTED: 400, PAYLOAD_TOO_LARGE: 413,
   CONTENT_VALIDATION_FAILED: 422,
+  INVALID_EDIT_MODE: 400, EDIT_TARGET_NOT_ALLOWED: 400, REPLACEMENT_REQUIRED: 400, PRESERVE_SECTIONS_REQUIRED: 400,
   REQUIRED_FIELD_MISSING: 400, INVALID_DRAFT_TYPE: 400, UNSUPPORTED_LANGUAGE: 400, SCHEMA_VERSION_INVALID: 400,
   UPDATE_NOT_ALLOWED: 403, DELETE_NOT_ALLOWED: 403, TARGET_DATA_SOURCE_NOT_ALLOWED: 403,
   TOOL_NOT_ALLOWED: 403, AGENT_NOT_ALLOWED: 403, RESTRICTED_TOOL: 403, DATA_SOURCE_NOT_ALLOWED: 403,
@@ -100,6 +101,7 @@ async function handleXchangeOperationRequest(req, res) {
     const auditRepository = getProductionAuditRepository();
     let payload;
     if (req.query.operation === 'preview') payload = await createXchangeDraftPreview({ body: req.body, req, actor, auditRepository });
+    else if (req.query.operation === 'revise') payload = await reviseXchangeDraftPreview({ body: req.body, req, actor, auditRepository });
     else if (req.query.operation === 'execute') payload = await executeXchangeDraft({ body: req.body, req, actor, auditRepository });
     else return res.status(404).json({ ok: false, errorCode: 'OPERATION_NOT_FOUND', writesPerformed: 0 });
     return res.status(200).json(payload);
