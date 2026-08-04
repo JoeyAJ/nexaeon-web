@@ -105,6 +105,26 @@ test('success replay and parallel execute never create a second Notion page', as
   assert.equal(parallelWrites, 1);
 });
 
+test('each persisted superseded lifecycle signal blocks execution before the lock and Notion writer', async () => {
+  const variants = [
+    { sanitizedOutput: { auditEvent: 'preview_superseded', writesPerformed: 0 } },
+    { source: 'xchange-preview-superseded', sanitizedOutput: { writesPerformed: 0 } },
+    { confirmationStatus: 'superseded', sanitizedOutput: { writesPerformed: 0 } },
+    { executionStatus: 'cancelled', sanitizedOutput: { newOperationId: 'replacement-preview', writesPerformed: 0 } },
+  ];
+  for (const [index, variant] of variants.entries()) {
+    const current = await setup(course(), { operationId: `superseded-signal-${index}` });
+    await current.auditRepository.updateAuditExecutionResult(current.preview.operationId, {
+      operationId: current.preview.operationId, agentId: 'xchange', toolId: current.preview.toolId,
+      executionStatus: 'previewed', confirmationStatus: 'pending', ...variant,
+    });
+    let writes = 0;
+    await assert.rejects(() => executeXchangeDraft({ body: current.executeBody, req, actor, auditRepository: current.auditRepository, now: now + 1000, env, notionWriter: async () => { writes += 1; } }), { code: 'PREVIEW_SUPERSEDED' });
+    assert.equal(writes, 0);
+    assert.equal((await current.auditRepository.getAuditLifecycleByOperationId(current.preview.operationId)).some((event) => event.source === 'xchange-execution-claim'), false);
+  }
+});
+
 test('persistent Airtable execution claim uses atomic Audit ID upsert and only the creator acquires it', async () => {
   const requests = [];
   let call = 0;
@@ -257,10 +277,14 @@ test('schema mismatch logs safe property diagnostics and never calls pages.creat
 
 test('valid Production schema calls pages.create exactly once and returns a Private Draft result', async () => {
   const createCalls = [];
+  let updates = 0; let deletes = 0; let publishes = 0;
   const validClient = {
     databases: { retrieve: async (input) => { assert.deepEqual(input, { database_id: 'server-database' }); return { data_sources: [{ id: 'server-data-source' }] }; } },
     dataSources: { retrieve: async () => ({ properties: productionSchema() }) },
-    pages: { create: async (input) => { createCalls.push(input); return { id: 'created-notion-page', created_time: '2027-01-15T08:00:04.000Z' }; } },
+    pages: {
+      create: async (input) => { createCalls.push(input); return { id: 'created-notion-page', created_time: '2027-01-15T08:00:04.000Z' }; },
+      update: async () => { updates += 1; }, delete: async () => { deletes += 1; }, publish: async () => { publishes += 1; },
+    },
   };
   const content = createStructuredContent('learning_activity', activity().payload).content;
   const written = await createXchangeNotionDraft({ draftType: 'learning_activity', payload: activity().payload, content, env: { NOTION_API_KEY: 'not-returned-secret', NOTION_TEACHING_DATABASE_ID: 'server-database' }, notionClient: validClient });
@@ -268,6 +292,7 @@ test('valid Production schema calls pages.create exactly once and returns a Priv
   assert.equal(createCalls[0].properties['狀態'].status.name, '未開始'); assert.equal(createCalls[0].properties['公開狀態'].select.name, 'Draft');
   assert.equal(isPublishedNotionPage({ properties: createCalls[0].properties }, ['公開狀態']), false);
   assert.equal(createCalls[0].children.length > 0, true);
+  assert.deepEqual({ updates, deletes, publishes }, { updates: 0, deletes: 0, publishes: 0 });
   assert.deepEqual(written, { externalRecordId: 'created-notion-page', createdAt: '2027-01-15T08:00:04.000Z', properties: createCalls[0].properties, notionPageCreated: true, pageCreated: true, bodyComplete: true, bodyBlocksWritten: createCalls[0].children.length, bodyAppendBatches: 0, partialExternalWrite: false });
   assert.equal(JSON.stringify(written).includes('not-returned-secret'), false);
 });

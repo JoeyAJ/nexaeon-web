@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
 import test from 'node:test';
 
 import { createMemoryAuditRepository } from '../lib/agent/auditRepository.js';
@@ -205,13 +206,111 @@ test('duration edit redistributes all stages naturally while non-time edits keep
   assert.deepEqual(tags.contentPreview.sessionPlan, revised.contentPreview.sessionPlan);
 });
 
-test('old confirmation fails with CONFIRMATION_MISMATCH and the new confirmation executes once', async () => {
+test('superseded source Preview stays rejected after cache loss and the revision executes once', async () => {
   const { auditRepository, preview } = await setup();
   const revised = await revise(preview, auditRepository, {});
   let writes = 0;
-  await assert.rejects(() => executeXchangeDraft({ body: executeBody(preview), req, actor, auditRepository, now: now + 2_000, env, notionWriter: async () => { writes += 1; } }), { code: 'CONFIRMATION_MISMATCH' });
+  resetXchangePreviewStoreForTests();
+  await assert.rejects(() => executeXchangeDraft({ body: executeBody(preview), req, actor, auditRepository, now: now + 2_000, env, notionWriter: async () => { writes += 1; } }), { code: 'PREVIEW_SUPERSEDED' });
+  await assert.rejects(() => executeXchangeDraft({ body: { ...executeBody(preview), confirmationToken: revised.confirmationToken }, req, actor, auditRepository, now: now + 2_000, env, notionWriter: async () => { writes += 1; } }), { code: 'PREVIEW_SUPERSEDED' });
   const result = await executeXchangeDraft({ body: executeBody(revised), req, actor, auditRepository, now: now + 2_000, env, notionWriter: async () => ({ externalRecordId: `mock-page-${++writes}`, createdAt: '2027-01-15T08:00:02.000Z' }) });
   assert.equal(result.executionStatus, 'succeeded'); assert.equal(writes, 1);
+});
+
+test('revision execute restores audited content, binds revision claims, and records complete lineage', async () => {
+  const { auditRepository, preview } = await setup('zh');
+  const objectives = [
+    '辨識品牌策略的核心原則',
+    '比較兩種品牌定位方案',
+    '設計品牌一致性評估準則',
+    '評估品牌成果並提出修訂建議',
+  ];
+  const revised = await revise(preview, auditRepository, {
+    editMode: 'edit_section', targetPath: 'learningObjectives',
+    instruction: '把學習目標改成 4 項，並加入品牌一致性評估', replacementValue: objectives,
+  }, 'revision-execute');
+  const claims = JSON.parse(Buffer.from(revised.confirmationToken.split('.')[0], 'base64url').toString('utf8'));
+  assert.equal(claims.operationId, revised.operationId);
+  assert.equal(claims.revisionNumber, 2);
+  assert.equal(claims.parentOperationId, preview.operationId);
+  assert.deepEqual(claims.changedPaths, ['learningObjectives']);
+  for (const name of ['payloadHash', 'contentHash', 'propertiesHash', 'contentSchemaVersion', 'rendererVersion', 'estimatedBodyBlocks', 'durationValidation', 'actorSessionHash', 'expiresAt']) assert.notEqual(claims[name], undefined);
+
+  resetXchangePreviewStoreForTests();
+  const calls = [];
+  const writer = async (input) => {
+    calls.push(input);
+    return { externalRecordId: 'revision-notion-page', createdAt: '2027-01-15T08:00:03.000Z' };
+  };
+  const result = await executeXchangeDraft({ body: executeBody(revised), req, actor, auditRepository, now: now + 2_000, env, notionWriter: writer });
+  assert.equal(result.externalRecordId, 'revision-notion-page');
+  assert.equal(result.writesPerformed, 1);
+  assert.deepEqual(calls[0].payload, revised.normalizedPayload);
+  assert.deepEqual(calls[0].content, revised.contentPreview);
+  assert.deepEqual(calls[0].content.learningObjectives, objectives);
+  assert.notDeepEqual(calls[0].content.learningObjectives, preview.contentPreview.learningObjectives);
+  assert.deepEqual(calls[0].content.sessionPlan, preview.contentPreview.sessionPlan);
+  for (const [section, value] of Object.entries(preview.contentPreview)) {
+    if (section !== 'learningObjectives') assert.deepEqual(calls[0].content[section], value);
+  }
+
+  const originalLifecycle = await auditRepository.getAuditLifecycleByOperationId(preview.operationId);
+  assert.equal(originalLifecycle.at(-1).executionStatus, 'cancelled');
+  assert.equal(originalLifecycle.at(-1).confirmationStatus, 'superseded');
+  assert.equal(originalLifecycle.every((event) => Number(event.sanitizedOutput?.writesPerformed || 0) === 0), true);
+  const revisionLifecycle = await auditRepository.getAuditLifecycleByOperationId(revised.operationId);
+  assert.deepEqual(revisionLifecycle.map((event) => event.executionStatus), ['previewed', 'executing', 'succeeded']);
+  assert.equal(revisionLifecycle[0].sanitizedOutput.sourcePreviewHash, preview.previewHash);
+  assert.deepEqual(revisionLifecycle[0].sanitizedOutput.createPayloadPreview, revised.createPayloadPreview);
+  for (const event of revisionLifecycle.slice(1)) {
+    assert.equal(event.sanitizedOutput.parentOperationId, preview.operationId);
+    assert.equal(event.sanitizedOutput.sourceOperationId, preview.operationId);
+    assert.equal(event.sanitizedOutput.revisionNumber, 2);
+    assert.equal(event.sanitizedOutput.previewVersion, 2);
+    assert.deepEqual(event.sanitizedOutput.changedPaths, ['learningObjectives']);
+    assert.equal(event.sanitizedOutput.executedPreviewHash, revised.previewHash);
+    assert.equal(event.sanitizedOutput.sourcePreviewHash, preview.previewHash);
+    assert.equal(event.sanitizedOutput.revisionExecuted, true);
+  }
+  const succeeded = revisionLifecycle.at(-1);
+  assert.equal(succeeded.externalRecordId, 'revision-notion-page');
+  assert.equal(succeeded.sanitizedOutput.externalRecordId, 'revision-notion-page');
+  assert.equal(succeeded.sanitizedOutput.writesPerformed, 1);
+
+  const replay = await executeXchangeDraft({ body: executeBody(revised), req, actor, auditRepository, now: now + 3_000, env, notionWriter: writer });
+  assert.equal(replay.replayed, true);
+  assert.equal(replay.externalRecordId, 'revision-notion-page');
+  assert.equal(calls.length, 1);
+  for (const patch of [
+    { payload: { ...revised.normalizedPayload, title: 'Tampered' } },
+    { previewHash: 'tampered-preview-hash' },
+    { idempotencyKey: 'tampered-idempotency-key' },
+    { confirm: false },
+  ]) {
+    await assert.rejects(() => executeXchangeDraft({ body: { ...executeBody(revised), ...patch }, req, actor, auditRepository, now: now + 3_000, env, notionWriter: writer }));
+  }
+  await assert.rejects(() => executeXchangeDraft({ body: executeBody(revised), req, actor: { ...actor, sessionId: 'different-session' }, auditRepository, now: now + 3_000, env, notionWriter: writer }), { code: 'CONFIRMATION_REQUESTER_MISMATCH' });
+  await assert.rejects(() => executeXchangeDraft({ body: { ...executeBody(revised), operationId: 'tampered-operation-id' }, req, actor, auditRepository, now: now + 3_000, env, notionWriter: writer }), { code: 'PREVIEW_NOT_FOUND' });
+  await assert.rejects(() => executeXchangeDraft({ body: executeBody(revised), req, actor, auditRepository, now: new Date(revised.previewExpiresAt).getTime() + 1, env, notionWriter: writer }), { code: 'PREVIEW_EXPIRED' });
+  await assert.rejects(() => executeXchangeDraft({ body: { ...executeBody(revised), confirmationToken: preview.confirmationToken }, req, actor, auditRepository, now: now + 3_000, env, notionWriter: writer }), { code: 'CONFIRMATION_MISMATCH' });
+  assert.equal(calls.length, 1);
+});
+
+test('concurrent revision execute acquires one persistent lock and writes one page', async () => {
+  const { auditRepository, preview } = await setup();
+  const revised = await revise(preview, auditRepository, {});
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  let writes = 0;
+  const pending = executeXchangeDraft({
+    body: executeBody(revised), req, actor, auditRepository, now: now + 2_000, env,
+    notionWriter: async () => { writes += 1; await gate; return { externalRecordId: 'revision-parallel-page', createdAt: '2027-01-15T08:00:04.000Z' }; },
+  });
+  await assert.rejects(() => executeXchangeDraft({ body: executeBody(revised), req, actor, auditRepository, now: now + 2_001, env, notionWriter: async () => { writes += 1; } }), { code: 'EXECUTION_IN_PROGRESS' });
+  release();
+  const result = await pending;
+  assert.equal(result.externalRecordId, 'revision-parallel-page');
+  assert.equal(writes, 1);
 });
 
 test('Incomplete and Rejected revisions create zero-write previews but cannot Execute', async () => {

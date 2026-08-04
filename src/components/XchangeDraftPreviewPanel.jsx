@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 const COPY = Object.freeze({
   zh: {
+    PREVIEW_SUPERSEDED: '此 Preview 已被新修訂版本取代，不能再執行。',
     title: 'Xchange Draft Execution', intro: '先建立受控預覽，只有管理員明確確認後才會在 Learning Coaching 建立一筆私有草稿。',
     type: '草稿類型', course: 'Course Draft', activity: 'Learning Activity Draft', draftTitle: '標題',
     summary: '摘要／子主題', instructions: '活動指引', duration: '時間（分鐘）', difficulty: '難度', targetAudience: '目標受眾', format: '形式',
@@ -15,6 +16,7 @@ const COPY = Object.freeze({
     revisionTitle: 'Draft 修訂', editField: '編輯指定欄位', editSection: '修改指定區段', regenerateSection: '重新生成本區段', regenerateAll: '重新生成全部', targetPath: '修改目標', editInstruction: '修改要求', replacement: '替代值（區段請使用 JSON）', applyRevision: '套用修改', cancelRevision: '取消修改', revising: '正在建立新的修訂 Preview……', changeSummary: '變更摘要', before: '修改前', after: '修改後', changed: '修改區段', preserved: '未修改區段', automatic: '自動連帶調整區段', regenerated: '重新生成區段', qualityChange: '品質狀態變化', blockChange: 'Block 數量變化', timeChange: '時間變化', executable: '新 Preview 可執行', revision: 'Preview 版本', yes: '是', no: '否',
   },
   ko: {
+    PREVIEW_SUPERSEDED: '이 Preview는 새 수정본으로 대체되어 더 이상 실행할 수 없습니다.',
     title: 'Xchange Draft Execution', intro: '통제된 Preview를 만든 뒤 관리자가 명시적으로 확인한 경우에만 Learning Coaching에 비공개 초안을 하나 만듭니다.',
     type: '초안 유형', course: 'Course Draft', activity: 'Learning Activity Draft', draftTitle: '제목',
     summary: '요약／하위 주제', instructions: '활동 지침', duration: '시간(분)', difficulty: '난이도', targetAudience: '대상 학습자', format: '형식',
@@ -28,6 +30,7 @@ const COPY = Object.freeze({
     revisionTitle: '초안 수정', editField: '필드 편집', editSection: '섹션 편집', regenerateSection: '이 섹션 다시 생성', regenerateAll: '전체 다시 생성', targetPath: '수정 대상', editInstruction: '수정 지시', replacement: '대체 값(섹션은 JSON)', applyRevision: '수정 적용', cancelRevision: '수정 취소', revising: '새 수정 Preview 생성 중…', changeSummary: '변경 요약', before: '변경 전', after: '변경 후', changed: '변경된 경로', preserved: '보존된 경로', automatic: '자동 조정 경로', regenerated: '재생성 경로', qualityChange: '품질 상태 변화', blockChange: 'Block 수 변화', timeChange: '시간 변화', executable: '새 Preview 실행 가능', revision: 'Preview 버전', yes: '예', no: '아니요',
   },
   en: {
+    PREVIEW_SUPERSEDED: 'This Preview was superseded by a newer revision and can no longer be executed.',
     title: 'Xchange Draft Execution', intro: 'Create a controlled preview first. One private Learning Coaching draft is written only after explicit administrator confirmation.',
     type: 'Draft type', course: 'Course Draft', activity: 'Learning Activity Draft', draftTitle: 'Title',
     summary: 'Summary / subtopic', instructions: 'Activity instructions', duration: 'Duration (minutes)', difficulty: 'Difficulty', targetAudience: 'Target audience', format: 'Format',
@@ -62,7 +65,7 @@ const ERROR_COPY = Object.freeze({
 });
 
 function errorText(lang, code) {
-  return ERROR_COPY[lang]?.[code] || ERROR_COPY.en[code] || String(code || 'REQUEST_FAILED');
+  return COPY[lang]?.[code] || ERROR_COPY[lang]?.[code] || COPY.en[code] || ERROR_COPY.en[code] || String(code || 'REQUEST_FAILED');
 }
 
 function tags(value) {
@@ -300,7 +303,7 @@ export default function XchangeDraftPreviewPanel({ lang }) {
 
   return (
     <section className="xchange-draft-preview-panel" data-testid="xchange-draft-preview-panel" data-phase={state.phase}>
-      <div className="xchange-preview-heading"><div><span className="content-tag">Stage 5-3E-D · Draft revision</span><h2>{copy.title}</h2><p>{copy.intro}</p></div></div>
+      <div className="xchange-preview-heading"><div><span className="content-tag">Stage 5-3E-E · Revision draft execution</span><h2>{copy.title}</h2><p>{copy.intro}</p></div></div>
       {auth.phase !== 'authenticated' ? (
         <form className="agent-admin-auth" onSubmit={login} data-testid="xchange-admin-login">
           <strong>{copy.adminRequired}</strong>

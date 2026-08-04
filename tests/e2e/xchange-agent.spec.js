@@ -244,7 +244,7 @@ test('Xchange section revision submits the live Panel handler, replaces Preview 
     revisionAttempt += 1;
     requests.push({ body: route.request().postDataJSON(), csrf: route.request().headers()['x-nexaeon-csrf'] });
     if (revisionAttempt === 2) {
-      await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ ok: false, errorCode: 'CONFIRMATION_MISMATCH', writesPerformed: 0 }) });
+      await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ ok: false, errorCode: 'PREVIEW_SUPERSEDED', writesPerformed: 0 }) });
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 150));
@@ -297,6 +297,7 @@ test('Xchange section revision submits the live Panel handler, replaces Preview 
   await page.getByRole('button', { name: 'Edit section' }).click();
   await page.getByLabel('Edit instruction').fill('Try another revision');
   await page.getByRole('button', { name: 'Apply revision' }).click();
-  await expect(page.getByTestId('xchange-preview-failure')).toContainText('CONFIRMATION_MISMATCH');
+  await expect(page.getByTestId('xchange-preview-failure')).toContainText('This Preview was superseded by a newer revision and can no longer be executed.');
+  await expect(page.getByTestId('xchange-preview-failure')).toContainText('PREVIEW_SUPERSEDED');
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('2 · parent section-v1');
 });
