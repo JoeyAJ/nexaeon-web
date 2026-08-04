@@ -119,6 +119,12 @@ async function handleXchangeOperationRequest(req, res) {
         writesPerformed: 0,
       }));
     }
+    if (errorCode === 'AUDIT_PERSISTENCE_FAILED' && error?.auditDiagnostic) {
+      console.error(JSON.stringify({
+        service: 'nexaeon-xchange', category: 'validation_audit_persistence_failed',
+        ...error.auditDiagnostic,
+      }));
+    }
     return res.status(OPERATION_ERROR_STATUS[errorCode] || 500).json({
       ok: false,
       errorCode,

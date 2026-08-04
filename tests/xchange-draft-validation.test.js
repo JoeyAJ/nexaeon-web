@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createMemoryAuditRepository } from '../lib/agent/auditRepository.js';
+import { createAirtableAuditRepository, createMemoryAuditRepository } from '../lib/agent/auditRepository.js';
 import {
   canonicalizeXchangeBlocks,
   readXchangeNotionDraft,
@@ -104,7 +104,8 @@ test('successful Course validation resolves the page only from Audit and returns
   assert.equal(executeLifecycle.findLast((event) => event.executionStatus === 'succeeded').sanitizedOutput.validationSnapshot.data.length < 11_000, true);
   const lifecycle = await current.auditRepository.getAuditLifecycleByOperationId('validation-ready');
   assert.deepEqual(lifecycle.map((event) => event.sanitizedOutput.validationEvent), ['validation_started', 'validation_succeeded']);
-  assert.equal(lifecycle.every((event) => event.actionType === 'validate' && event.permissionLevel === 'READ_VALIDATE' && event.sanitizedOutput.writesPerformed === 0), true);
+  assert.equal(lifecycle.every((event) => event.actionType === 'read' && event.permissionLevel === 'READ' && event.sanitizedOutput.writesPerformed === 0), true);
+  assert.equal(lifecycle.every((event) => event.sanitizedOutput.validationActionType === 'validate' && event.sanitizedOutput.validationPermissionLevel === 'READ_VALIDATE'), true);
   assert.equal(lifecycle.at(-1).sanitizedOutput.executeOperationId, current.preview.operationId);
 });
 
@@ -224,8 +225,12 @@ test('read failures and Audit persistence failures fail closed; repeated validat
   await assert.rejects(() => validateXchangeDraftDelivery({ body: validationBody(current.preview.operationId), req, actor, auditRepository: current.auditRepository, notionReader: async () => { throw Object.assign(new Error('private detail'), { code: 'NOTION_VALIDATION_READ_FAILED', notionReadsPerformed: 1 }); }, validationOperationId: 'validation-read-failed' }), { code: 'NOTION_VALIDATION_READ_FAILED' });
   assert.equal((await current.auditRepository.getAuditLifecycleByOperationId('validation-read-failed')).at(-1).sanitizedOutput.validationEvent, 'validation_failed');
   const closed = await setup(); let reads = 0;
-  closed.auditRepository.updateAuditExecutionResult = async () => { throw new Error('audit down'); };
-  await assert.rejects(() => validateXchangeDraftDelivery({ body: validationBody(closed.preview.operationId), req, actor, auditRepository: closed.auditRepository, notionReader: async () => { reads += 1; } }), { code: 'AUDIT_PERSISTENCE_FAILED' });
+  closed.auditRepository.createAuditRecord = async () => { throw Object.assign(new Error('audit down'), { code: 'AUDIT_SCHEMA_INVALID', status: 422, airtableErrorType: 'INVALID_MULTIPLE_CHOICE_OPTIONS', rejectedFieldNames: ['Action Type'] }); };
+  await assert.rejects(() => validateXchangeDraftDelivery({ body: validationBody(closed.preview.operationId), req, actor, auditRepository: closed.auditRepository, notionReader: async () => { reads += 1; }, validationOperationId: 'validation-start-fails' }), (error) => {
+    assert.equal(error.code, 'AUDIT_PERSISTENCE_FAILED'); assert.equal(error.writesPerformed, 0);
+    assert.deepEqual({ stage: error.auditDiagnostic.stage, causeCode: error.auditDiagnostic.causeCode, httpStatus: error.auditDiagnostic.httpStatus, rejectedFieldNames: error.auditDiagnostic.rejectedFieldNames }, { stage: 'validation_started', causeCode: 'AUDIT_SCHEMA_INVALID', httpStatus: 422, rejectedFieldNames: ['Action Type'] });
+    assert.equal(JSON.stringify(error.auditDiagnostic).includes('validation-start-fails'), false); return true;
+  });
   assert.equal(reads, 0);
   let repeatedReads = 0;
   const repeatReader = async () => { repeatedReads += 1; return readerFor(current.preview, current.properties)({ pageId: `page-${current.preview.operationId}`, expectedParentDataSourceId: 'data-source-learning-coaching' }); };
@@ -233,4 +238,53 @@ test('read failures and Audit persistence failures fail closed; repeated validat
   const second = await validateXchangeDraftDelivery({ body: validationBody(current.preview.operationId), req, actor, auditRepository: current.auditRepository, notionReader: repeatReader, validationOperationId: 'validation-repeat-2' });
   assert.equal(first.readinessStatus, 'Ready'); assert.equal(second.readinessStatus, 'Ready'); assert.equal(repeatedReads, 2);
   assert.equal(first.writesPerformed + second.writesPerformed, 0);
+});
+
+test('Production-compatible validation Audit creates started then appends success or failure on one validation lifecycle', async () => {
+  const successful = await setup(); const successCalls = [];
+  const successRepository = {
+    getAuditLifecycleByOperationId: (...args) => successful.auditRepository.getAuditLifecycleByOperationId(...args),
+    async createAuditRecord(record) { successCalls.push(['create', structuredClone(record)]); return successful.auditRepository.createAuditRecord(record); },
+    async updateAuditExecutionResult(operationId, record) { successCalls.push(['update', structuredClone(record)]); return successful.auditRepository.updateAuditExecutionResult(operationId, record); },
+  };
+  const result = await validateXchangeDraftDelivery({ body: validationBody(successful.preview.operationId), req, actor, auditRepository: successRepository, notionReader: readerFor(successful.preview, successful.properties), validationOperationId: 'validation-schema-success' });
+  assert.equal(result.readinessStatus, 'Ready');
+  assert.deepEqual(successCalls.map(([method, record]) => [method, record.executionStatus]), [['create', 'executing'], ['update', 'succeeded']]);
+  for (const [, record] of successCalls) {
+    assert.equal(record.operationId, 'validation-schema-success'); assert.equal(record.actionType, 'read'); assert.equal(record.permissionLevel, 'READ');
+    assert.equal(record.sanitizedOutput.validationOperationId, 'validation-schema-success'); assert.equal(record.sanitizedOutput.executeOperationId, successful.preview.operationId);
+    assert.equal(record.sanitizedOutput.validationActionType, 'validate'); assert.equal(record.sanitizedOutput.validationPermissionLevel, 'READ_VALIDATE'); assert.equal(record.sanitizedOutput.writesPerformed, 0);
+    for (const unsupported of ['validationOperationId', 'executeOperationId', 'readinessStatus', 'notionReadsPerformed', 'changedPaths']) assert.equal(Object.hasOwn(record, unsupported), false, unsupported);
+  }
+
+  const failed = await setup(); const failureCalls = [];
+  const failureRepository = {
+    getAuditLifecycleByOperationId: (...args) => failed.auditRepository.getAuditLifecycleByOperationId(...args),
+    async createAuditRecord(record) { failureCalls.push(['create', structuredClone(record)]); return failed.auditRepository.createAuditRecord(record); },
+    async updateAuditExecutionResult(operationId, record) { failureCalls.push(['update', structuredClone(record)]); return failed.auditRepository.updateAuditExecutionResult(operationId, record); },
+  };
+  await assert.rejects(() => validateXchangeDraftDelivery({ body: validationBody(failed.preview.operationId), req, actor, auditRepository: failureRepository, notionReader: async () => { throw Object.assign(new Error('read failed'), { code: 'NOTION_VALIDATION_READ_FAILED', notionReadsPerformed: 1 }); }, validationOperationId: 'validation-schema-failure' }), { code: 'NOTION_VALIDATION_READ_FAILED' });
+  assert.deepEqual(failureCalls.map(([method, record]) => [method, record.executionStatus]), [['create', 'executing'], ['update', 'failed']]);
+  assert.equal(failureCalls.every(([, record]) => record.operationId === 'validation-schema-failure' && record.sanitizedOutput.executeOperationId === failed.preview.operationId && record.sanitizedOutput.writesPerformed === 0), true);
+});
+
+test('Airtable adapter reproduces unsupported validation select rejection and accepts canonical read fields', async () => {
+  const requests = [];
+  const repository = createAirtableAuditRepository({
+    env: { AIRTABLE_API_KEY: 'test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'projects', AIRTABLE_AUDIT_TABLE_ID: 'audits' },
+    fetchImpl: async (_url, options) => {
+      const fields = JSON.parse(options.body).records[0].fields; requests.push(fields);
+      if (fields['Action Type'] === 'validate' || fields['Permission Level'] === 'READ_VALIDATE') return { ok: false, status: 422, json: async () => ({ error: { type: 'INVALID_MULTIPLE_CHOICE_OPTIONS', message: 'Action Type cannot accept the provided value' } }) };
+      return { ok: true, status: 200, json: async () => ({ records: [{ id: `rec-${requests.length}` }] }) };
+    },
+  });
+  const base = { operationId: 'validation-airtable', agentId: 'xchange', toolId: 'createCourseDraft', targetDataSource: 'notion-teaching-materials', executionStatus: 'executing', sanitizedOutput: { validationActionType: 'validate', validationPermissionLevel: 'READ_VALIDATE', writesPerformed: 0 } };
+  await assert.rejects(repository.createAuditRecord({ ...base, actionType: 'validate', permissionLevel: 'READ_VALIDATE' }), (error) => {
+    assert.equal(error.code, 'AUDIT_SCHEMA_INVALID'); assert.equal(error.status, 422); assert.equal(error.airtableErrorType, 'INVALID_MULTIPLE_CHOICE_OPTIONS'); assert.deepEqual(error.rejectedFieldNames, ['Action Type']); return true;
+  });
+  const persisted = await repository.createAuditRecord({ ...base, actionType: 'read', permissionLevel: 'READ' });
+  assert.equal(persisted.persistence, 'airtable-dedicated');
+  assert.equal(requests[1]['Action Type'], 'read'); assert.equal(requests[1]['Permission Level'], 'READ');
+  const output = JSON.parse(requests[1]['Sanitized Output']);
+  assert.deepEqual({ actionType: output.validationActionType, permissionLevel: output.validationPermissionLevel, writesPerformed: output.writesPerformed }, { actionType: 'validate', permissionLevel: 'READ_VALIDATE', writesPerformed: 0 });
 });
