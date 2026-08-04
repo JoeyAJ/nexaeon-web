@@ -110,23 +110,56 @@ test('targetAudience and learningObjectives edits preserve unrelated sections ex
   assert.equal(second.revisionNumber, 3);
 });
 
-test('edit_section accepts a blank replacement when instruction generates the revised section', async () => {
-  const { auditRepository, preview } = await setup();
+test('Chinese edit_section instruction overrides the unchanged prefilled value and mutates only learningObjectives', async () => {
+  const { auditRepository, preview } = await setup('zh');
   const revised = await revise(preview, auditRepository, {
     editMode: 'edit_section',
     targetPath: 'learningObjectives',
     instruction: '把學習目標改成 4 項，並加入品牌一致性評估',
-    replacementValue: undefined,
+    replacementValue: preview.contentPreview.learningObjectives,
   });
   assert.equal(revised.revisionNumber, 2);
   assert.equal(revised.previewVersion, 2);
   assert.equal(revised.parentOperationId, preview.operationId);
   assert.deepEqual(revised.changedPaths, ['learningObjectives']);
+  assert.equal(revised.preservedPaths.includes('learningObjectives'), false);
+  assert.notDeepEqual(revised.contentPreview.learningObjectives, preview.contentPreview.learningObjectives);
   assert.equal(revised.contentPreview.learningObjectives.length, 4);
-  assert.match(revised.contentPreview.learningObjectives.join(' '), /brand consistency/iu);
-  assert.equal(revised.preservedPaths.includes('assessment'), true);
+  assert.match(revised.contentPreview.learningObjectives.join(' '), /品牌一致性評估/u);
+  for (const [section, value] of Object.entries(preview.contentPreview)) {
+    if (section !== 'learningObjectives') assert.deepEqual(revised.contentPreview[section], value);
+  }
+  assert.notDeepEqual(revised.changeSummary.before, revised.changeSummary.after);
   assert.equal(revised.contentQuality.status.startsWith('Complete'), true);
   assert.equal(revised.writesPerformed, 0);
+  assert.notEqual(revised.confirmationToken, preview.confirmationToken);
+  const sourceLifecycle = await auditRepository.getAuditLifecycleByOperationId(preview.operationId);
+  assert.equal(sourceLifecycle.at(-1).sanitizedOutput.auditEvent, 'preview_superseded');
+});
+
+test('no-op section revisions fail before Audit creation or source Preview supersession', async () => {
+  const { auditRepository, preview } = await setup();
+  const before = (await auditRepository.listAuditRecords({ limit: 100 })).length;
+  await assert.rejects(() => revise(preview, auditRepository, {
+    editMode: 'edit_section', targetPath: 'learningObjectives',
+    instruction: 'Keep the existing learning objectives unchanged', replacementValue: undefined,
+  }), { code: 'NO_EFFECTIVE_CHANGE' });
+  await assert.rejects(() => revise(preview, auditRepository, {
+    editMode: 'regenerate_all', targetPath: '', instruction: 'Regenerate the complete draft', replacementValue: undefined,
+  }), { code: 'NO_EFFECTIVE_CHANGE' });
+  assert.equal((await auditRepository.listAuditRecords({ limit: 100 })).length, before);
+  const sourceLifecycle = await auditRepository.getAuditLifecycleByOperationId(preview.operationId);
+  assert.equal(sourceLifecycle.some((record) => record.sanitizedOutput?.auditEvent === 'preview_superseded'), false);
+});
+
+test('edit_section rejects an empty instruction and invalid targetPath', async () => {
+  const { auditRepository, preview } = await setup();
+  await assert.rejects(() => revise(preview, auditRepository, {
+    editMode: 'edit_section', targetPath: 'learningObjectives', instruction: '', replacementValue: ['Identify a concept'],
+  }), { code: 'INSTRUCTION_REQUIRED' });
+  await assert.rejects(() => revise(preview, auditRepository, {
+    editMode: 'edit_section', targetPath: 'unknownSection', instruction: 'Change it', replacementValue: undefined,
+  }), { code: 'EDIT_TARGET_NOT_ALLOWED' });
 });
 
 test('regenerate_section changes only activities and keeps cross-language instructions out of zh, ko, and en content', async () => {
@@ -148,7 +181,11 @@ test('regenerate_section changes only activities and keeps cross-language instru
 
 test('regenerate_all records all regenerated paths and creates a new executable preview', async () => {
   const { auditRepository, preview } = await setup();
-  const revised = await revise(preview, auditRepository, { editMode: 'regenerate_all', targetPath: '', instruction: 'Regenerate the complete draft', replacementValue: undefined });
+  const changedActivities = [{ ...preview.contentPreview.activities[0], title: 'Revised brand evidence lab' }];
+  const edited = await revise(preview, auditRepository, {
+    editMode: 'edit_section', targetPath: 'activities', instruction: 'Replace the activity', replacementValue: changedActivities,
+  });
+  const revised = await revise(edited, auditRepository, { editMode: 'regenerate_all', targetPath: '', instruction: 'Regenerate the complete draft', replacementValue: undefined }, 'revision-3', now + 2_000);
   assert.equal(revised.regeneratedPaths.length, 11);
   assert.equal(revised.changedPaths.length, 11);
   assert.equal(revised.canExecute, true);

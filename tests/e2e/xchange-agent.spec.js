@@ -248,7 +248,7 @@ test('Xchange section revision submits the live Panel handler, replaces Preview 
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 150));
-    const objectives = ['Identify brand principles', 'Compare brand approaches', 'Design a brand artifact', 'Evaluate brand consistency with explicit criteria'];
+    const objectives = ['Identify brand principles', 'Compare brand approaches', 'Design a brand artifact', '執行品牌一致性評估並提出修訂建議'];
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -276,13 +276,14 @@ test('Xchange section revision submits the live Panel handler, replaces Preview 
   await page.getByRole('button', { name: 'Edit section' }).click();
   await page.getByLabel('Target path').selectOption('learningObjectives');
   await page.getByLabel('Edit instruction').fill('把學習目標改成 4 項，並加入品牌一致性評估');
-  await page.getByLabel('Replacement value (use JSON for sections)').fill('');
   await page.getByRole('button', { name: 'Apply revision' }).click();
   await expect(page.getByText('Creating a new revision Preview…')).toBeVisible();
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('2 · parent section-v1');
   await expect(page.getByTestId('xchange-change-summary')).toContainText('learningObjectives');
   await expect(page.getByTestId('xchange-change-summary')).toContainText('overview, assessment');
-  await expect(page.getByTestId('xchange-content-preview')).toContainText('Evaluate brand consistency with explicit criteria');
+  await expect(page.getByTestId('xchange-change-summary')).toContainText('Identify brand principles');
+  await expect(page.getByTestId('xchange-change-summary')).toContainText('品牌一致性評估');
+  await expect(page.getByTestId('xchange-content-preview')).toContainText('品牌一致性評估');
   await expect(page.getByTestId('xchange-structured-preview')).toContainText('performed 0');
 
   expect(requests[0].csrf).toBe('csrf-section');
