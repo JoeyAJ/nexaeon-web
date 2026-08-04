@@ -213,3 +213,89 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
   expect(requests[2].csrf).toBe('csrf-preview');
   expect(requests[2].body).toMatchObject({ operationId: 'operation-ui-r2', confirmationToken: 'signed-ui-token-r2', confirm: true, previewHash: 'hash-ui-r2' });
 });
+
+test('Xchange section revision submits the live Panel handler, replaces Preview state, and surfaces API errors', async ({ page }) => {
+  const requests = [];
+  let revisionAttempt = 0;
+  const preview = {
+    ok: true, previewId: 'xpv-section-v1', operationId: 'section-v1', idempotencyKey: 'section-idem-v1',
+    agentId: 'xchange', toolId: 'createCourseDraft', draftType: 'course', language: 'en', targetDataSource: 'notion-teaching-materials',
+    contractVersion: 'v1', schemaVersion: 'v1', permissionLevel: 'WRITE_CONFIRM', confirmationRequired: true,
+    previewExpiresAt: '2099-08-02T01:05:00.000Z', previewHash: 'section-hash-v1', confirmationToken: 'section-token-v1',
+    normalizedPayload: { title: 'Brand Strategy', draftStatus: 'Draft', visibility: 'Private', published: false },
+    createPayloadPreview: { Title: 'Brand Strategy', Status: 'Draft' },
+    contentPreview: {
+      overview: { courseTitle: 'Brand Strategy', purpose: 'Apply brand strategy.' },
+      learningObjectives: ['Identify brand principles', 'Compare brand approaches', 'Design a brand artifact'],
+      assessment: { method: 'Rubric', criteria: ['Evidence'], feedbackMethod: 'Feedback' },
+    },
+    extractedRequirements: {}, preservedConstraints: {},
+    contentQuality: { status: 'Complete', qualityReasons: ['All checks passed.'], topicRelevance: { score: 1, valid: true }, promptOverlap: { ratio: 0, valid: true } },
+    contentSchemaVersion: 'v1', rendererVersion: 'v1', estimatedBodyBlocks: 30,
+    durationValidation: { expectedMinutes: 90, actualMinutes: 90, valid: true },
+    previewVersion: 1, revisionNumber: 1, parentOperationId: null,
+    changedPaths: [], preservedPaths: [], regeneratedPaths: [], autoAdjustedPaths: [], changeSummary: null,
+    warnings: [], estimatedWrites: 1, writesPerformed: 0, canExecute: true,
+  };
+
+  await page.route('**/api/admin/session', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, authenticated: true, actorId: 'xchange-admin', role: 'admin', csrfToken: 'csrf-section' }) }));
+  await page.route('**/api/agent/xchange/actions/preview', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(preview) }));
+  await page.route('**/api/agent/xchange/actions/revise', async (route) => {
+    revisionAttempt += 1;
+    requests.push({ body: route.request().postDataJSON(), csrf: route.request().headers()['x-nexaeon-csrf'] });
+    if (revisionAttempt === 2) {
+      await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ ok: false, errorCode: 'CONFIRMATION_MISMATCH', writesPerformed: 0 }) });
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const objectives = ['Identify brand principles', 'Compare brand approaches', 'Design a brand artifact', 'Evaluate brand consistency with explicit criteria'];
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ...preview, previewId: 'xpv-section-v2', operationId: 'section-v2', idempotencyKey: 'section-idem-v2',
+        previewHash: 'section-hash-v2', confirmationToken: 'section-token-v2', previewVersion: 2, revisionNumber: 2,
+        parentOperationId: 'section-v1', revisionReason: '把學習目標改成 4 項，並加入品牌一致性評估',
+        contentPreview: { ...preview.contentPreview, learningObjectives: objectives },
+        changedPaths: ['learningObjectives'], preservedPaths: ['overview', 'assessment'],
+        changeSummary: {
+          before: preview.contentPreview.learningObjectives, after: objectives,
+          changedPaths: ['learningObjectives'], preservedPaths: ['overview', 'assessment'], autoAdjustedPaths: [],
+          qualityBefore: 'Complete', qualityAfter: 'Complete', estimatedBlocksBefore: 30, estimatedBlocksAfter: 31,
+          durationBefore: preview.durationValidation, durationAfter: preview.durationValidation, canExecute: true,
+        },
+      }),
+    });
+  });
+
+  await page.goto('/teaching/nexaeon-xchange');
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await page.getByLabel('Title').fill('Brand Strategy');
+  await page.getByLabel('Summary / subtopic').fill('Brand workshop');
+  await page.getByRole('button', { name: 'Create Preview' }).click();
+  await page.getByRole('button', { name: 'Edit section' }).click();
+  await page.getByLabel('Target path').selectOption('learningObjectives');
+  await page.getByLabel('Edit instruction').fill('把學習目標改成 4 項，並加入品牌一致性評估');
+  await page.getByLabel('Replacement value (use JSON for sections)').fill('');
+  await page.getByRole('button', { name: 'Apply revision' }).click();
+  await expect(page.getByText('Creating a new revision Preview…')).toBeVisible();
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('2 · parent section-v1');
+  await expect(page.getByTestId('xchange-change-summary')).toContainText('learningObjectives');
+  await expect(page.getByTestId('xchange-change-summary')).toContainText('overview, assessment');
+  await expect(page.getByTestId('xchange-content-preview')).toContainText('Evaluate brand consistency with explicit criteria');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('performed 0');
+
+  expect(requests[0].csrf).toBe('csrf-section');
+  expect(requests[0].body).toEqual({
+    sourceOperationId: 'section-v1', sourcePreviewHash: 'section-hash-v1',
+    editMode: 'edit_section', targetPath: 'learningObjectives',
+    instruction: '把學習目標改成 4 項，並加入品牌一致性評估', preserveOtherSections: true,
+    contractVersion: 'v1', contentSchemaVersion: 'v1',
+  });
+
+  await page.getByRole('button', { name: 'Edit section' }).click();
+  await page.getByLabel('Edit instruction').fill('Try another revision');
+  await page.getByRole('button', { name: 'Apply revision' }).click();
+  await expect(page.getByTestId('xchange-preview-failure')).toContainText('CONFIRMATION_MISMATCH');
+  await expect(page.getByTestId('xchange-structured-preview')).toContainText('2 · parent section-v1');
+});

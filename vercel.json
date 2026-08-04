@@ -81,6 +81,10 @@
       "destination": "/api/agent/chat?agent=xchange&operation=preview"
     },
     {
+      "source": "/api/agent/xchange/actions/revise",
+      "destination": "/api/agent/chat?agent=xchange&operation=revise"
+    },
+    {
       "source": "/api/agent/xchange/actions/execute",
       "destination": "/api/agent/chat?agent=xchange&operation=execute"
     },

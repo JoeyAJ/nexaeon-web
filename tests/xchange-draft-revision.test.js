@@ -110,6 +110,25 @@ test('targetAudience and learningObjectives edits preserve unrelated sections ex
   assert.equal(second.revisionNumber, 3);
 });
 
+test('edit_section accepts a blank replacement when instruction generates the revised section', async () => {
+  const { auditRepository, preview } = await setup();
+  const revised = await revise(preview, auditRepository, {
+    editMode: 'edit_section',
+    targetPath: 'learningObjectives',
+    instruction: '把學習目標改成 4 項，並加入品牌一致性評估',
+    replacementValue: undefined,
+  });
+  assert.equal(revised.revisionNumber, 2);
+  assert.equal(revised.previewVersion, 2);
+  assert.equal(revised.parentOperationId, preview.operationId);
+  assert.deepEqual(revised.changedPaths, ['learningObjectives']);
+  assert.equal(revised.contentPreview.learningObjectives.length, 4);
+  assert.match(revised.contentPreview.learningObjectives.join(' '), /brand consistency/iu);
+  assert.equal(revised.preservedPaths.includes('assessment'), true);
+  assert.equal(revised.contentQuality.status.startsWith('Complete'), true);
+  assert.equal(revised.writesPerformed, 0);
+});
+
 test('regenerate_section changes only activities and keeps cross-language instructions out of zh, ko, and en content', async () => {
   for (const language of ['en', 'ko', 'zh']) {
     resetXchangePreviewStoreForTests();
@@ -181,13 +200,17 @@ test('system fields and Notion identifiers are rejected before creating a revisi
   assert.equal((await auditRepository.listAuditRecords({ limit: 100 })).length, before);
 });
 
-test('identical revision retries are idempotent and reuse the same operation', async () => {
+test('identical revision retries reuse the revision Preview and never return the old cached source Preview', async () => {
   const { auditRepository, preview } = await setup();
   const first = await revise(preview, auditRepository, {}, 'revision-first');
   resetXchangePreviewStoreForTests();
   const retry = await revise(preview, auditRepository, {}, 'revision-retry', now + 2_000);
   assert.equal(retry.operationId, first.operationId);
   assert.equal(retry.previewHash, first.previewHash);
+  assert.notEqual(retry.operationId, preview.operationId);
+  assert.notEqual(retry.previewHash, preview.previewHash);
+  assert.equal(retry.parentOperationId, preview.operationId);
+  assert.equal(retry.revisionNumber, 2);
   assert.equal(retry.reused, true);
 });
 
