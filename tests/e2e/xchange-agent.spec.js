@@ -151,6 +151,14 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
       await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ ok: false, errorCode: 'VALIDATION_SNAPSHOT_INCOMPLETE', writesPerformed: 0 }) });
       return;
     }
+    if (validationAttempt === 3) {
+      await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ ok: false, errorCode: 'VALIDATION_CANONICALIZATION_FAILED', writesPerformed: 0 }) });
+      return;
+    }
+    if (validationAttempt === 4) {
+      await route.fulfill({ status: 502, contentType: 'application/json', body: JSON.stringify({ ok: false, errorCode: 'NOTION_INVALID_RESPONSE', writesPerformed: 0 }) });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -235,9 +243,16 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
   await page.getByRole('button', { name: '切換為繁體中文' }).click();
   await expect(page.getByText('此驗證為唯讀操作，不會修改、發布或刪除 Notion 頁面。')).toBeVisible();
   await page.getByRole('button', { name: '驗證已建立草稿' }).click();
-  await expect(page.getByTestId('xchange-validation-failure')).toContainText('此 Operation 缺少可信驗證 snapshot，無法驗證');
+  await expect(page.getByTestId('xchange-validation-failure')).toContainText('缺少可信的執行快照，無法完成驗證。');
   await expect(page.getByTestId('xchange-validation-failure')).toContainText('VALIDATION_SNAPSHOT_INCOMPLETE');
-  expect(requests).toHaveLength(5);
+  await page.getByRole('button', { name: 'Switch to English' }).click();
+  await page.getByRole('button', { name: 'Validate created draft' }).click();
+  await expect(page.getByTestId('xchange-validation-failure')).toContainText('Validation data formatting failed; the Notion page was not modified.');
+  await expect(page.getByTestId('xchange-validation-failure')).not.toContainText('ERR_INVALID_ARG_TYPE');
+  await page.getByRole('button', { name: '한국어로 전환' }).click();
+  await page.getByRole('button', { name: '생성된 초안 검증' }).click();
+  await expect(page.getByTestId('xchange-validation-failure')).toContainText('Notion이 불완전한 페이지 데이터를 반환하여 검증을 완료할 수 없습니다.');
+  expect(requests).toHaveLength(7);
 });
 
 test('Xchange section revision submits the live Panel handler, replaces Preview state, and surfaces API errors', async ({ page }) => {

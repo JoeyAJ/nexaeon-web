@@ -27,7 +27,7 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   CONFIRMATION_REQUIRED: 403, CONFIRMATION_INVALID: 403, CONFIRMATION_MISMATCH: 409,
   CONFIRMATION_REQUESTER_MISMATCH: 403, CONFIRMATION_EXPIRED: 410, OPERATION_CANCELLED: 409,
   PREVIEW_EXPIRED: 410, PREVIEW_NOT_FOUND: 404, PREVIEW_SUPERSEDED: 409, PREVIEW_ALREADY_EXECUTED: 409, EXECUTION_IN_PROGRESS: 409,
-  EXECUTION_NOT_SUCCEEDED: 409, VALIDATION_TARGET_NOT_FOUND: 404, VALIDATION_SNAPSHOT_INCOMPLETE: 409,
+  EXECUTION_NOT_SUCCEEDED: 409, VALIDATION_TARGET_NOT_FOUND: 404, VALIDATION_SNAPSHOT_INCOMPLETE: 409, VALIDATION_CANONICALIZATION_FAILED: 500,
   VALIDATION_LIMIT_EXCEEDED: 422, NOTION_VALIDATION_READ_FAILED: 502,
   OPERATION_NOT_FOUND: 404,
   OPERATION_ALREADY_SUCCEEDED: 409, DATA_SOURCE_CONFIGURATION_MISSING: 503,
@@ -110,7 +110,8 @@ async function handleXchangeOperationRequest(req, res) {
     else return res.status(404).json({ ok: false, errorCode: 'OPERATION_NOT_FOUND', writesPerformed: 0 });
     return res.status(200).json(payload);
   } catch (error) {
-    const errorCode = error?.code || (req.query.operation === 'execute' ? 'NOTION_REQUEST_FAILED' : req.query.operation === 'validate' ? 'NOTION_VALIDATION_READ_FAILED' : 'PREVIEW_FAILED');
+    const rawErrorCode = error?.code || (req.query.operation === 'execute' ? 'NOTION_REQUEST_FAILED' : req.query.operation === 'validate' ? 'NOTION_VALIDATION_READ_FAILED' : 'PREVIEW_FAILED');
+    const errorCode = req.query.operation === 'validate' && /^ERR_/u.test(rawErrorCode) ? 'VALIDATION_CANONICALIZATION_FAILED' : rawErrorCode;
     if (['AUDIT_CONFIGURATION_MISSING', 'AUDIT_TABLE_NOT_CONFIGURED'].includes(errorCode)) {
       console.error(JSON.stringify({
         service: 'nexaeon-xchange', category: 'audit_configuration_failed', operation: req.query.operation,

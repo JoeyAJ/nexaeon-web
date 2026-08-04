@@ -1,14 +1,18 @@
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
+import { deflateRawSync } from 'node:zlib';
 
 import { createAirtableAuditRepository, createMemoryAuditRepository } from '../lib/agent/auditRepository.js';
 import {
   canonicalizeXchangeBlocks,
+  canonicalizeXchangeProperties,
   readXchangeNotionDraft,
   validateXchangeDraftDelivery,
 } from '../lib/agent/xchangeDraftValidation.js';
 import { buildXchangeNotionBlocks } from '../lib/agent/xchangeStructuredContent.js';
-import { packXchangeValidationSnapshot, unpackXchangeValidationSnapshot } from '../lib/agent/xchangeValidationSnapshot.js';
+import { canonicalizeValidationValue, packXchangeValidationSnapshot, unpackXchangeValidationSnapshot, validationDigest } from '../lib/agent/xchangeValidationSnapshot.js';
 import { createXchangeDraftPreview, executeXchangeDraft, resetXchangePreviewStoreForTests, reviseXchangeDraftPreview } from '../lib/agent/xchangeWriteContract.js';
 
 const now = Date.parse('2027-02-01T08:00:00.000Z');
@@ -287,4 +291,81 @@ test('Airtable adapter reproduces unsupported validation select rejection and ac
   assert.equal(requests[1]['Action Type'], 'read'); assert.equal(requests[1]['Permission Level'], 'READ');
   const output = JSON.parse(requests[1]['Sanitized Output']);
   assert.deepEqual({ actionType: output.validationActionType, permissionLevel: output.validationPermissionLevel, writesPerformed: output.writesPerformed }, { actionType: 'validate', permissionLevel: 'READ_VALIDATE', writesPerformed: 0 });
+});
+
+test('runtime digest regression proves the old undefined hash crashes while canonical hashes accept supported values', () => {
+  assert.throws(() => createHash('sha256').update(JSON.stringify(undefined)), { code: 'ERR_INVALID_ARG_TYPE' });
+  assert.doesNotThrow(() => validationDigest(undefined));
+  assert.equal(validationDigest(undefined), validationDigest(undefined));
+  assert.equal(validationDigest(null), validationDigest(null));
+  assert.equal(validationDigest({ b: null, a: [undefined, true, 4, 'text'] }), validationDigest({ a: [undefined, true, 4, 'text'], b: null }));
+  assert.notEqual(validationDigest(undefined), validationDigest(null));
+  assert.match(canonicalizeValidationValue({ value: undefined }), /undefined/u);
+  assert.throws(() => validationDigest(new Date()), { code: 'VALIDATION_CANONICALIZATION_FAILED', receivedType: 'object', fieldPath: '$' });
+  const legacySnapshot = { expectedProperties: { title: 'Legacy' }, contentPreview: { overview: 'Compatible' }, durationValidation: { expectedMinutes: 90 } };
+  const legacyCanonical = (value) => Array.isArray(value) ? `[${value.map(legacyCanonical).join(',')}]` : value && typeof value === 'object' ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${legacyCanonical(value[key])}`).join(',')}}` : JSON.stringify(value);
+  const legacyPacked = { encoding: 'deflate-raw-base64url', hash: createHash('sha256').update(legacyCanonical(legacySnapshot)).digest('hex'), data: deflateRawSync(Buffer.from(JSON.stringify(legacySnapshot))).toString('base64url') };
+  assert.deepEqual(unpackXchangeValidationSnapshot(legacyPacked), legacySnapshot);
+});
+
+test('nullable Notion properties and undefined nested children canonicalize without runtime type errors', () => {
+  const canonical = canonicalizeXchangeProperties({
+    '標題': { type: 'title', title: [] }, '子主題': { type: 'rich_text', rich_text: [] },
+    '教學分類': { type: 'select', select: null }, '狀態': { type: 'status', status: null },
+    '形式': { type: 'multi_select', multi_select: [] }, '檔案連結': { type: 'url', url: null }, Published: { type: 'checkbox', checkbox: false },
+  });
+  assert.deepEqual(canonical, { '標題': '', '教學分類': '', '子主題': '', '狀態': '', published: false });
+  assert.deepEqual(canonicalizeXchangeProperties({ '標題': null }), { published: false });
+  const blocks = canonicalizeXchangeBlocks([{ type: 'paragraph', paragraph: { rich_text: [] }, children: undefined }]);
+  assert.deepEqual(blocks, [{ type: 'paragraph', text: '' }]);
+});
+
+test('Production-shaped optional empty properties, nullable values, and nested blocks complete a Ready validation', async () => {
+  const current = await setup();
+  const properties = structuredClone(current.properties);
+  properties['檔案連結'] = { id: 'file-url', type: 'url', url: null };
+  properties.Published = { id: 'published', type: 'checkbox', checkbox: false };
+  properties['形式'].type = 'multi_select'; properties['對象'].type = 'multi_select'; properties['標籤'].type = 'multi_select';
+  for (const [name, type] of [['標題', 'title'], ['子主題', 'rich_text'], ['教學分類', 'select'], ['可講時間(分)', 'number'], ['難度', 'select'], ['語言', 'multi_select'], ['狀態', 'status'], ['公開狀態', 'select']]) properties[name].type = type;
+  const blocks = structuredClone(buildXchangeNotionBlocks(current.preview.draftType, current.preview.contentPreview));
+  blocks[0].children = undefined;
+  const result = await validateXchangeDraftDelivery({ body: validationBody(current.preview.operationId), req, actor, auditRepository: current.auditRepository, notionReader: async () => ({ page: actualPage(properties), blocks, notionReadsPerformed: 3 }), validationOperationId: 'validation-production-shape' });
+  assert.equal(result.readinessStatus, 'Ready'); assert.equal(result.writesPerformed, 0); assert.equal(result.notionReadsPerformed, 3);
+});
+
+test('missing required snapshot fields and malformed Notion page fail with safe explicit codes', async () => {
+  const incomplete = await setup(); let reads = 0;
+  const success = (await incomplete.auditRepository.getAuditLifecycleByOperationId(incomplete.preview.operationId)).findLast((event) => event.executionStatus === 'succeeded');
+  const snapshot = unpackXchangeValidationSnapshot(success.sanitizedOutput.validationSnapshot);
+  success.sanitizedOutput.validationSnapshot = packXchangeValidationSnapshot({ ...snapshot, durationValidation: {} });
+  await assert.rejects(() => validateXchangeDraftDelivery({ body: validationBody(incomplete.preview.operationId), req, actor, auditRepository: incomplete.auditRepository, notionReader: async () => { reads += 1; }, validationOperationId: 'validation-missing-runtime-snapshot' }), { code: 'VALIDATION_SNAPSHOT_INCOMPLETE' });
+  assert.equal(reads, 0);
+
+  const malformed = await setup();
+  await assert.rejects(() => validateXchangeDraftDelivery({ body: validationBody(malformed.preview.operationId), req, actor, auditRepository: malformed.auditRepository, notionReader: async () => ({ page: { id: 'page' }, blocks: [], notionReadsPerformed: 1 }), validationOperationId: 'validation-malformed-page', logger: () => {} }), { code: 'NOTION_INVALID_RESPONSE' });
+  const failure = (await malformed.auditRepository.getAuditLifecycleByOperationId('validation-malformed-page')).at(-1);
+  assert.equal(failure.executionStatus, 'failed'); assert.equal(failure.errorCode, 'NOTION_INVALID_RESPONSE'); assert.equal(failure.sanitizedOutput.writesPerformed, 0);
+});
+
+test('missing Notion block results is invalid and all exposed write methods remain unused', async () => {
+  const writes = { create: 0, update: 0, append: 0, delete: 0 };
+  const notionClient = {
+    pages: {
+      retrieve: async () => ({ id: 'page', properties: {}, parent: { data_source_id: 'data-source-learning-coaching' }, archived: false, in_trash: false }),
+      create: async () => { writes.create += 1; }, update: async () => { writes.update += 1; },
+    },
+    blocks: { children: { list: async () => ({ results: undefined, has_more: false, next_cursor: null }), append: async () => { writes.append += 1; } }, update: async () => { writes.update += 1; }, delete: async () => { writes.delete += 1; } },
+  };
+  await assert.rejects(() => readXchangeNotionDraft({ pageId: 'page', expectedParentDataSourceId: 'data-source-learning-coaching', env, notionClient }), { code: 'NOTION_INVALID_RESPONSE' });
+  assert.deepEqual(writes, { create: 0, update: 0, append: 0, delete: 0 });
+});
+
+test('canonicalization failures log safe types and persist validation_failed without raw content', async () => {
+  const current = await setup(); const logs = [];
+  const cyclic = { type: 'paragraph', paragraph: { rich_text: notionText('private body') } }; cyclic.children = [cyclic];
+  await assert.rejects(() => validateXchangeDraftDelivery({ body: validationBody(current.preview.operationId), req, actor, auditRepository: current.auditRepository, notionReader: async () => ({ page: actualPage(current.properties), blocks: [cyclic], notionReadsPerformed: 2 }), validationOperationId: 'validation-canonical-failure', logger: (line) => logs.push(JSON.parse(line)) }), { code: 'VALIDATION_CANONICALIZATION_FAILED' });
+  const failure = (await current.auditRepository.getAuditLifecycleByOperationId('validation-canonical-failure')).at(-1);
+  assert.equal(failure.executionStatus, 'failed'); assert.equal(failure.errorCode, 'VALIDATION_CANONICALIZATION_FAILED'); assert.equal(failure.sanitizedOutput.writesPerformed, 0);
+  assert.deepEqual({ stage: logs[0].stage, internalErrorCode: logs[0].internalErrorCode, receivedType: logs[0].receivedType, notionReadsPerformed: logs[0].notionReadsPerformed, writesPerformed: logs[0].writesPerformed }, { stage: 'canonicalize_and_compare', internalErrorCode: 'VALIDATION_CANONICALIZATION_FAILED', receivedType: 'object', notionReadsPerformed: 2, writesPerformed: 0 });
+  assert.equal(JSON.stringify(logs).includes('private body'), false); assert.equal(JSON.stringify(logs).includes('validation-canonical-failure'), false);
 });
