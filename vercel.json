@@ -89,6 +89,10 @@
       "destination": "/api/agent/chat?agent=xchange&operation=execute"
     },
     {
+      "source": "/api/agent/xchange/actions/validate",
+      "destination": "/api/agent/chat?agent=xchange&operation=validate"
+    },
+    {
       "source": "/((?!api/|assets/|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
       "destination": "/index.html"
     }

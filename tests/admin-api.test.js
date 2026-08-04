@@ -88,6 +88,17 @@ test('Xchange preview route enforces origin, admin session, CSRF, allowlists, an
     const executeBadCsrf = response();
     await handler(request({ method: 'POST', query: executeRoute, body: { operationId: 'missing-operation' }, cookie, csrf: 'wrong' }), executeBadCsrf);
     assert.equal(executeBadCsrf.statusCode, 403); assert.equal(executeBadCsrf.body.errorCode, 'CSRF_INVALID');
+
+    const validateRoute = { agent: 'xchange', operation: 'validate' };
+    const validateBadOrigin = response();
+    await handler(request({ method: 'POST', query: validateRoute, body: { executeOperationId: 'operation', agentId: 'xchange', actionType: 'validate', contractVersion: 'v1', schemaVersion: 'v1' }, cookie, csrf: login.body.csrfToken, origin: 'https://evil.example' }), validateBadOrigin);
+    assert.equal(validateBadOrigin.statusCode, 403); assert.equal(validateBadOrigin.body.errorCode, 'ORIGIN_NOT_ALLOWED'); assert.equal(validateBadOrigin.body.writesPerformed, 0);
+    const validateAnonymous = response();
+    await handler(request({ method: 'POST', query: validateRoute, body: { executeOperationId: 'operation', agentId: 'xchange', actionType: 'validate', contractVersion: 'v1', schemaVersion: 'v1' } }), validateAnonymous);
+    assert.equal(validateAnonymous.statusCode, 401); assert.equal(validateAnonymous.body.errorCode, 'AUTH_REQUIRED');
+    const validateBadCsrf = response();
+    await handler(request({ method: 'POST', query: validateRoute, body: { executeOperationId: 'operation', agentId: 'xchange', actionType: 'validate', contractVersion: 'v1', schemaVersion: 'v1' }, cookie, csrf: 'wrong' }), validateBadCsrf);
+    assert.equal(validateBadCsrf.statusCode, 403); assert.equal(validateBadCsrf.body.errorCode, 'CSRF_INVALID');
   } finally { globalThis.fetch = originalFetch; }
 });
 

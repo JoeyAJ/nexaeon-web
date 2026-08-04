@@ -106,6 +106,7 @@ test('Xchange supports cancel, empty result, and tool error states', async ({ pa
 
 test('Xchange renders the admin-controlled Course Draft Preview and requires explicit confirmation to execute', async ({ page }) => {
   const requests = [];
+  let validationAttempt = 0;
   await page.route('**/api/admin/session', async (route) => {
     await route.fulfill({
       status: 200,
@@ -140,7 +141,20 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ ok: true, operationId: 'operation-ui', executionStatus: 'succeeded', writes: 1, writesPerformed: 1, draftStatus: 'Draft', visibility: 'Private', published: false, externalRecordId: 'notion-page-ui', createdAt: '2026-08-02T01:01:00.000Z', notPublished: true, replayed: false }),
+      body: JSON.stringify({ ok: true, operationId: 'operation-ui-r2', executionStatus: 'succeeded', writes: 1, writesPerformed: 1, draftStatus: 'Draft', visibility: 'Private', published: false, externalRecordId: 'notion-page-ui', createdAt: '2026-08-02T01:01:00.000Z', notPublished: true, replayed: false }),
+    });
+  });
+  await page.route('**/api/agent/xchange/actions/validate', async (route) => {
+    validationAttempt += 1;
+    requests.push({ body: route.request().postDataJSON(), csrf: route.request().headers()['x-nexaeon-csrf'] });
+    if (validationAttempt === 2) {
+      await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ ok: false, errorCode: 'VALIDATION_SNAPSHOT_INCOMPLETE', writesPerformed: 0 }) });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ ok: true, validationOperationId: 'validation-ui', executeOperationId: 'operation-ui-r2', externalRecordId: 'notion-page-ui', readinessStatus: 'Ready', propertiesStatus: 'passed', contentStatus: 'passed', revisionStatus: 'passed', durationStatus: 'passed', safetyStatus: 'passed', expectedTopLevelBlocks: 72, actualTopLevelBlocks: 72, expectedTotalBlocks: 72, actualTotalBlocks: 72, missingSections: [], mismatchedProperties: [], mismatchedSections: [], warnings: [], writesPerformed: 0 }),
     });
   });
   await page.route('**/api/agent/xchange/actions/revise', async (route) => {
@@ -199,8 +213,11 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
   await execute.click();
   await expect(page.getByTestId('xchange-execution-success')).toContainText('Draft created successfully');
   await expect(page.getByTestId('xchange-execution-success')).toContainText('Succeeded · Draft · Private · Published=false');
-  await expect(page.getByRole('button', { name: 'Created' })).toBeDisabled();
-  expect(requests).toHaveLength(3);
+  await expect(page.getByText('This validation is read-only and does not modify, publish, or delete the Notion page.')).toBeVisible();
+  await page.getByRole('button', { name: 'Validate created draft' }).click();
+  await expect(page.getByTestId('xchange-delivery-readiness')).toContainText('Delivery Readiness: Ready');
+  await expect(page.getByTestId('xchange-delivery-readiness')).toContainText('Validation writes0');
+  expect(requests).toHaveLength(4);
   expect(requests[0].csrf).toBe('csrf-preview');
   expect(requests[0].body).toMatchObject({
     agentId: 'xchange', toolId: 'createCourseDraft', targetDataSource: 'notion-teaching-materials',
@@ -212,6 +229,15 @@ test('Xchange renders the admin-controlled Course Draft Preview and requires exp
   expect(requests[1].body).toMatchObject({ sourceOperationId: 'operation-ui', sourcePreviewHash: 'hash-ui', editMode: 'edit_field', targetPath: 'title', replacementValue: 'Advanced AI Marketing', preserveOtherSections: true, contractVersion: 'v1', contentSchemaVersion: 'v1' });
   expect(requests[2].csrf).toBe('csrf-preview');
   expect(requests[2].body).toMatchObject({ operationId: 'operation-ui-r2', confirmationToken: 'signed-ui-token-r2', confirm: true, previewHash: 'hash-ui-r2' });
+  expect(requests[3]).toEqual({ csrf: 'csrf-preview', body: { executeOperationId: 'operation-ui-r2', agentId: 'xchange', actionType: 'validate', contractVersion: 'v1', schemaVersion: 'v1' } });
+  await page.getByRole('button', { name: '한국어로 전환' }).click();
+  await expect(page.getByText('이 검증은 읽기 전용이며 Notion 페이지를 수정, 게시 또는 삭제하지 않습니다.')).toBeVisible();
+  await page.getByRole('button', { name: '切換為繁體中文' }).click();
+  await expect(page.getByText('此驗證為唯讀操作，不會修改、發布或刪除 Notion 頁面。')).toBeVisible();
+  await page.getByRole('button', { name: '驗證已建立草稿' }).click();
+  await expect(page.getByTestId('xchange-validation-failure')).toContainText('此 Operation 缺少可信驗證 snapshot，無法驗證');
+  await expect(page.getByTestId('xchange-validation-failure')).toContainText('VALIDATION_SNAPSHOT_INCOMPLETE');
+  expect(requests).toHaveLength(5);
 });
 
 test('Xchange section revision submits the live Panel handler, replaces Preview state, and surfaces API errors', async ({ page }) => {

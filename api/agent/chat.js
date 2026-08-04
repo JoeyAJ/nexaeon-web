@@ -11,6 +11,7 @@ import { clearAdminSessionCookie, createAdminSession, readAdminSession, requireA
 import { getProductionAuditRepository } from '../../lib/agent/auditRepository.js';
 import { executeActionAuditRepair, executeLegacyMigration, getMigrationStatus, inspectMigrationSafety, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../../lib/agent/legacyMigrationRuntime.js';
 import { createXchangeDraftPreview, executeXchangeDraft, reviseXchangeDraftPreview } from '../../lib/agent/xchangeWriteContract.js';
+import { validateXchangeDraftDelivery } from '../../lib/agent/xchangeDraftValidation.js';
 
 const adminLoginAttempts = new Map();
 const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -26,6 +27,8 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   CONFIRMATION_REQUIRED: 403, CONFIRMATION_INVALID: 403, CONFIRMATION_MISMATCH: 409,
   CONFIRMATION_REQUESTER_MISMATCH: 403, CONFIRMATION_EXPIRED: 410, OPERATION_CANCELLED: 409,
   PREVIEW_EXPIRED: 410, PREVIEW_NOT_FOUND: 404, PREVIEW_SUPERSEDED: 409, PREVIEW_ALREADY_EXECUTED: 409, EXECUTION_IN_PROGRESS: 409,
+  EXECUTION_NOT_SUCCEEDED: 409, VALIDATION_TARGET_NOT_FOUND: 404, VALIDATION_SNAPSHOT_INCOMPLETE: 409,
+  VALIDATION_LIMIT_EXCEEDED: 422, NOTION_VALIDATION_READ_FAILED: 502,
   OPERATION_NOT_FOUND: 404,
   OPERATION_ALREADY_SUCCEEDED: 409, DATA_SOURCE_CONFIGURATION_MISSING: 503,
   DATA_SOURCE_TIMEOUT: 504, DATA_SOURCE_REQUEST_FAILED: 502, DATA_SOURCE_REJECTED: 502,
@@ -103,10 +106,11 @@ async function handleXchangeOperationRequest(req, res) {
     if (req.query.operation === 'preview') payload = await createXchangeDraftPreview({ body: req.body, req, actor, auditRepository });
     else if (req.query.operation === 'revise') payload = await reviseXchangeDraftPreview({ body: req.body, req, actor, auditRepository });
     else if (req.query.operation === 'execute') payload = await executeXchangeDraft({ body: req.body, req, actor, auditRepository });
+    else if (req.query.operation === 'validate') payload = await validateXchangeDraftDelivery({ body: req.body, req, actor, auditRepository });
     else return res.status(404).json({ ok: false, errorCode: 'OPERATION_NOT_FOUND', writesPerformed: 0 });
     return res.status(200).json(payload);
   } catch (error) {
-    const errorCode = error?.code || (req.query.operation === 'execute' ? 'NOTION_REQUEST_FAILED' : 'PREVIEW_FAILED');
+    const errorCode = error?.code || (req.query.operation === 'execute' ? 'NOTION_REQUEST_FAILED' : req.query.operation === 'validate' ? 'NOTION_VALIDATION_READ_FAILED' : 'PREVIEW_FAILED');
     if (['AUDIT_CONFIGURATION_MISSING', 'AUDIT_TABLE_NOT_CONFIGURED'].includes(errorCode)) {
       console.error(JSON.stringify({
         service: 'nexaeon-xchange', category: 'audit_configuration_failed', operation: req.query.operation,

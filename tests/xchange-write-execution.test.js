@@ -293,6 +293,6 @@ test('valid Production schema calls pages.create exactly once and returns a Priv
   assert.equal(isPublishedNotionPage({ properties: createCalls[0].properties }, ['公開狀態']), false);
   assert.equal(createCalls[0].children.length > 0, true);
   assert.deepEqual({ updates, deletes, publishes }, { updates: 0, deletes: 0, publishes: 0 });
-  assert.deepEqual(written, { externalRecordId: 'created-notion-page', createdAt: '2027-01-15T08:00:04.000Z', properties: createCalls[0].properties, notionPageCreated: true, pageCreated: true, bodyComplete: true, bodyBlocksWritten: createCalls[0].children.length, bodyAppendBatches: 0, partialExternalWrite: false });
+  assert.deepEqual(written, { externalRecordId: 'created-notion-page', createdAt: '2027-01-15T08:00:04.000Z', properties: createCalls[0].properties, parentDataSourceId: 'server-data-source', notionPageCreated: true, pageCreated: true, bodyComplete: true, bodyBlocksWritten: createCalls[0].children.length, bodyAppendBatches: 0, partialExternalWrite: false });
   assert.equal(JSON.stringify(written).includes('not-returned-secret'), false);
 });
