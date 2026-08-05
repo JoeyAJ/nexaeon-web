@@ -123,6 +123,53 @@ test('Learning Activity and revised Course snapshots validate all required secti
   assert.equal(Object.values(revisionResult.preservedPathMatches).every(Boolean), true); assert.equal(revisionResult.revisionStatus, 'passed');
 });
 
+test('revision v2 execution lifecycle survives Airtable serialization and validates by the child operation without another write', async () => {
+  const current = await setup(courseBody(), { revision: true });
+  const persistedItems = [];
+  const airtableRepository = createAirtableAuditRepository({
+    env: { AIRTABLE_API_KEY: 'test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'projects', AIRTABLE_AUDIT_TABLE_ID: 'audits' },
+    fetchImpl: async (_url, options = {}) => {
+      if (!options.method || options.method === 'GET') return { ok: true, status: 200, json: async () => ({ records: persistedItems }) };
+      const fields = JSON.parse(options.body).records[0].fields;
+      const item = { id: `rec-${persistedItems.length + 1}`, fields }; persistedItems.push(item);
+      return { ok: true, status: 200, json: async () => ({ records: [item] }) };
+    },
+  });
+  const executionLifecycle = await current.auditRepository.getAuditLifecycleByOperationId(current.preview.operationId);
+  for (const event of executionLifecycle) await airtableRepository.createAuditRecord(event);
+  let notionReads = 0; let notionWrites = 0;
+  const result = await validateXchangeDraftDelivery({
+    body: validationBody(current.preview.operationId), req, actor, auditRepository: airtableRepository,
+    notionReader: async (input) => {
+      notionReads += 1;
+      notionWrites += 0;
+      return readerFor(current.preview, current.properties)(input);
+    },
+    now: now + 2_000, validationOperationId: 'validation-airtable-revision-v2',
+  });
+  assert.equal(result.readinessStatus, 'Ready');
+  assert.equal(result.executeOperationId, current.preview.operationId);
+  assert.equal(result.writesPerformed, 0); assert.equal(notionReads, 1); assert.equal(notionWrites, 0);
+  const roundTripped = await airtableRepository.getAuditLifecycleByOperationId(current.preview.operationId);
+  const succeeded = roundTripped.findLast((event) => event.executionStatus === 'succeeded');
+  assert.equal(succeeded.sanitizedOutput.previewVersion, 2);
+  assert.equal(succeeded.sanitizedOutput.parentOperationId, 'execute-course-revision');
+  assert.equal(succeeded.sanitizedOutput.writesPerformed, 1);
+  assert.equal(succeeded.externalRecordId, `page-${current.preview.operationId}`);
+  assert.deepEqual({
+    provider: succeeded.sanitizedOutput.modelGeneration.provider,
+    model: succeeded.sanitizedOutput.modelGeneration.model,
+    generationMode: succeeded.sanitizedOutput.modelGeneration.generationMode,
+    requestId: succeeded.sanitizedOutput.modelGeneration.requestId,
+  }, {
+    provider: 'mock', model: 'deterministic-v1', generationMode: 'deterministic_revision',
+    requestId: current.preview.modelGeneration.requestId,
+  });
+  const validationLifecycle = await airtableRepository.getAuditLifecycleByOperationId('validation-airtable-revision-v2');
+  assert.deepEqual(validationLifecycle.map((event) => event.sanitizedOutput.validationEvent), ['validation_started', 'validation_succeeded']);
+  assert.equal(validationLifecycle.every((event) => event.actionType === 'read' && event.sanitizedOutput.writesPerformed === 0), true);
+});
+
 test('Revision changed and preserved paths fail when either revised or preserved Notion content drifts', async () => {
   const revision = await setup(courseBody(), { revision: true });
   const changedBlocks = structuredClone(buildXchangeNotionBlocks('course', revision.preview.contentPreview));
@@ -291,6 +338,52 @@ test('Airtable adapter reproduces unsupported validation select rejection and ac
   assert.equal(requests[1]['Action Type'], 'read'); assert.equal(requests[1]['Permission Level'], 'READ');
   const output = JSON.parse(requests[1]['Sanitized Output']);
   assert.deepEqual({ actionType: output.validationActionType, permissionLevel: output.validationPermissionLevel, writesPerformed: output.writesPerformed }, { actionType: 'validate', permissionLevel: 'READ_VALIDATE', writesPerformed: 0 });
+});
+
+test('Airtable Audit round-trip preserves packed validation snapshots larger than the ordinary string limit', async () => {
+  const records = [];
+  const repository = createAirtableAuditRepository({
+    env: { AIRTABLE_API_KEY: 'test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'projects', AIRTABLE_AUDIT_TABLE_ID: 'audits' },
+    fetchImpl: async (_url, options = {}) => {
+      if (!options.method || options.method === 'GET') return { ok: true, status: 200, json: async () => ({ records }) };
+      const fields = JSON.parse(options.body).records[0].fields;
+      const item = { id: `rec-${records.length + 1}`, fields }; records.push(item);
+      return { ok: true, status: 200, json: async () => ({ records: [item] }) };
+    },
+  });
+  const contentPreview = {
+    resources: Array.from({ length: 150 }, (_, index) => ({
+      title: `Resource ${index}`,
+      description: createHash('sha256').update(`validation-snapshot-${index}`).digest('hex'),
+    })),
+  };
+  const snapshot = {
+    draftType: 'course', normalizedPayload: { title: 'Serialization regression' },
+    expectedProperties: { '標題': { title: notionText('Serialization regression') } }, contentPreview,
+    contentSchemaVersion: 'v1', rendererVersion: 'v1', estimatedBodyBlocks: 150,
+    durationValidation: { expectedMinutes: 60, actualMinutes: 60, valid: true },
+    changedPaths: [], preservedPaths: [], executedPreviewHash: 'preview-hash',
+    parentDataSourceId: 'data-source-learning-coaching', bodyComplete: true, partialExternalWrite: false,
+  };
+  const packed = packXchangeValidationSnapshot(snapshot);
+  assert.equal(packed.data.length > 4_000 && packed.data.length < 11_000, true, `packed length ${packed.data.length}`);
+  const modelGeneration = { provider: 'mock', model: 'deterministic-v1', generationMode: 'deterministic_revision', requestId: 'gateway-request', schemaValidationStatus: 'passed', qualityValidationStatus: 'Complete' };
+  await repository.createAuditRecord({
+    operationId: 'revision-operation-v2', idempotencyKey: 'revision-idempotency', timestamp: '2027-02-01T08:00:01.000Z',
+    agentId: 'xchange', toolId: 'createCourseDraft', permissionLevel: 'WRITE_CONFIRM', targetDataSource: 'notion-teaching-materials',
+    actionType: 'create', executionStatus: 'succeeded', confirmationStatus: 'confirmed', externalRecordId: 'notion-page-id',
+    sanitizedOutput: { requestId: 'gateway-request', previewVersion: 2, parentOperationId: 'original-preview-operation', writesPerformed: 1, notionPageCreated: true, modelGeneration, validationSnapshot: packed },
+  });
+  const storedOutput = JSON.parse(records[0].fields['Sanitized Output']);
+  assert.equal(storedOutput.validationSnapshot.data, packed.data);
+  const lifecycle = await repository.getAuditLifecycleByOperationId('revision-operation-v2');
+  assert.equal(lifecycle.length, 1);
+  assert.deepEqual(unpackXchangeValidationSnapshot(lifecycle[0].sanitizedOutput.validationSnapshot), snapshot);
+  assert.deepEqual(lifecycle[0].sanitizedOutput.modelGeneration, modelGeneration);
+  assert.equal(lifecycle[0].sanitizedOutput.parentOperationId, 'original-preview-operation');
+  assert.equal(lifecycle[0].sanitizedOutput.previewVersion, 2);
+  assert.equal(lifecycle[0].sanitizedOutput.writesPerformed, 1);
+  assert.equal(lifecycle[0].externalRecordId, 'notion-page-id');
 });
 
 test('runtime digest regression proves the old undefined hash crashes while canonical hashes accept supported values', () => {
