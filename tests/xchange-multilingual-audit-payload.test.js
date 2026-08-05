@@ -174,6 +174,64 @@ test('Airtable 422 diagnostics classify safe field causes and retain field/reque
   await assert.rejects(() => invalidResponse.createAuditRecord(auditRecord(productionPreview('ko'))), { code: 'AUDIT_SCHEMA_INVALID', diagnosticReason: 'invalid_json' });
 });
 
+test('Airtable request boundary captures the exact 422 text body and logs safe diagnostics before throwing', async () => {
+  const logs = [];
+  const rawBody = JSON.stringify({
+    error: {
+      type: 'INVALID_MULTIPLE_CHOICE_OPTIONS',
+      message: 'Insufficient permissions to create new select option "검토 중" for field "Execution Status"; token=secret-value',
+    },
+  });
+  const repository = createAirtableAuditRepository({
+    env,
+    logger: (line) => logs.push(JSON.parse(line)),
+    fetchImpl: async () => new Response(rawBody, { status: 422, headers: { 'content-type': 'application/json' } }),
+  });
+
+  await assert.rejects(() => repository.createAuditRecord(auditRecord(productionPreview('ko'))), (error) => {
+    assert.equal(error.code, 'AUDIT_SCHEMA_INVALID');
+    assert.equal(error.status, 422);
+    assert.equal(error.airtableErrorType, 'INVALID_MULTIPLE_CHOICE_OPTIONS');
+    assert.equal(error.diagnosticReason, 'select_option_invalid');
+    assert.match(error.airtableErrorMessage, /검토 중/u);
+    assert.doesNotMatch(error.airtableErrorMessage, /secret-value/u);
+    assert.match(error.airtableResponseBody, /Execution Status/u);
+    assert.equal(error.airtableResponseBodyBytes, Buffer.byteLength(rawBody, 'utf8'));
+    assert.match(error.airtableResponseBodyHash, /^[a-f0-9]{24}$/u);
+    assert.ok(error.rejectedFieldNames.includes('Execution Status'));
+    return true;
+  });
+
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].category, 'airtable_request_rejected');
+  assert.equal(logs[0].httpStatus, 422);
+  assert.equal(logs[0].airtableErrorType, 'INVALID_MULTIPLE_CHOICE_OPTIONS');
+  assert.equal(logs[0].diagnosticReason, 'select_option_invalid');
+  assert.match(logs[0].airtableResponseBody, /검토 중/u);
+  assert.doesNotMatch(JSON.stringify(logs[0]), /secret-value/u);
+  assert.ok(logs[0].fieldByteSizes['Sanitized Output'] > 0);
+  assert.ok(logs[0].requestBodyBytes > logs[0].fieldByteSizes['Sanitized Output']);
+});
+
+test('Airtable request boundary retains non-JSON 422 evidence without calling response.json', async () => {
+  const logs = [];
+  const rawBody = 'unprocessable entity from Airtable edge';
+  const repository = createAirtableAuditRepository({
+    env,
+    logger: (line) => logs.push(JSON.parse(line)),
+    fetchImpl: async () => new Response(rawBody, { status: 422, headers: { 'content-type': 'text/plain' } }),
+  });
+
+  await assert.rejects(() => repository.createAuditRecord(auditRecord(productionPreview('ko'))), (error) => {
+    assert.equal(error.code, 'AUDIT_SCHEMA_INVALID');
+    assert.equal(error.diagnosticReason, 'invalid_json');
+    assert.equal(error.airtableResponseBody, rawBody);
+    assert.equal(error.airtableResponseBodyBytes, Buffer.byteLength(rawBody, 'utf8'));
+    return true;
+  });
+  assert.equal(logs[0].airtableResponseBody, rawBody);
+});
+
 test('Preview Audit failure remains fail closed and does not populate the short-term Preview Store', async () => {
   resetXchangePreviewStoreForTests();
   const body = {

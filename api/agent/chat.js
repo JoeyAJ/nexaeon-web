@@ -60,6 +60,15 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   REPAIR_AMBIGUOUS: 409, REPAIR_CONFIRMATION_REQUIRED: 403,
 });
 
+function safeAuditDiagnosticText(value, limit = 1200) {
+  return String(value || '')
+    .replace(/(?:sk-[a-z0-9_-]{8,}|(?:api[_ -]?key|authorization|cookie|password|secret|token)\s*[:=]\s*[^\s,;]+)/giu, '[redacted]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu, '[redacted]')
+    .replace(/\s+/gu, ' ')
+    .trim()
+    .slice(0, limit) || null;
+}
+
 function isAllowedWriteOrigin(req) {
   const origin = String(req.headers?.origin || '');
   if (!origin) return false;
@@ -129,6 +138,20 @@ async function handleXchangeOperationRequest(req, res) {
       console.error(JSON.stringify({
         service: 'nexaeon-xchange', category: 'validation_audit_persistence_failed',
         ...error.auditDiagnostic,
+      }));
+    }
+    if (['AUDIT_SCHEMA_INVALID', 'AUDIT_REQUEST_REJECTED', 'AUDIT_INVALID_RESPONSE'].includes(errorCode)) {
+      console.error(JSON.stringify({
+        service: 'nexaeon-xchange', category: 'xchange_route_audit_failure', operation: req.query.operation,
+        internalErrorCode: errorCode, httpStatus: Number(error?.status) || null,
+        airtableErrorType: error?.airtableErrorType || null, diagnosticReason: error?.diagnosticReason || null,
+        airtableErrorMessage: safeAuditDiagnosticText(error?.airtableErrorMessage, 1000),
+        airtableResponseBody: safeAuditDiagnosticText(error?.airtableResponseBody, 1200),
+        airtableResponseBodyBytes: Number(error?.airtableResponseBodyBytes) || null,
+        airtableResponseBodyHash: error?.airtableResponseBodyHash || null,
+        rejectedFieldNames: Array.isArray(error?.rejectedFieldNames) ? error.rejectedFieldNames.slice(0, 20) : [],
+        fieldByteSizes: error?.fieldByteSizes && typeof error.fieldByteSizes === 'object' ? error.fieldByteSizes : {},
+        requestBodyBytes: Number(error?.requestBodyBytes) || null, writesPerformed: 0,
       }));
     }
     return res.status(OPERATION_ERROR_STATUS[errorCode] || 500).json({
