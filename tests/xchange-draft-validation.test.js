@@ -319,24 +319,24 @@ test('Production-compatible validation Audit creates started then appends succes
   assert.equal(failureCalls.every(([, record]) => record.operationId === 'validation-schema-failure' && record.sanitizedOutput.executeOperationId === failed.preview.operationId && record.sanitizedOutput.writesPerformed === 0), true);
 });
 
-test('Airtable adapter reproduces unsupported validation select rejection and accepts canonical read fields', async () => {
+test('Airtable adapter rejects unsupported validation Select values locally and accepts canonical read fields', async () => {
   const requests = [];
   const repository = createAirtableAuditRepository({
     env: { AIRTABLE_API_KEY: 'test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'projects', AIRTABLE_AUDIT_TABLE_ID: 'audits' },
     fetchImpl: async (_url, options) => {
       const fields = JSON.parse(options.body).records[0].fields; requests.push(fields);
-      if (fields['Action Type'] === 'validate' || fields['Permission Level'] === 'READ_VALIDATE') return { ok: false, status: 422, json: async () => ({ error: { type: 'INVALID_MULTIPLE_CHOICE_OPTIONS', message: 'Action Type cannot accept the provided value' } }) };
       return { ok: true, status: 200, json: async () => ({ records: [{ id: `rec-${requests.length}` }] }) };
     },
   });
   const base = { operationId: 'validation-airtable', agentId: 'xchange', toolId: 'createCourseDraft', targetDataSource: 'notion-teaching-materials', executionStatus: 'executing', sanitizedOutput: { validationActionType: 'validate', validationPermissionLevel: 'READ_VALIDATE', writesPerformed: 0 } };
   await assert.rejects(repository.createAuditRecord({ ...base, actionType: 'validate', permissionLevel: 'READ_VALIDATE' }), (error) => {
-    assert.equal(error.code, 'AUDIT_SCHEMA_INVALID'); assert.equal(error.status, 422); assert.equal(error.airtableErrorType, 'INVALID_MULTIPLE_CHOICE_OPTIONS'); assert.deepEqual(error.rejectedFieldNames, ['Action Type']); return true;
+    assert.equal(error.code, 'AUDIT_SELECT_VALUE_INVALID'); assert.equal(error.fieldName, 'Permission Level'); return true;
   });
+  assert.equal(requests.length, 0);
   const persisted = await repository.createAuditRecord({ ...base, actionType: 'read', permissionLevel: 'READ' });
   assert.equal(persisted.persistence, 'airtable-dedicated');
-  assert.equal(requests[1]['Action Type'], 'read'); assert.equal(requests[1]['Permission Level'], 'READ');
-  const output = JSON.parse(requests[1]['Sanitized Output']);
+  assert.equal(requests[0]['Action Type'], 'read'); assert.equal(requests[0]['Permission Level'], 'READ');
+  const output = JSON.parse(requests[0]['Sanitized Output']);
   assert.deepEqual({ actionType: output.validationActionType, permissionLevel: output.validationPermissionLevel, writesPerformed: output.writesPerformed }, { actionType: 'validate', permissionLevel: 'READ_VALIDATE', writesPerformed: 0 });
 });
 

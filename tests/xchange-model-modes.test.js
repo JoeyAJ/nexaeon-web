@@ -140,6 +140,9 @@ test('live invalid JSON, schema, quality, and fallback failures create no Previe
     const records = await auditRepository.listAuditRecords();
     assert.equal(records.length, 1); assert.equal(records[0].sanitizedOutput.writesPerformed, 0);
     assert.equal(records[0].executionStatus, 'failed');
+    assert.equal(records[0].permissionLevel, 'WRITE_CONFIRM'); assert.equal(records[0].actionType, 'create');
+    assert.equal(records[0].sanitizedOutput.auditEvent, 'model_generation_failed');
+    assert.equal(records[0].sanitizedOutput.generationAction, 'generate');
   }
   const invalid = content(); invalid.sessionPlan[0].durationMinutes = 999;
   const qualityAudit = createMemoryAuditRepository();
@@ -170,6 +173,7 @@ test('disabled invokes no provider, creates no Preview, and persists a zero-writ
   const records = await auditRepository.getAuditLifecycleByOperationId('disabled-operation');
   assert.equal(calls, 0); assert.equal(records.length, 1); assert.equal(records[0].sanitizedOutput.writesPerformed, 0);
   assert.equal(records[0].sanitizedOutput.modelGeneration.mode, 'disabled');
+  assert.equal(records[0].permissionLevel, 'WRITE_CONFIRM'); assert.equal(records[0].actionType, 'create');
 });
 
 test('readiness evaluates all modes without exposing credentials or raw environment values', () => {

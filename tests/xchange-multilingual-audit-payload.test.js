@@ -4,10 +4,12 @@ import test from 'node:test';
 
 import {
   AUDIT_JSON_BYTE_LIMIT,
+  AUDIT_SELECT_VALUES,
   auditUtf8Bytes,
   createAirtableAuditRepository,
   fromAirtableRecord,
   normalizeAuditRecord,
+  normalizeAuditSelectValue,
   safeAuditJson,
   sanitizeAuditValue,
   toAirtableFields,
@@ -143,6 +145,18 @@ test('safe Audit JSON limits UTF-8 bytes and uses a parseable structured compact
   assert.equal(parsed.compactReason, 'utf8_byte_limit');
   assert.ok(parsed.originalBytes > serialized.length);
   assert.equal('preview' in parsed, false);
+});
+
+test('Audit Select normalization accepts only exact canonical scalar values and never quoted or structured variants', () => {
+  assert.equal(normalizeAuditSelectValue('Permission Level', 'WRITE_CONFIRM'), 'WRITE_CONFIRM');
+  assert.ok(AUDIT_SELECT_VALUES['Permission Level'].includes('WRITE_CONFIRM'));
+  assert.throws(() => normalizeAuditSelectValue('Permission Level', 'PREVIEW_ONLY'), { code: 'AUDIT_SELECT_VALUE_INVALID', fieldName: 'Permission Level' });
+  assert.throws(() => normalizeAuditSelectValue('Permission Level', 'READ_VALIDATE'), { code: 'AUDIT_SELECT_VALUE_INVALID', fieldName: 'Permission Level' });
+  assert.throws(() => normalizeAuditSelectValue('Permission Level', '"PREVIEW_ONLY"'), { code: 'AUDIT_SELECT_VALUE_INVALID', fieldName: 'Permission Level' });
+  assert.throws(() => normalizeAuditSelectValue('Permission Level', "'PREVIEW_ONLY'"), { code: 'AUDIT_SELECT_VALUE_INVALID', fieldName: 'Permission Level' });
+  assert.throws(() => normalizeAuditSelectValue('Permission Level', ['PREVIEW_ONLY']), { code: 'AUDIT_SELECT_VALUE_INVALID', fieldName: 'Permission Level', valueType: 'array' });
+  assert.throws(() => normalizeAuditSelectValue('Permission Level', { value: 'PREVIEW_ONLY' }), { code: 'AUDIT_SELECT_VALUE_INVALID', fieldName: 'Permission Level', valueType: 'object' });
+  assert.throws(() => normalizeAuditSelectValue('Action Type', 'generate'), { code: 'AUDIT_SELECT_VALUE_INVALID', fieldName: 'Action Type' });
 });
 
 test('Airtable 422 diagnostics classify safe field causes and retain field/request sizes without payloads', async () => {

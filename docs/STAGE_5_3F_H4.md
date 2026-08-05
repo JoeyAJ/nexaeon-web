@@ -1,5 +1,13 @@
 # Stage 5-3F-H4 — Multilingual Audit Payload Regression
 
+## Hotfix 3 — Canonical Audit Select values
+
+The Hotfix 2 request boundary captured the first exact Production Airtable rejection at `2026-08-05T07:43:19Z`: `INVALID_MULTIPLE_CHOICE_OPTIONS`, reporting that the token could not create the `PREVIEW_ONLY` choice. The logged `Permission Level` size was 12 UTF-8 bytes, which exactly equals `PREVIEW_ONLY`; a value containing literal surrounding quotes would be 14 bytes. The quotes in Airtable's message delimit the option name and were escaped again by JSON logging. No JSON stringify, sanitizer, normalizer, or Airtable adapter added quotes to the field value.
+
+The request was not a completed Preview Audit. Korean model generation entered the zero-write failure Audit path before Preview creation. That path alone hard-coded `Permission Level=PREVIEW_ONLY` and `Action Type=generate`, while successful Course and Learning Activity Preview Audits use the tool registry's existing canonical values `WRITE_CONFIRM` and `create`. Locale was therefore correlated with the failure path, but did not transform a Select value.
+
+Failure Audits now use the same canonical tool permission and action values as the attempted `createCourseDraft` or `createLearningActivityDraft` operation: `WRITE_CONFIRM` and `create`. Internal stage semantics remain in bounded JSON metadata as `auditEvent=model_generation_failed` and `generationAction=generate`. The Airtable adapter also enforces exact scalar allowlists for every Audit Select field before sending a request. Quoted strings, arrays, objects, whitespace variants, and unknown choices fail closed with `AUDIT_SELECT_VALUE_INVALID`; they never reach Airtable. Validation-specific semantics such as `READ_VALIDATE` and `validate` remain metadata, while their schema-compatible Select values remain `READ` and `read`.
+
 ## Production evidence
 
 - Production deployment: `dpl_RJZM3GgjA7sBHdBjXbLmZjmDdWft`

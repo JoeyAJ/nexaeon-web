@@ -56,7 +56,8 @@ test('unrecoverable generation failure creates a redacted zero-write Audit and n
     modelGateway: { structuredGenerate: async () => { throw Object.assign(new Error('Authorization: Bearer sk-private-secret-123456'), { code: 'MODEL_TIMEOUT' }); } },
   }), { code: 'MODEL_TIMEOUT' });
   const lifecycle = await auditRepository.getAuditLifecycleByOperationId('gateway-failed');
-  assert.equal(lifecycle.length, 1); assert.equal(lifecycle[0].actionType, 'generate'); assert.equal(lifecycle[0].errorCode, 'MODEL_TIMEOUT');
+  assert.equal(lifecycle.length, 1); assert.equal(lifecycle[0].actionType, 'create'); assert.equal(lifecycle[0].permissionLevel, 'WRITE_CONFIRM'); assert.equal(lifecycle[0].errorCode, 'MODEL_TIMEOUT');
+  assert.equal(lifecycle[0].sanitizedOutput.auditEvent, 'model_generation_failed'); assert.equal(lifecycle[0].sanitizedOutput.generationAction, 'generate');
   assert.equal(lifecycle[0].sanitizedOutput.writesPerformed, 0); assert.equal(notionWrites, 0);
   assert.equal(JSON.stringify(lifecycle).includes('sk-private-secret'), false);
 });
