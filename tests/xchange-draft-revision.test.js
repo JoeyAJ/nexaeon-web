@@ -206,18 +206,18 @@ test('duration edit redistributes all stages naturally while non-time edits keep
   assert.deepEqual(tags.contentPreview.sessionPlan, revised.contentPreview.sessionPlan);
 });
 
-test('superseded source Preview stays rejected after cache loss and the revision executes once', async () => {
+test('superseded source stays rejected and compact Audit cannot reconstruct a revision after cache loss', async () => {
   const { auditRepository, preview } = await setup();
   const revised = await revise(preview, auditRepository, {});
   let writes = 0;
   resetXchangePreviewStoreForTests();
   await assert.rejects(() => executeXchangeDraft({ body: executeBody(preview), req, actor, auditRepository, now: now + 2_000, env, notionWriter: async () => { writes += 1; } }), { code: 'PREVIEW_SUPERSEDED' });
   await assert.rejects(() => executeXchangeDraft({ body: { ...executeBody(preview), confirmationToken: revised.confirmationToken }, req, actor, auditRepository, now: now + 2_000, env, notionWriter: async () => { writes += 1; } }), { code: 'PREVIEW_SUPERSEDED' });
-  const result = await executeXchangeDraft({ body: executeBody(revised), req, actor, auditRepository, now: now + 2_000, env, notionWriter: async () => ({ externalRecordId: `mock-page-${++writes}`, createdAt: '2027-01-15T08:00:02.000Z' }) });
-  assert.equal(result.executionStatus, 'succeeded'); assert.equal(writes, 1);
+  await assert.rejects(() => executeXchangeDraft({ body: executeBody(revised), req, actor, auditRepository, now: now + 2_000, env, notionWriter: async () => ({ externalRecordId: `mock-page-${++writes}`, createdAt: '2027-01-15T08:00:02.000Z' }) }), { code: 'PREVIEW_NOT_FOUND' });
+  assert.equal(writes, 0);
 });
 
-test('revision execute restores audited content, binds revision claims, and records complete lineage', async () => {
+test('revision execute uses short-term Preview Store content, binds revision claims, and records complete lineage', async () => {
   const { auditRepository, preview } = await setup('zh');
   const objectives = [
     '辨識品牌策略的核心原則',
@@ -236,7 +236,6 @@ test('revision execute restores audited content, binds revision claims, and reco
   assert.deepEqual(claims.changedPaths, ['learningObjectives']);
   for (const name of ['payloadHash', 'contentHash', 'propertiesHash', 'contentSchemaVersion', 'rendererVersion', 'estimatedBodyBlocks', 'durationValidation', 'actorSessionHash', 'expiresAt']) assert.notEqual(claims[name], undefined);
 
-  resetXchangePreviewStoreForTests();
   const calls = [];
   const writer = async (input) => {
     calls.push(input);
@@ -261,7 +260,8 @@ test('revision execute restores audited content, binds revision claims, and reco
   const revisionLifecycle = await auditRepository.getAuditLifecycleByOperationId(revised.operationId);
   assert.deepEqual(revisionLifecycle.map((event) => event.executionStatus), ['previewed', 'executing', 'succeeded']);
   assert.equal(revisionLifecycle[0].sanitizedOutput.sourcePreviewHash, preview.previewHash);
-  assert.deepEqual(revisionLifecycle[0].sanitizedOutput.createPayloadPreview, revised.createPayloadPreview);
+  assert.equal('createPayloadPreview' in revisionLifecycle[0].sanitizedOutput, false);
+  assert.equal('contentPreview' in revisionLifecycle[0].sanitizedOutput, false);
   for (const event of revisionLifecycle.slice(1)) {
     assert.equal(event.sanitizedOutput.parentOperationId, preview.operationId);
     assert.equal(event.sanitizedOutput.sourceOperationId, preview.operationId);
@@ -336,10 +336,9 @@ test('system fields and Notion identifiers are rejected before creating a revisi
   assert.equal((await auditRepository.listAuditRecords({ limit: 100 })).length, before);
 });
 
-test('identical revision retries reuse the revision Preview and never return the old cached source Preview', async () => {
+test('identical revision retries reuse the short-term revision Preview and never return the source Preview', async () => {
   const { auditRepository, preview } = await setup();
   const first = await revise(preview, auditRepository, {}, 'revision-first');
-  resetXchangePreviewStoreForTests();
   const retry = await revise(preview, auditRepository, {}, 'revision-retry', now + 2_000);
   assert.equal(retry.operationId, first.operationId);
   assert.equal(retry.previewHash, first.previewHash);

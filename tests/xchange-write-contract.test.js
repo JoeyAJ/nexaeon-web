@@ -114,16 +114,18 @@ test('preview hash is stable and identical retry reuses the operation without du
   assert.equal(audit.records.length, 1);
 });
 
-test('persistent preview audit safely deduplicates a retry after an in-memory cold start', async () => {
+test('a cold start creates a new Preview instead of reconstructing full content from compact Audit metadata', async () => {
   const audit = repository();
   const first = await preview(course(), { auditRepository: audit, operationId: 'operation-persistent' });
   resetXchangePreviewStoreForTests();
   const retry = await preview(course(), { auditRepository: audit, operationId: 'operation-should-not-be-used' });
-  assert.equal(retry.operationId, first.operationId);
-  assert.equal(retry.previewId, first.previewId);
-  assert.equal(retry.previewHash, first.previewHash);
-  assert.equal(retry.reused, true);
-  assert.equal(audit.records.length, 1);
+  assert.equal(retry.operationId, 'operation-should-not-be-used');
+  assert.notEqual(retry.previewId, first.previewId);
+  assert.equal(retry.idempotencyKey, first.idempotencyKey);
+  assert.ok(retry.previewHash);
+  assert.equal(retry.reused, false);
+  assert.equal(audit.records.length, 2);
+  assert.equal(JSON.stringify(audit.records).includes('contentPreview'), false);
 });
 
 test('different actor or payload creates a distinct idempotency identity', async () => {

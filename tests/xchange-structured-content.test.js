@@ -226,7 +226,8 @@ test('preview hash and confirmation claims bind canonical content, schema, rende
   assert.equal(preview.contentSchemaVersion, 'v1'); assert.equal(preview.rendererVersion, 'v1'); assert.equal(preview.estimatedBodyBlocks > 0, true);
   assert.equal(preview.writesPerformed, 0); assert.ok(preview.contentPreview.overview); assert.match(preview.contentQuality.status, /^Complete/u);
   const lifecycle = await auditRepository.getAuditLifecycleByOperationId('content-binding');
-  lifecycle[0].sanitizedOutput.contentPreview.overview.purpose = 'Tampered after preview';
+  assert.equal('contentPreview' in lifecycle[0].sanitizedOutput, false);
+  preview.contentPreview.overview.purpose = 'Tampered after preview';
   await assert.rejects(() => executeXchangeDraft({
     body: { operationId: preview.operationId, agentId: preview.agentId, toolId: preview.toolId, targetDataSource: preview.targetDataSource, draftType: preview.draftType, language: preview.language, payload: preview.normalizedPayload, previewHash: preview.previewHash, idempotencyKey: preview.idempotencyKey, confirmationToken: preview.confirmationToken, confirm: true, contractVersion: preview.contractVersion, schemaVersion: preview.schemaVersion },
     req: { headers: {} }, actor, auditRepository, now: 1_800_000_001_000, env, notionWriter: async () => { throw new Error('must not write'); },

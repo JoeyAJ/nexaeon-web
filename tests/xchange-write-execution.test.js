@@ -169,7 +169,7 @@ test('Airtable lock diagnostics distinguish auth, permission, missing table, unk
     [401, { error: { type: 'AUTHENTICATION_REQUIRED', message: 'Authentication required' } }, 'AUDIT_REQUEST_REJECTED', 'authentication_failed'],
     [403, { error: { type: 'INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND', message: 'Invalid permissions' } }, 'AUDIT_REQUEST_REJECTED', 'permission_denied'],
     [404, { error: { type: 'NOT_FOUND', message: 'Could not find table' } }, 'AUDIT_REQUEST_REJECTED', 'base_or_table_not_found'],
-    [422, { error: { type: 'UNKNOWN_FIELD_NAME', message: 'Unknown field name: Audit ID' } }, 'AUDIT_SCHEMA_INVALID', 'field_missing'],
+    [422, { error: { type: 'UNKNOWN_FIELD_NAME', message: 'Unknown field name: Audit ID' } }, 'AUDIT_SCHEMA_INVALID', 'unknown_field'],
     [422, { error: { type: 'INVALID_REQUEST', message: 'fieldsToMergeOn cannot contain a computed field' } }, 'AUDIT_SCHEMA_INVALID', 'merge_field_invalid'],
     [422, { error: { type: 'INVALID_REQUEST', message: 'Invalid performUpsert parameter validation' } }, 'AUDIT_SCHEMA_INVALID', 'upsert_payload_invalid'],
     [422, { error: { type: 'INVALID_VALUE_FOR_COLUMN', message: 'Field cannot accept the provided value' } }, 'AUDIT_SCHEMA_INVALID', 'field_type_invalid'],
