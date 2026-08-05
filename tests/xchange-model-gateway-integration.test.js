@@ -7,7 +7,7 @@ import { createXchangeDraftPreview, resetXchangePreviewStoreForTests } from '../
 
 const actor = { actorId: 'gateway-admin', role: 'admin', sessionId: 'gateway-session' };
 const req = { headers: { origin: 'https://nexaeon-web.vercel.app', 'user-agent': 'gateway-test', 'x-forwarded-for': '127.0.0.1' } };
-const env = { NEXAEON_TOOL_EXECUTION_SECRET: 'gateway-test-secret', NEXAEON_MODEL_PROVIDER: 'openai', NEXAEON_MODEL_FALLBACK: 'mock' };
+const env = { NEXAEON_TOOL_EXECUTION_SECRET: 'gateway-test-secret', NEXAEON_XCHANGE_MODEL_MODE: 'live', NEXAEON_MODEL_PROVIDER: 'openai', NEXAEON_MODEL_FALLBACK: 'mock' };
 const body = {
   agentId: 'xchange', toolId: 'createCourseDraft', actionType: 'create', targetDataSource: 'notion-teaching-materials',
   draftType: 'course', language: 'en', contractVersion: 'v1', schemaVersion: 'v1',
@@ -44,7 +44,7 @@ test('quality-invalid real output safely falls back and is never presented as a 
     body, req, actor, auditRepository, env, operationId: 'quality-fallback', requestId: 'quality-request', now: 1_800_000_000_000,
     modelGateway: { structuredGenerate: async () => ({ output: invalid, metadata: { provider: 'openai', model: 'test-model', generationMode: 'real', fallbackUsed: false, requestId: 'quality-request', generatedAt: '2027-01-15T00:00:00.000Z', latencyMs: 20, tokenUsage: null } }) },
   });
-  assert.equal(preview.modelGeneration.provider, 'mock'); assert.equal(preview.modelGeneration.generationMode, 'fallback');
+  assert.equal(preview.modelGeneration.provider, 'mock'); assert.equal(preview.modelGeneration.generationMode, 'live_fallback');
   assert.equal(preview.modelGeneration.fallbackUsed, true); assert.equal(preview.modelGeneration.fallbackReason, 'MODEL_QUALITY_INVALID');
   assert.equal(preview.durationValidation.valid, true); assert.equal(preview.writesPerformed, 0);
 });

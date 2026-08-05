@@ -12,6 +12,7 @@ import { getProductionAuditRepository } from '../../lib/agent/auditRepository.js
 import { executeActionAuditRepair, executeLegacyMigration, getMigrationStatus, inspectMigrationSafety, previewActionAuditRepair, previewLegacyMigration, runConsistencyCheck, verifyMigrationBatch } from '../../lib/agent/legacyMigrationRuntime.js';
 import { createXchangeDraftPreview, executeXchangeDraft, reviseXchangeDraftPreview } from '../../lib/agent/xchangeWriteContract.js';
 import { validateXchangeDraftDelivery } from '../../lib/agent/xchangeDraftValidation.js';
+import { getModelReadiness } from '../../lib/model/modelReadiness.js';
 
 const adminLoginAttempts = new Map();
 const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -21,6 +22,7 @@ const OPERATION_ERROR_STATUS = Object.freeze({
   INVALID_INPUT: 400, MASS_ASSIGNMENT_REJECTED: 400, PAYLOAD_TOO_LARGE: 413,
   CONTENT_VALIDATION_FAILED: 422,
   MODEL_DISABLED: 503, MODEL_CONFIGURATION_MISSING: 503, MODEL_CONFIGURATION_INVALID: 503,
+  MODEL_MODE_INVALID: 503,
   MODEL_PROVIDER_NOT_ALLOWED: 503, MODEL_PROVIDER_UNAVAILABLE: 503, MODEL_PROVIDER_ERROR: 503,
   MODEL_TIMEOUT: 504, MODEL_RATE_LIMITED: 503, MODEL_JSON_INVALID: 422, MODEL_SCHEMA_INVALID: 422,
   INVALID_EDIT_MODE: 400, EDIT_TARGET_NOT_ALLOWED: 400, REPLACEMENT_REQUIRED: 400, PRESERVE_SECTIONS_REQUIRED: 400,
@@ -205,6 +207,11 @@ async function handleAdminRequest(req, res) {
         limit: Math.min(200, Number(req.query.limit) || 100),
       });
       return res.status(200).json({ ok: true, actorId: session.actorId, role: session.role, count: records.length, records });
+    }
+    if (req.query.admin === 'model-readiness') {
+      if (req.method !== 'GET') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });
+      readAdminSession(req);
+      return res.status(200).json(getModelReadiness());
     }
     if (req.query.admin === 'migration-preview') {
       if (req.method !== 'POST') return res.status(405).json({ ok: false, errorCode: 'METHOD_NOT_ALLOWED' });

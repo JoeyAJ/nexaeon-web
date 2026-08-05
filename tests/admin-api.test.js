@@ -147,6 +147,27 @@ test('migration, consistency, and repair admin routes reject visitors before dat
   assert.equal(preflight.statusCode, 401); assert.equal(preflight.body.errorCode, 'AUTH_REQUIRED');
 });
 
+test('Model Readiness is Admin-only and returns server-owned safe rollout status', async () => {
+  Object.assign(process.env, {
+    NEXAEON_ADMIN_ACTOR_ID: 'readiness-admin', NEXAEON_ADMIN_ACCESS_SECRET: 'readiness-access',
+    NEXAEON_ADMIN_SESSION_SECRET: 'readiness-session', NEXAEON_XCHANGE_MODEL_MODE: 'rules',
+    NEXAEON_MODEL_PROVIDER: 'mock', NEXAEON_MODEL_FALLBACK: 'mock', OPENAI_API_KEY: 'sk-never-return-this-123456',
+  });
+  const anonymous = response();
+  await handler(request({ method: 'GET', query: { admin: 'model-readiness' } }), anonymous);
+  assert.equal(anonymous.statusCode, 401); assert.equal(anonymous.body.errorCode, 'AUTH_REQUIRED');
+
+  const login = response();
+  await handler(request({ method: 'POST', query: { admin: 'session' }, body: { actorId: 'readiness-admin', accessSecret: 'readiness-access' } }), login);
+  const cookie = login.headers['set-cookie'].split(';')[0];
+  const readiness = response();
+  await handler(request({ method: 'GET', query: { admin: 'model-readiness' }, cookie }), readiness);
+  assert.equal(readiness.statusCode, 200); assert.equal(readiness.body.xchange.mode, 'rules');
+  assert.equal(readiness.body.xchange.provider, 'mock'); assert.equal(readiness.body.xchange.readyForRules, true);
+  assert.equal(JSON.stringify(readiness.body).includes('never-return-this'), false);
+  assert.equal('apiKey' in readiness.body.xchange, false);
+});
+
 test('authenticated consistency failure returns a specific safe data-source error code', async () => {
   Object.assign(process.env, {
     AIRTABLE_API_KEY: 'api-test-key', AIRTABLE_BASE_ID: 'app-test', AIRTABLE_PROJECTS_TABLE_ID: 'tbl-test', AIRTABLE_AUDIT_TABLE_ID: 'tbl-audit',

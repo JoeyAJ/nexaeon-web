@@ -13,6 +13,10 @@
       "destination": "/api/agent/chat?admin=audit"
     },
     {
+      "source": "/api/system/model-readiness",
+      "destination": "/api/agent/chat?admin=model-readiness"
+    },
+    {
       "source": "/api/admin/migration/preview",
       "destination": "/api/agent/chat?admin=migration-preview"
     },
