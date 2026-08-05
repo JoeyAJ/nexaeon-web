@@ -107,11 +107,13 @@ test('shadow comparison token usage survives the Airtable Audit round-trip witho
   });
   await repository.createAuditRecord({
     operationId: 'shadow-round-trip', agentId: 'xchange', toolId: 'createCourseDraft', executionStatus: 'previewed',
-    sanitizedOutput: { shadowComparison: { shadowExecuted: true, comparisonStatus: 'completed', tokenUsage: { inputTokens: 7, outputTokens: 9, totalTokens: 16 }, learningObjectiveCount: 4 }, writesPerformed: 0 },
+    sanitizedOutput: { shadowComparison: { shadowExecuted: true, comparisonStatus: 'completed', tokenUsage: { inputTokens: 7, outputTokens: 9, totalTokens: 16 }, learningObjectiveCount: 4, qualityDiagnostic: { status: 'failed', errorCodes: ['AI_RISK_COVERAGE_INSUFFICIENT'], failedChecks: ['ai_risk_coverage'], warningCodes: [], qualityReasons: ['At least four AI risk categories are required.'], failedPaths: ['risksAndNotes'] } }, writesPerformed: 0 },
     source: 'xchange-write-preview',
   });
   const restored = await repository.getAuditRecordByOperationId('shadow-round-trip');
   assert.deepEqual(restored.sanitizedOutput.shadowComparison.tokenUsage, { inputTokens: 7, outputTokens: 9, totalTokens: 16 });
+  assert.deepEqual(restored.sanitizedOutput.shadowComparison.qualityDiagnostic.errorCodes, ['AI_RISK_COVERAGE_INSUFFICIENT']);
+  assert.ok(storedFields['Sanitized Output'].length < 12_000);
   assert.equal(restored.sanitizedOutput.writesPerformed, 0);
   assert.equal(JSON.stringify(restored).includes('contentPreview'), false);
 });

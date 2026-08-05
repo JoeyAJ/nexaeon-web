@@ -1,11 +1,38 @@
 import { useEffect, useState } from 'react';
 import AdminMigrationPanel from './AdminMigrationPanel.jsx';
+import { projectModelAuditDetails } from '../utils/modelAuditDetails.js';
 
 const COPY = {
-  zh: { title: '管理員稽核紀錄', subtitle: '僅限已授權管理員。紀錄為 append-only，敏感資訊已在伺服器端移除。', actor: '管理員 ID', code: '存取碼', login: '驗證管理員', logout: '登出', refresh: '重新整理', from: '起始日期', to: '結束日期', agent: 'Agent', tool: '工具', status: '狀態', recordType: 'Schema 類型', operation: 'Operation ID', externalRecord: '外部紀錄 ID', all: '全部', formal: '正式', legacy: '舊版', empty: '沒有符合條件的稽核紀錄。', failed: '無法載入', back: '返回首頁' },
-  ko: { title: '관리자 감사 로그', subtitle: '승인된 관리자 전용입니다. 로그는 append-only이며 민감한 정보는 서버에서 제거됩니다.', actor: '관리자 ID', code: '접근 코드', login: '관리자 확인', logout: '로그아웃', refresh: '새로고침', from: '시작일', to: '종료일', agent: 'Agent', tool: '도구', status: '상태', recordType: '스키마 유형', operation: 'Operation ID', externalRecord: '외부 레코드 ID', all: '전체', formal: '정식', legacy: '레거시', empty: '조건에 맞는 감사 로그가 없습니다.', failed: '불러오기 실패', back: '홈으로' },
-  en: { title: 'Admin audit log', subtitle: 'Authorized administrators only. Records are append-only and secrets are removed server-side.', actor: 'Admin ID', code: 'Access code', login: 'Verify admin', logout: 'Sign out', refresh: 'Refresh', from: 'Date from', to: 'Date to', agent: 'Agent', tool: 'Tool', status: 'Status', recordType: 'Schema type', operation: 'Operation ID', externalRecord: 'External record ID', all: 'All', formal: 'Formal', legacy: 'Legacy', empty: 'No audit records match these filters.', failed: 'Unable to load', back: 'Back home' },
+  zh: { title: '管理員稽核紀錄', subtitle: '僅限已授權管理員。紀錄為 append-only，敏感資訊已在伺服器端移除。', actor: '管理員 ID', code: '存取碼', login: '驗證管理員', logout: '登出', refresh: '重新整理', from: '起始日期', to: '結束日期', agent: 'Agent', tool: '工具', status: '狀態', recordType: 'Schema 類型', operation: 'Operation ID', externalRecord: '外部紀錄 ID', all: '全部', formal: '正式', legacy: '舊版', empty: '沒有符合條件的稽核紀錄。', failed: '無法載入', back: '返回首頁', details: '查看模型詳細', modelDetails: '模型與 Shadow 診斷', yes: '是', no: '否' },
+  ko: { title: '관리자 감사 로그', subtitle: '승인된 관리자 전용입니다. 로그는 append-only이며 민감한 정보는 서버에서 제거됩니다.', actor: '관리자 ID', code: '접근 코드', login: '관리자 확인', logout: '로그아웃', refresh: '새로고침', from: '시작일', to: '종료일', agent: 'Agent', tool: '도구', status: '상태', recordType: '스키마 유형', operation: 'Operation ID', externalRecord: '외부 레코드 ID', all: '전체', formal: '정식', legacy: '레거시', empty: '조건에 맞는 감사 로그가 없습니다.', failed: '불러오기 실패', back: '홈으로', details: '모델 세부정보 보기', modelDetails: '모델 및 Shadow 진단', yes: '예', no: '아니요' },
+  en: { title: 'Admin audit log', subtitle: 'Authorized administrators only. Records are append-only and secrets are removed server-side.', actor: 'Admin ID', code: 'Access code', login: 'Verify admin', logout: 'Sign out', refresh: 'Refresh', from: 'Date from', to: 'Date to', agent: 'Agent', tool: 'Tool', status: 'Status', recordType: 'Schema type', operation: 'Operation ID', externalRecord: 'External record ID', all: 'All', formal: 'Formal', legacy: 'Legacy', empty: 'No audit records match these filters.', failed: 'Unable to load', back: 'Back home', details: 'View model details', modelDetails: 'Model and Shadow diagnostics', yes: 'Yes', no: 'No' },
 };
+
+const DETAIL_LABELS = Object.freeze({
+  modelMode: 'Model Mode', requestedProvider: 'Requested Provider', actualProvider: 'Actual Provider', model: 'Model',
+  shadowExecuted: 'Shadow Executed', comparisonStatus: 'Comparison Status', schemaPassed: 'Schema Passed', qualityPassed: 'Quality Passed',
+  latencyMs: 'Latency (ms)', inputTokens: 'Input Tokens', outputTokens: 'Output Tokens', totalTokens: 'Total Tokens',
+  fallbackUsed: 'Fallback Used', schemaStatus: 'Schema Status', qualityStatus: 'Quality Status', errorCode: 'Error Code',
+  writesPerformed: 'Writes Performed', failedChecks: 'Failed Checks', qualityReasons: 'Quality Reasons', failedPaths: 'Failed Paths',
+});
+
+function detailValue(value, copy) {
+  if (Array.isArray(value)) return value.length ? value.join(', ') : '—';
+  if (typeof value === 'boolean') return value ? copy.yes : copy.no;
+  return value ?? '—';
+}
+
+function ModelAuditDetails({ record, copy }) {
+  const details = projectModelAuditDetails(record);
+  if (!details.hasDetails) return null;
+  return (
+    <details className="admin-audit-details" data-testid="model-audit-details">
+      <summary>{copy.details}</summary>
+      <h3>{copy.modelDetails}</h3>
+      <dl>{Object.entries(DETAIL_LABELS).map(([field, label]) => <div key={field}><dt>{label}</dt><dd>{detailValue(details[field], copy)}</dd></div>)}</dl>
+    </details>
+  );
+}
 
 const EMPTY_AUTH = { phase: 'loading', actorId: '', csrfToken: '', errorCode: '' };
 
@@ -84,7 +111,7 @@ export default function AdminAuditPage({ lang, setLang, navigate }) {
           <form className="admin-audit-filters" onSubmit={(event) => { event.preventDefault(); loadRecords(); }}><label>{copy.from}<input type="date" value={filters.dateFrom} onChange={(event) => setFilters((current) => ({ ...current, dateFrom: event.target.value }))} /></label><label>{copy.to}<input type="date" value={filters.dateTo} onChange={(event) => setFilters((current) => ({ ...current, dateTo: event.target.value }))} /></label><label>{copy.agent}<select value={filters.agentId} onChange={(event) => setFilters((current) => ({ ...current, agentId: event.target.value }))}><option value="">{copy.all}</option><option value="orchestrator">orchestrator</option><option value="xchange">xchange</option></select></label><label>{copy.tool}<select value={filters.toolId} onChange={(event) => setFilters((current) => ({ ...current, toolId: event.target.value }))}><option value="">{copy.all}</option><option value="createActionDraft">createActionDraft</option><option value="createCourseDraft">createCourseDraft</option><option value="createLearningActivityDraft">createLearningActivityDraft</option></select></label><label>{copy.status}<select value={filters.executionStatus} onChange={(event) => setFilters((current) => ({ ...current, executionStatus: event.target.value }))}><option value="">{copy.all}</option>{['previewed', 'confirmed', 'executing', 'succeeded', 'failed', 'expired', 'cancelled'].map((status) => <option key={status} value={status}>{status}</option>)}</select></label><label>{copy.recordType}<select value={filters.recordType} onChange={(event) => setFilters((current) => ({ ...current, recordType: event.target.value }))}><option value="">{copy.all}</option><option value="formal">{copy.formal}</option><option value="legacy">{copy.legacy}</option></select></label><label>{copy.operation}<input value={filters.operationId} onChange={(event) => setFilters((current) => ({ ...current, operationId: event.target.value }))} /></label><label>{copy.externalRecord}<input value={filters.externalRecordId} onChange={(event) => setFilters((current) => ({ ...current, externalRecordId: event.target.value }))} /></label><button type="submit" disabled={loading}>{copy.refresh}</button></form>
           {errorCode ? <p className="agent-state-message" data-state="failed">{copy.failed}: {errorCode}</p> : null}
           {!loading && !errorCode && records.length === 0 ? <p>{copy.empty}</p> : null}
-          <div className="admin-audit-list">{records.map((record) => <article key={record.auditId}><div><strong>{record.executionStatus}</strong><time>{record.timestamp}</time></div><dl><div><dt>operation</dt><dd>{record.operationId}</dd></div><div><dt>idempotency</dt><dd>{record.idempotencyKey || '—'}</dd></div><div><dt>actor</dt><dd>{record.actorId} · {record.actorRole}</dd></div><div><dt>agent / tool</dt><dd>{record.agentId} / {record.toolId}</dd></div><div><dt>confirmation</dt><dd>{record.confirmationStatus || '—'}</dd></div><div><dt>target</dt><dd>{record.targetDataSource}</dd></div><div><dt>record</dt><dd>{record.externalRecordId || '—'}</dd></div><div><dt>audit record</dt><dd>{record.auditRecordId || record.auditId}</dd></div><div><dt>schema</dt><dd>{record.schemaVersion || 'legacy'} · {record.recordType || 'legacy'}</dd></div><div><dt>error</dt><dd>{record.errorCode || '—'}</dd></div><div><dt>duration</dt><dd>{record.duration} ms</dd></div></dl></article>)}</div>
+          <div className="admin-audit-list">{records.map((record) => <article key={record.auditId}><div><strong>{record.executionStatus}</strong><time>{record.timestamp}</time></div><dl><div><dt>operation</dt><dd>{record.operationId}</dd></div><div><dt>idempotency</dt><dd>{record.idempotencyKey || '—'}</dd></div><div><dt>actor</dt><dd>{record.actorId} · {record.actorRole}</dd></div><div><dt>agent / tool</dt><dd>{record.agentId} / {record.toolId}</dd></div><div><dt>confirmation</dt><dd>{record.confirmationStatus || '—'}</dd></div><div><dt>target</dt><dd>{record.targetDataSource}</dd></div><div><dt>record</dt><dd>{record.externalRecordId || '—'}</dd></div><div><dt>audit record</dt><dd>{record.auditRecordId || record.auditId}</dd></div><div><dt>schema</dt><dd>{record.schemaVersion || 'legacy'} · {record.recordType || 'legacy'}</dd></div><div><dt>error</dt><dd>{record.errorCode || '—'}</dd></div><div><dt>duration</dt><dd>{record.duration} ms</dd></div></dl><ModelAuditDetails record={record} copy={copy} /></article>)}</div>
           <AdminMigrationPanel lang={lang} csrfToken={auth.csrfToken} />
         </>
       )}

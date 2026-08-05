@@ -15,7 +15,7 @@ test('protected admin audit route supports login, server records, filters, and t
   });
   await page.route('**/api/admin/audit**', async (route) => {
     auditQueries.push(new URL(route.request().url()).searchParams);
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, count: 1, records: [{ auditId: 'audit-1', auditRecordId: 'rec-audit-1', operationId: 'operation-1', idempotencyKey: 'idem-1', timestamp: '2026-08-01T00:00:00.000Z', actorId: 'e2e-admin', actorRole: 'admin', agentId: 'orchestrator', toolId: 'createActionDraft', targetDataSource: 'airtable-action-projects', executionStatus: 'succeeded', confirmationStatus: 'confirmed', externalRecordId: 'rec-action', errorCode: null, duration: 42, schemaVersion: 'v1', recordType: 'formal' }] }) });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, count: 1, records: [{ auditId: 'audit-1', auditRecordId: 'rec-audit-1', operationId: 'operation-1', idempotencyKey: 'idem-1', timestamp: '2026-08-01T00:00:00.000Z', actorId: 'e2e-admin', actorRole: 'admin', agentId: 'xchange', toolId: 'createCourseDraft', targetDataSource: 'notion-teaching-materials', executionStatus: 'succeeded', confirmationStatus: 'confirmed', externalRecordId: 'rec-action', errorCode: null, duration: 42, schemaVersion: 'v1', recordType: 'formal', actorSessionHash: 'must-not-render', requesterFingerprint: 'must-not-render', sanitizedInput: { title: 'must-not-render' }, sanitizedOutput: { modelGeneration: { mode: 'shadow', requestedProvider: 'openai', actualProvider: 'mock', model: 'fake-model', apiKey: 'must-not-render' }, shadowComparison: { shadowExecuted: true, provider: 'openai', model: 'fake-model', comparisonStatus: 'completed', schemaPassed: true, qualityPassed: false, latencyMs: 24054, tokenUsage: { inputTokens: 2284, outputTokens: 3329, totalTokens: 5613 }, fallbackUsed: false, schemaValidationStatus: 'passed', qualityValidationStatus: 'failed', qualityDiagnostic: { status: 'failed', failedChecks: ['ai_risk_coverage'], qualityReasons: ['At least four AI risk categories are required.'], failedPaths: ['risksAndNotes'] }, candidate: 'must-not-render' }, contentPreview: 'must-not-render', writesPerformed: 0 } }] }) });
   });
   await page.goto('/admin/audit');
   await expect(page.getByTestId('admin-audit-page')).toBeVisible();
@@ -24,6 +24,12 @@ test('protected admin audit route supports login, server records, filters, and t
   await page.getByLabel('存取碼').fill('secret');
   await page.getByRole('button', { name: '驗證管理員' }).click();
   await expect(page.getByText('operation-1')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '模型與 Shadow 診斷' })).not.toBeVisible();
+  await page.getByText('查看模型詳細').click();
+  await expect(page.getByRole('heading', { name: '模型與 Shadow 診斷' })).toBeVisible();
+  await expect(page.getByTestId('model-audit-details')).toContainText('ai_risk_coverage');
+  await expect(page.getByTestId('model-audit-details')).toContainText('5613');
+  await expect(page.getByText('must-not-render')).toHaveCount(0);
   await page.getByLabel('狀態').selectOption('succeeded');
   await page.getByLabel('Schema 類型').selectOption('formal');
   await page.getByLabel('Operation ID').fill('operation-1');
@@ -33,8 +39,10 @@ test('protected admin audit route supports login, server records, filters, and t
   expect(auditQueries.at(-1).get('recordType')).toBe('formal'); expect(auditQueries.at(-1).get('operationId')).toBe('operation-1'); expect(auditQueries.at(-1).get('externalRecordId')).toBe('rec-action');
   await page.getByLabel('Language').selectOption('ko');
   await expect(page.getByRole('heading', { name: '관리자 감사 로그' })).toBeVisible();
+  await expect(page.getByText('모델 세부정보 보기')).toBeVisible();
   await page.getByLabel('Language').selectOption('en');
   await expect(page.getByRole('heading', { name: 'Admin audit log' })).toBeVisible();
+  await expect(page.getByText('View model details')).toBeVisible();
 });
 
 test('admin migration UI requires dry-run and confirmation, checks consistency, and repairs only one verified issue', async ({ page }) => {
