@@ -7,7 +7,9 @@
 - No Preview Audit record was persisted and the Preview was not returned, so the write contract remained fail closed with `writesPerformed=0`.
 - The deployed Preview persistence catch preserved only the public error code. It discarded `status`, `airtableErrorType`, `diagnosticReason`, `fieldNames`, and `rejectedFieldNames`, and did not emit the safe Audit failure log. Consequently, the historical Airtable response body and exact `rejectedFieldNames` value cannot be recovered after the fact.
 
-The code path and production-shaped reproduction isolate `Sanitized Output` as the rejected field: Korean language, title, audience, and requirements are nested inside this long-text JSON field and are not mapped to Airtable Select fields. All top-level Select values are server-owned fixed values, and timestamps are server-generated ISO strings.
+The code path and production-shaped reproduction isolate `Sanitized Output` as the only language-dependent rejected-field candidate: Korean language, title, audience, and requirements are nested inside this JSON field and are not mapped to Airtable Select fields. All top-level Select values are server-owned fixed values, and timestamps are server-generated ISO strings.
+
+This is an important evidence boundary, not a guessed Airtable response. Airtable documents a default 100,000-character limit for single-line and long-text fields, so the 13,685-byte fixture does not by itself prove that Airtable's default field ceiling caused the historical 422. A schema-specific field rule or another Airtable validation could still have produced it. Because the old server discarded the upstream type/message/field diagnostics, the exact historical rejected field and rejection subtype are not recoverable. The hotfix fixes the independently confirmed application defects—unbounded Preview Audit projection, character-only safety accounting, and lost safe diagnostics—so a future rejection will identify the exact cause without storing payload content.
 
 ## Root cause
 
