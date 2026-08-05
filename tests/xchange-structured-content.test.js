@@ -12,6 +12,7 @@ import {
   validateStructuredContent,
   XCHANGE_CONTENT_RENDERER_VERSION,
   XCHANGE_CONTENT_SCHEMA_VERSION,
+  XCHANGE_MEASURABLE_OBJECTIVE_VERBS,
 } from '../lib/agent/xchangeStructuredContent.js';
 import { createXchangeNotionDraft } from '../lib/agent/xchangeNotionWriter.js';
 import { createMemoryAuditRepository } from '../lib/agent/auditRepository.js';
@@ -140,6 +141,39 @@ test('Traditional Chinese, Korean, and English use one schema and render localiz
   assert.deepEqual(Object.keys(zh), Object.keys(ko)); assert.deepEqual(Object.keys(ko), Object.keys(en));
   assert.match(zh.learningObjectives[0], /辨識/u); assert.match(ko.learningObjectives[0], /식별/u); assert.match(en.learningObjectives[0], /Identify/u);
   assert.equal(zh.overview.language, 'zh'); assert.equal(ko.overview.language, 'ko'); assert.equal(en.overview.language, 'en');
+});
+
+test('Traditional Chinese measurable objectives use the formal allowlist at the start of every objective', () => {
+  assert.deepEqual(XCHANGE_MEASURABLE_OBJECTIVE_VERBS.zh, ['辨識', '說明', '解釋', '比較', '應用', '建立', '評估', '設計', '分析']);
+  const content = generateCourseContent(coursePayload('zh'));
+  const measurableObjectives = [
+    '辨識生成式 AI 的適用情境', '說明內容驗證的必要步驟', '比較兩種提示詞策略',
+    '分析行銷內容的風險', '設計可觀察的改善方案',
+  ];
+  for (const count of [3, 4, 5]) {
+    content.learningObjectives = measurableObjectives.slice(0, count);
+    assert.match(validateStructuredContent('course', content).status, /^Complete/u);
+  }
+
+  for (const vague of ['了解生成式 AI 的概念', '知道行銷內容的限制', '熟悉流程並分析結果']) {
+    const invalid = structuredClone(content);
+    invalid.learningObjectives[2] = vague;
+    const quality = validateStructuredContent('course', invalid);
+    assert.equal(quality.status, 'Incomplete');
+    assert.equal(quality.errors.filter((error) => error === 'Learning objectives must use measurable verbs.').length, 1);
+  }
+});
+
+test('English and Korean objective-start validation remains aligned with the same multilingual allowlist', () => {
+  const cases = [
+    ['en', ['Identify the relevant evidence', 'Compare two approaches', 'Design a measurable response']],
+    ['ko', ['정의 핵심 개념', '비교 두 가지 접근법', '분석 결과와 근거']],
+  ];
+  for (const [language, objectives] of cases) {
+    const content = generateCourseContent(coursePayload(language));
+    content.learningObjectives = objectives;
+    assert.match(validateStructuredContent('course', content).status, /^Complete/u);
+  }
 });
 
 test('Notion builders emit only the approved body block types and estimate the exact rendered count', () => {

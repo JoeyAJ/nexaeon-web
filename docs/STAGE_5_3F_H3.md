@@ -71,3 +71,13 @@ Production remains in `shadow` mode. Shadow output cannot replace the rules Prev
 5. Repeat across representative Traditional Chinese, Korean, and English inputs and review latency/token cost before considering rollout.
 
 Live is not approved solely by this code change. It requires successful real Production Shadow samples after deployment, stable schema and quality results, security and cost review, an explicit operator decision, and a separate controlled environment change with rollback monitoring.
+
+## Hotfix 2 — Traditional Chinese measurable objective alignment
+
+Production Shadow operation `ebc2d1fb-4740-452a-a9ea-2eb79b3fe8ff` passed schema, relevance (`1`), overlap (`0`), duration (`90/90`), and every preserved constraint without fallback. Its only quality failure was `LEARNING_OBJECTIVE_VERB_INVALID` at `learningObjectives[]`.
+
+The validator's existing Traditional Chinese verbs were `辨識`, `說明`, `解釋`, `比較`, `應用`, `建立`, `評估`, `設計`, and `分析`. The Prompt previously asked only for “observable verbs” and did not expose that formal vocabulary. The old regular expression also accepted a recognized verb anywhere in an objective rather than enforcing the requested start position.
+
+Hotfix 2 moves the existing Traditional Chinese, Korean, and English vocabularies into one exported, immutable source shared by Prompt construction and validation. Every Traditional Chinese objective must now start with an approved verb; the Prompt lists the same locale-specific canonical values and explicitly rejects vague Traditional Chinese starters such as `了解`, `知道`, and `熟悉`. Existing Korean and English validation behavior remains unchanged. No verb, quality check, threshold, schema field, or security boundary was removed or weakened.
+
+Regression tests cover all-objective enforcement across three to five Traditional Chinese objectives, vague and mid-sentence verb rejection, unchanged Korean and English behavior, Prompt-injection boundaries, a Production-shaped quality-passing Fake Provider Shadow, safe Audit diagnostic round-trip, and `writesPerformed=0` with the rules Preview retained.

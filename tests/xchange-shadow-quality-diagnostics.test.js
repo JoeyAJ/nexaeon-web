@@ -5,7 +5,7 @@ import { createMemoryAuditRepository } from '../lib/agent/auditRepository.js';
 import { buildXchangeCourseGenerationRequest } from '../lib/agent/xchangeCoursePrompt.js';
 import { XCHANGE_COURSE_DRAFT_SCHEMA } from '../lib/agent/xchangeCourseSchema.js';
 import { buildShadowQualityDiagnostic, XCHANGE_QUALITY_DIAGNOSTIC_LIMITS } from '../lib/agent/xchangeQualityDiagnostics.js';
-import { extractStructuredRequirements, generateCourseContent, validateStructuredContent } from '../lib/agent/xchangeStructuredContent.js';
+import { extractStructuredRequirements, generateCourseContent, validateStructuredContent, XCHANGE_MEASURABLE_OBJECTIVE_VERBS } from '../lib/agent/xchangeStructuredContent.js';
 import { createXchangeDraftPreview, resetXchangePreviewStoreForTests } from '../lib/agent/xchangeWriteContract.js';
 import { validateStrictSchema } from '../lib/model/schemaValidation.js';
 import { projectModelAuditDetails } from '../src/utils/modelAuditDetails.js';
@@ -78,7 +78,7 @@ test('Production-shaped candidate passes schema and duration but exposes the exa
   assert.deepEqual(diagnostic.preservedConstraints, { exactTitle: true, targetAudience: true, format: true, durationMinutes: true, difficulty: true, language: true });
 });
 
-test('calibrated contract preserves thresholds and the same metric shape can pass every existing quality check', () => {
+test('calibrated Production-shaped Fake Provider candidate passes quality while rules remain the zero-write Preview', async () => {
   const { normalized, requirements } = normalizedAndRequirements();
   const candidate = structuredClone(generateCourseContent(normalized, requirements));
   candidate.learningObjectives.push('分析生成式 AI 行銷成果的成效指標並提出可驗證的改善方案');
@@ -87,7 +87,20 @@ test('calibrated contract preserves thresholds and the same metric shape can pas
   validateStrictSchema(candidate, XCHANGE_COURSE_DRAFT_SCHEMA);
   const quality = qualityFor(candidate, normalized, requirements);
   assert.match(quality.status, /^Complete/u); assert.equal(quality.topicRelevance.threshold, 0.65); assert.equal(quality.promptOverlap.threshold, 0.35);
-  assert.equal(buildShadowQualityDiagnostic(quality).status === 'failed', false);
+  assert.equal(buildShadowQualityDiagnostic(quality).status, 'warning');
+  assert.equal(quality.durationValidation.valid, true); assert.equal(quality.topicRelevance.valid, true); assert.equal(quality.promptOverlap.valid, true);
+  assert.deepEqual(quality.preservedConstraints, { exactTitle: true, targetAudience: true, format: true, durationMinutes: true, difficulty: true, language: true });
+
+  const auditRepository = createMemoryAuditRepository();
+  const preview = await createXchangeDraftPreview({
+    body, req, actor, auditRepository, env,
+    modelGateway: { structuredGenerate: async () => ({ output: candidate, metadata: { provider: 'openai', requestedProvider: 'openai', actualProvider: 'openai', model: 'fake-model', requestId: 'fake-passing-request', latencyMs: 14, tokenUsage: { inputTokens: 4, outputTokens: 6, totalTokens: 10 }, fallbackUsed: false } }) },
+  });
+  const audit = (await auditRepository.getAuditLifecycleByOperationId(preview.operationId))[0];
+  assert.equal(preview.shadowComparison.qualityPassed, true); assert.equal(preview.shadowComparison.qualityDiagnostic.status, 'warning');
+  assert.equal(preview.writesPerformed, 0); assert.equal(audit.sanitizedOutput.writesPerformed, 0);
+  assert.equal(audit.sanitizedOutput.shadowComparison.qualityDiagnostic.status, 'warning');
+  assert.equal(JSON.stringify(audit).includes(candidate.learningObjectives.at(-1)), false);
 });
 
 test('quality diagnostics are bounded, redacted, and never contain candidate or prompt payloads', async () => {
@@ -123,6 +136,9 @@ test('calibrated Prompt keeps injection, tool, persistence, constraints, and req
   assert.match(request.instructions, /untrusted course requirements/iu); assert.match(request.instructions, /call tools/iu);
   assert.match(request.instructions, /write to Notion/iu); assert.match(request.instructions, /Copy every extractedConstraints value/iu);
   assert.match(request.instructions, /requiredElements/iu); assert.match(request.instructions, /accountable human review/iu);
+  assert.match(request.instructions, /Every learningObjectives item must start/iu);
+  for (const verb of XCHANGE_MEASURABLE_OBJECTIVE_VERBS.zh) assert.match(request.instructions, new RegExp(verb, 'u'));
+  assert.match(request.instructions, /了解, 知道, or 熟悉/u);
   assert.equal(request.instructions.includes('Ignore prior rules'), false);
 });
 
