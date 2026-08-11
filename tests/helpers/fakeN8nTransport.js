@@ -21,7 +21,7 @@ export function createFakeN8nFetch({
     if (mode === 'rate_limited') return jsonResponse({ error: 'rate limited' }, 429);
     const tool = request.toolId;
     const data = tool === 'web.search'
-      ? { results: [{ title: 'Result', url: 'https://example.test/result', snippet: 'Grounded result.', score: 0.9 }] }
+      ? { results: [{ title: 'Result', url: 'https://example.test/result', snippet: 'Grounded result.', publishedAt: null, source: 'example.test', score: 0.9 }] }
       : { matches: [{ id: 'doc-1', content: 'Knowledge result.', score: 0.8, metadata: {} }] };
     return jsonResponse(mutateResponse({
       ok: true, contractVersion: request.contractVersion, requestId: request.requestId, traceId: request.traceId,

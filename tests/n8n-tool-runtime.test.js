@@ -20,13 +20,13 @@ const env = Object.freeze({
 });
 const base = Object.freeze({
   requestId: 'req_stage54a_001', traceId: 'trace_stage54a_001', agentId: 'explorer',
-  toolId: 'web.search', taskType: 'research.search', input: { query: 'AI learning', maxResults: 5, locale: 'en' },
+  toolId: 'web.search', taskType: 'research.search', input: { query: '  AI learning  ', language: 'en-US' },
 });
 
 function successResponse(request, overrides = {}) {
   return {
     ok: true, contractVersion: N8N_TOOL_CONTRACT_VERSION, requestId: request.requestId, traceId: request.traceId,
-    toolId: request.toolId, data: { results: [{ title: 'Result', url: 'https://example.test', snippet: 'Safe result.' }] },
+    toolId: request.toolId, data: { results: [{ title: 'Result', url: 'https://example.test', snippet: 'Safe result.', publishedAt: null, source: 'example.test' }] },
     warnings: [], executionMetadata: { provider: 'n8n', workflow: 'explorer-web-search', durationMs: 10, externalExecutionId: null },
     ...overrides,
   };
@@ -53,6 +53,7 @@ test('service authentication is server-only, constant-time verified, fail-closed
   const headers = buildN8nServiceHeaders({ requestId: base.requestId, traceId: base.traceId, env });
   assert.equal(headers.Authorization, `Bearer ${env.NEXAEON_N8N_SERVICE_TOKEN}`);
   assert.equal(headers['X-NexAeon-Trace-ID'], base.traceId);
+  assert.equal(headers['X-NexAeon-Contract-Version'], N8N_TOOL_CONTRACT_VERSION);
 });
 
 test('valid Explorer web.search request and response preserve the contract and trace through the fake adapter', async () => {
@@ -66,8 +67,9 @@ test('valid Explorer web.search request and response preserve the contract and t
   assert.equal(calls.length, 1); assert.equal(calls[0].url, env.N8N_EXPLORER_WEBHOOK_URL);
   const sent = JSON.parse(calls[0].options.body);
   assert.deepEqual(sent.actor, { type: 'service', source: 'nexaeon' }); assert.deepEqual(sent.execution, { timeoutMs: 15_000 });
+  assert.deepEqual(sent.input, { query: 'AI learning', maxResults: 5, language: 'en' });
   assert.equal('workflowUrl' in sent, false); assert.equal('credential' in sent, false);
-  assert.equal(audits.length, 1); assert.equal(audits[0].status, 'succeeded'); assert.equal(audits[0].externalExecutionId, null);
+  assert.equal(audits.length, 1); assert.equal(audits[0].status, 'succeeded'); assert.equal(audits[0].resultCount, 1); assert.equal(audits[0].externalExecutionId, null);
 });
 
 test('request contract rejects unknown tools, disallowed agents/tasks, invalid input, and arbitrary workflow controls', () => {
@@ -75,6 +77,7 @@ test('request contract rejects unknown tools, disallowed agents/tasks, invalid i
   assert.throws(() => createN8nToolRequest({ ...base, agentId: 'xchange' }), { code: 'N8N_TOOL_FORBIDDEN' });
   assert.throws(() => createN8nToolRequest({ ...base, taskType: 'research.delete' }), { code: 'N8N_TOOL_NOT_ALLOWED' });
   assert.throws(() => createN8nToolRequest({ ...base, input: { query: '' } }), { code: 'N8N_TOOL_INVALID_REQUEST' });
+  assert.throws(() => createN8nToolRequest({ ...base, input: { query: 'safe', language: 'fr-FR' } }), { code: 'N8N_TOOL_INVALID_REQUEST' });
   assert.throws(() => createN8nToolRequest({ ...base, input: { query: 'safe', workflowUrl: 'https://evil.example' } }), { code: 'N8N_TOOL_INVALID_REQUEST' });
   assert.throws(() => createN8nToolRequest({
     requestId: 'req_ingest_bad_001', traceId: 'trace_ingest_bad_001', agentId: 'archivist', toolId: 'vector.ingest', taskType: 'knowledge.ingest',
