@@ -14,3 +14,11 @@ test('production routes Xchange revise and validation requests to their handlers
     destination: '/api/agent/chat?agent=xchange&operation=validate',
   });
 });
+
+test('production routes the Explorer web.search canary through the existing shared server function', async () => {
+  const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+  assert.deepEqual(config.rewrites.find(({ source }) => source === '/api/agent/explorer/web-search'), {
+    source: '/api/agent/explorer/web-search',
+    destination: '/api/agent/chat?admin=explorer-web-search',
+  });
+});

@@ -13,6 +13,7 @@ import { executeActionAuditRepair, executeLegacyMigration, getMigrationStatus, i
 import { createXchangeDraftPreview, executeXchangeDraft, reviseXchangeDraftPreview } from '../../lib/agent/xchangeWriteContract.js';
 import { validateXchangeDraftDelivery } from '../../lib/agent/xchangeDraftValidation.js';
 import { getModelReadiness } from '../../lib/model/modelReadiness.js';
+import { handleExplorerWebSearchDiagnostic } from '../../lib/agent/explorerWebSearchDiagnostic.js';
 
 const adminLoginAttempts = new Map();
 const ADMIN_LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -323,6 +324,10 @@ async function handleAdminRequest(req, res) {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.admin === 'explorer-web-search') {
+    await handleExplorerWebSearchDiagnostic(req, res);
+    return;
+  }
   if (req.query?.admin) {
     await handleAdminRequest(req, res);
     return;

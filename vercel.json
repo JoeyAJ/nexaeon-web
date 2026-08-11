@@ -17,6 +17,10 @@
       "destination": "/api/agent/chat?admin=model-readiness"
     },
     {
+      "source": "/api/agent/explorer/web-search",
+      "destination": "/api/agent/chat?admin=explorer-web-search"
+    },
+    {
       "source": "/api/admin/migration/preview",
       "destination": "/api/agent/chat?admin=migration-preview"
     },

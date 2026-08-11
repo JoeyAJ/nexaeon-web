@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { handleExplorerWebSearchDiagnostic } from '../api/agent/explorer/web-search.js';
+import { handleExplorerWebSearchDiagnostic } from '../lib/agent/explorerWebSearchDiagnostic.js';
 import { createAdminSession } from '../lib/agent/adminSession.js';
 import { createN8nToolAuditCollector } from '../lib/agent/n8nToolAudit.js';
 import { createFakeN8nFetch } from './helpers/fakeN8nTransport.js';
