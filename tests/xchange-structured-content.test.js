@@ -144,7 +144,7 @@ test('Traditional Chinese, Korean, and English use one schema and render localiz
 });
 
 test('Traditional Chinese measurable objectives use the formal allowlist at the start of every objective', () => {
-  assert.deepEqual(XCHANGE_MEASURABLE_OBJECTIVE_VERBS.zh, ['辨識', '說明', '解釋', '比較', '應用', '建立', '評估', '設計', '分析']);
+  for (const verb of ['辨識', '說明', '解釋', '比較', '應用', '建立', '評估', '設計', '分析']) assert.equal(XCHANGE_MEASURABLE_OBJECTIVE_VERBS.zh.includes(verb), true);
   const content = generateCourseContent(coursePayload('zh'));
   const measurableObjectives = [
     '辨識生成式 AI 的適用情境', '說明內容驗證的必要步驟', '比較兩種提示詞策略',

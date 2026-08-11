@@ -25,7 +25,8 @@ export function projectModelAuditDetails(record = {}) {
   const output = record.sanitizedOutput && typeof record.sanitizedOutput === 'object' ? record.sanitizedOutput : {};
   const model = output.modelGeneration && typeof output.modelGeneration === 'object' ? output.modelGeneration : {};
   const shadow = output.shadowComparison && typeof output.shadowComparison === 'object' ? output.shadowComparison : {};
-  const diagnostic = shadow.qualityDiagnostic && typeof shadow.qualityDiagnostic === 'object' ? shadow.qualityDiagnostic : {};
+  const diagnostic = shadow.qualityDiagnostic && typeof shadow.qualityDiagnostic === 'object' ? shadow.qualityDiagnostic
+    : output.qualityDiagnostic && typeof output.qualityDiagnostic === 'object' ? output.qualityDiagnostic : {};
   const usage = shadow.tokenUsage && typeof shadow.tokenUsage === 'object' ? shadow.tokenUsage
     : model.tokenUsage && typeof model.tokenUsage === 'object' ? model.tokenUsage : {};
   const details = Object.freeze({
